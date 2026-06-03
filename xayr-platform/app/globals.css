@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Base ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -16,28 +17,24 @@
   body {
     @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50;
     font-family: 'Inter', system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
   }
   html { scroll-behavior: smooth; }
 }
 
-/* ─── Components ─────────────────────────────────────────────── */
 @layer components {
-
-  /* Buttons */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
-           bg-brand-600 hover:bg-brand-700 active:scale-[.98]
+           bg-brand-600 hover:bg-brand-700 active:bg-brand-800
            text-white font-semibold text-sm
-           transition-all duration-200 shadow-brand hover:shadow-lg
+           transition-all duration-200 shadow-sm hover:shadow-md
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
            bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700
-           hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300
+           hover:bg-gray-50 dark:hover:bg-gray-800
            text-gray-700 dark:text-gray-200 font-semibold text-sm
-           transition-all duration-200 shadow-card;
+           transition-all duration-200 shadow-sm;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
@@ -45,22 +42,10 @@
            text-gray-600 dark:text-gray-400 font-medium text-sm
            transition-all duration-200;
   }
-  .btn-white {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
-           bg-white text-brand-700 font-semibold text-sm
-           hover:bg-brand-50 transition-all duration-200 shadow-card;
-  }
-
-  /* Cards */
   .card {
     @apply bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
-           dark:border-gray-800 shadow-card;
+           dark:border-gray-800 shadow-sm;
   }
-  .card-hover {
-    @apply card hover:shadow-card-md hover:-translate-y-1 transition-all duration-300;
-  }
-
-  /* Form */
   .input {
     @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700
            bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
@@ -71,46 +56,24 @@
   .label {
     @apply block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5;
   }
-
-  /* Badges */
   .badge {
     @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
-  .badge-pill {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
-  }
-
-  /* Progress */
   .progress-bar {
     @apply h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden;
   }
   .progress-fill {
     @apply h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full transition-all duration-700;
   }
-
-  /* Typography */
   .section-title {
     @apply text-3xl font-bold text-gray-900 dark:text-white tracking-tight;
   }
   .section-sub {
     @apply text-gray-500 dark:text-gray-400 mt-2 text-base;
   }
-  .section-eyebrow {
-    @apply inline-flex items-center gap-2 text-brand-600 dark:text-brand-400 text-sm font-semibold tracking-wide uppercase;
-  }
-
-  /* Dividers */
-  .divider {
-    @apply border-t border-gray-100 dark:border-gray-800;
-  }
-
-  /* Stat card */
-  .stat-card {
-    @apply card p-6 text-center hover:shadow-card-md transition-all duration-300;
-  }
 }
 
-/* ─── Scrollbar ──────────────────────────────────────────────── */
-::-webkit-scrollbar       { width: 6px; height: 6px; }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { @apply bg-transparent; }
 ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-700 rounded-full; }
