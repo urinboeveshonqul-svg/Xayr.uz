@@ -2,12 +2,17 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Menu, X, Heart, LogOut, LayoutDashboard, Search, Globe } from 'lucide-react';
+import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/I18nProvider';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '@/types';
 
 export function Navbar() {
+  const { t, locale } = useI18n();
+  const L = (path: string) => `/${locale}${path}`;
+
   const [user, setUser]         = useState<SupabaseUser | null>(null);
   const [profile, setProfile]   = useState<Profile | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -21,7 +26,7 @@ export function Navbar() {
       setUser(data.user);
       if (data.user) {
         supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('id', data.user.id)
           .single()
@@ -33,7 +38,7 @@ export function Navbar() {
       setUser(session?.user ?? null);
       if (session?.user) {
         supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single()
@@ -55,7 +60,7 @@ export function Navbar() {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = '/';
+    window.location.href = `/${locale}`;
   };
 
   return (
@@ -70,7 +75,7 @@ export function Navbar() {
         <div className="flex items-center justify-between h-20">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href={L('')} className="flex items-center gap-3 group">
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
               <span className="text-2xl">💚</span>
             </div>
@@ -81,25 +86,25 @@ export function Navbar() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-2">
-            <Link href="/campaigns" className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              Kampaniyalar
+            <Link href={L('/campaigns')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
+              {t('nav.campaigns')}
             </Link>
-            <Link href="/campaigns?category=medical" className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              Tibbiyot
+            <Link href={L('/campaigns?category=medical')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
+              {t('nav.medical')}
             </Link>
-            <Link href="/campaigns?category=education" className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              Ta'lim
+            <Link href={L('/campaigns?category=education')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
+              {t('nav.education')}
             </Link>
-            <Link href="/campaigns?category=disaster" className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              Favqulodda
+            <Link href={L('/campaigns?category=disaster')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
+              {t('nav.emergency')}
             </Link>
           </nav>
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-3">
-            
+
             {/* Search */}
-            <button 
+            <button
               onClick={() => setSearchOpen(!searchOpen)}
               className="p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all"
               aria-label="Search"
@@ -107,34 +112,35 @@ export function Navbar() {
               <Search className="w-5 h-5" />
             </button>
 
-            {/* Language */}
-            <button className="p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all">
-              <Globe className="w-5 h-5" />
-            </button>
+            {/* Language switcher */}
+            <LanguageSwitcher />
 
             {user ? (
               <>
                 {profile?.role === 'admin' && (
-                  <Link href="/admin" className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all flex items-center gap-2">
+                  <Link href={L('/admin')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all flex items-center gap-2">
                     <LayoutDashboard className="w-4 h-4" />
-                    Admin
+                    {t('nav.admin')}
                   </Link>
                 )}
-                <Link href="/campaigns/create" className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2">
+                <Link href={L('/campaigns/create')} className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2">
                   <Heart className="w-4 h-4" />
-                  Loyiha Yaratish
+                  {t('nav.createProject')}
                 </Link>
-                <button onClick={handleSignOut} className="p-3 rounded-xl text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all" title="Chiqish">
+                <Link href={L('/profile')} className="p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all" title={t('nav.profile')}>
+                  <User className="w-5 h-5" />
+                </Link>
+                <button onClick={handleSignOut} className="p-3 rounded-xl text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all" title={t('nav.logout')}>
                   <LogOut className="w-5 h-5" />
                 </button>
               </>
             ) : (
               <>
-                <Link href="/auth/login" className="px-6 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all">
-                  Kirish
+                <Link href={L('/auth/login')} className="px-6 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all">
+                  {t('nav.login')}
                 </Link>
-                <Link href="/auth/register" className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black hover:shadow-lg hover:scale-105 transition-all">
-                  Ro'yxatdan O'tish
+                <Link href={L('/auth/register')} className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black hover:shadow-lg hover:scale-105 transition-all">
+                  {t('nav.register')}
                 </Link>
               </>
             )}
@@ -157,7 +163,7 @@ export function Navbar() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Kampaniyalarda qidirish..."
+                placeholder={t('nav.searchPlaceholder')}
                 className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:outline-none text-sm font-medium"
                 autoFocus
               />
@@ -169,78 +175,59 @@ export function Navbar() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="lg:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-2 animate-fade-in">
-          
+
           {/* Mobile Search */}
           <div className="relative mb-4">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Qidirish..."
+              placeholder={t('nav.searchPlaceholder')}
               className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-green-500 focus:outline-none text-sm"
             />
           </div>
 
-          <Link
-            href="/campaigns"
-            className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all"
-            onClick={() => setMenuOpen(false)}
-          >
-            Kampaniyalar
+          {/* Language switcher (mobile) */}
+          <div className="pb-2">
+            <LanguageSwitcher />
+          </div>
+
+          <Link href={L('/campaigns')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+            {t('nav.campaigns')}
           </Link>
-          <Link
-            href="/campaigns?category=medical"
-            className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all"
-            onClick={() => setMenuOpen(false)}
-          >
-            🏥 Tibbiyot
+          <Link href={L('/campaigns?category=medical')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+            🏥 {t('nav.medical')}
           </Link>
-          <Link
-            href="/campaigns?category=education"
-            className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all"
-            onClick={() => setMenuOpen(false)}
-          >
-            📚 Ta'lim
+          <Link href={L('/campaigns?category=education')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+            📚 {t('nav.education')}
           </Link>
-          <Link
-            href="/campaigns?category=disaster"
-            className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all"
-            onClick={() => setMenuOpen(false)}
-          >
-            🚨 Favqulodda
+          <Link href={L('/campaigns?category=disaster')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+            🚨 {t('nav.emergency')}
           </Link>
-          
+
           {user ? (
             <>
               {profile?.role === 'admin' && (
-                <Link
-                  href="/admin"
-                  className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Admin Panel
+                <Link href={L('/admin')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+                  {t('nav.admin')}
                 </Link>
               )}
-              <Link
-                href="/campaigns/create"
-                className="block px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black text-center"
-                onClick={() => setMenuOpen(false)}
-              >
-                Loyiha Yaratish
+              <Link href={L('/profile')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+                {t('nav.profile')}
               </Link>
-              <button
-                onClick={handleSignOut}
-                className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-all"
-              >
-                Chiqish
+              <Link href={L('/campaigns/create')} className="block px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black text-center" onClick={() => setMenuOpen(false)}>
+                {t('nav.createProject')}
+              </Link>
+              <button onClick={handleSignOut} className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-all">
+                {t('nav.logout')}
               </button>
             </>
           ) : (
             <div className="flex flex-col gap-2 pt-2">
-              <Link href="/auth/login" className="block px-4 py-3 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 text-center" onClick={() => setMenuOpen(false)}>
-                Kirish
+              <Link href={L('/auth/login')} className="block px-4 py-3 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 text-center" onClick={() => setMenuOpen(false)}>
+                {t('nav.login')}
               </Link>
-              <Link href="/auth/register" className="block px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black text-center" onClick={() => setMenuOpen(false)}>
-                Ro'yxatdan O'tish
+              <Link href={L('/auth/register')} className="block px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black text-center" onClick={() => setMenuOpen(false)}>
+                {t('nav.register')}
               </Link>
             </div>
           )}

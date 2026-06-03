@@ -64,13 +64,10 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
 
       const { error } = await supabase.from('donations').insert({
         campaign_id: campaignId,
-        user_id: user?.id ?? null,
+        donor_id: user?.id ?? null,
         amount: data.amount,
-        donor_name: data.is_anonymous ? null : (data.donor_name || user?.email || null),
         message: data.message || null,
-        is_anonymous: data.is_anonymous,
-        payment_method: null,
-        payment_id: null,
+        anonymous: data.is_anonymous,
         status: 'pending',
       });
 

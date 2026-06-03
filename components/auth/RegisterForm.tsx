@@ -37,12 +37,15 @@ export function RegisterForm() {
   const onSubmit = async (data: FormData) => {
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           // handle_new_user trigger reads this to populate profiles.full_name
           data: { full_name: data.full_name },
+          // Where the confirmation link returns the user (the callback route
+          // exchanges the code for a session, then forwards to `/`).
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -55,9 +58,23 @@ export function RegisterForm() {
         return;
       }
 
-      toast.success('Ro\'yxatdan muvaffaqiyatli o\'tdingiz!');
-      router.push('/');
-      router.refresh();
+      // Supabase returns a user with an empty `identities` array when the email
+      // is already registered (prevents email enumeration). Treat as duplicate.
+      if (signUpData.user && signUpData.user.identities?.length === 0) {
+        toast.error('Bu email allaqachon ro\'yxatdan o\'tgan');
+        return;
+      }
+
+      if (signUpData.session) {
+        // Email confirmation disabled — user is already signed in.
+        toast.success('Ro\'yxatdan muvaffaqiyatli o\'tdingiz!');
+        router.push('/');
+        router.refresh();
+      } else {
+        // Email confirmation required — show the verify-email notice.
+        toast.success('Tasdiqlash havolasi emailingizga yuborildi!');
+        router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
+      }
     } catch {
       toast.error('Kutilmagan xatolik yuz berdi');
     }

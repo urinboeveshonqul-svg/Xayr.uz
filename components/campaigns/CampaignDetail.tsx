@@ -18,9 +18,9 @@ interface CampaignDetailProps {
 
 export function CampaignDetail({ campaign }: CampaignDetailProps) {
   const [showDonation, setShowDonation] = useState(false);
-  const pct = getProgress(campaign.raised, campaign.goal);
+  const pct = getProgress(campaign.current_amount, campaign.goal_amount);
   const days = daysLeft(campaign.deadline);
-  const cat = CATEGORY_CONFIG[campaign.category];
+  const cat = CATEGORY_CONFIG[campaign.categories?.slug ?? 'other'];
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -96,17 +96,6 @@ export function CampaignDetail({ campaign }: CampaignDetailProps) {
               Kampaniya haqida
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {campaign.organizer && (
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-brand-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Tashkilotchi</p>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{campaign.organizer}</p>
-                  </div>
-                </div>
-              )}
               {campaign.location && (
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
@@ -153,14 +142,14 @@ export function CampaignDetail({ campaign }: CampaignDetailProps) {
             {/* Stats */}
             <div className="mb-5">
               <div className="text-3xl font-black text-brand-600 mb-1">
-                {formatMoneyFull(campaign.raised)}
+                {formatMoneyFull(campaign.current_amount)}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {formatMoneyFull(campaign.goal)} maqsaddan
+                {formatMoneyFull(campaign.goal_amount)} maqsaddan
               </p>
             </div>
 
-            <ProgressBar raised={campaign.raised} goal={campaign.goal} className="mb-4" />
+            <ProgressBar raised={campaign.current_amount} goal={campaign.goal_amount} className="mb-4" />
 
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="text-center">

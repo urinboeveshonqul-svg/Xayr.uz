@@ -17,7 +17,7 @@ async function getCampaigns(): Promise<Campaign[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, profiles(full_name, avatar_url)')
+      .select('*, profiles:users(full_name, avatar_url), categories(slug)')
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 

@@ -67,7 +67,7 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
       </div>
 
       {campaigns.map((campaign) => {
-        const cat = CATEGORY_CONFIG[campaign.category];
+        const cat = CATEGORY_CONFIG[campaign.categories?.slug ?? 'other'];
         const isLoading = loadingId === campaign.id;
 
         return (
@@ -108,7 +108,7 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
-                  <span>🎯 Maqsad: {formatMoney(campaign.goal)} so'm</span>
+                  <span>🎯 Maqsad: {formatMoney(campaign.goal_amount)} so'm</span>
                   {campaign.location && <span>📍 {campaign.location}</span>}
                   <span>🕐 {timeAgo(campaign.created_at)}</span>
                 </div>

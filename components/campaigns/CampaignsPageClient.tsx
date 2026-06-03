@@ -32,7 +32,7 @@ export function CampaignsPageClient({ initialCampaigns }: CampaignsPageClientPro
     }
 
     if (category !== 'all') {
-      list = list.filter((c) => c.category === category);
+      list = list.filter((c) => c.categories?.slug === category);
     }
 
     if (urgentOnly) {
@@ -41,7 +41,7 @@ export function CampaignsPageClient({ initialCampaigns }: CampaignsPageClientPro
 
     switch (sort) {
       case 'most_raised':
-        list.sort((a, b) => b.raised - a.raised);
+        list.sort((a, b) => b.current_amount - a.current_amount);
         break;
       case 'most_donors':
         list.sort((a, b) => b.donors_count - a.donors_count);

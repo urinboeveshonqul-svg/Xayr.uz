@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Users, TrendingUp, AlertCircle } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign } from '@/types';
 
 interface CampaignCardProps {
@@ -22,10 +25,18 @@ const CATEGORY_IMAGES: Record<string, string> = {
   other:       'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&h=600&fit=crop&auto=format',
 };
 
+const CATEGORY_EMOJI: Record<string, string> = {
+  medical: '🏥', education: '📚', disaster: '🚨', community: '🤝',
+  environment: '🌱', animal: '🐾', sport: '⚽', other: '💡',
+};
+
 export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) {
-  const raised  = campaign.raised  ?? 0;
-  const goal    = campaign.goal    ?? 1;
+  const { t, locale } = useI18n();
+
+  const raised  = campaign.current_amount ?? 0;
+  const goal    = campaign.goal_amount    ?? 1;
   const percent = Math.min(100, Math.round((raised / goal) * 100));
+  const categorySlug = campaign.categories?.slug ?? 'other';
 
   const getCategoryColor = (category?: string) => {
     switch (category) {
@@ -37,27 +48,20 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
     }
   };
 
-  const getCategoryLabel = (category?: string) => {
-    switch (category) {
-      case 'medical':   return '🏥 Tibbiyot';
-      case 'education': return '📚 Ta\'lim';
-      case 'disaster':  return '🚨 Favqulodda';
-      case 'community': return '🤝 Jamiyat';
-      default:          return '💚 Xayriya';
-    }
-  };
+  const emoji = CATEGORY_EMOJI[categorySlug] ?? '💚';
+  const categoryLabel = `${emoji} ${t(`categories.${categorySlug}`)}`;
 
   const imageSrc =
     campaign.image_url ||
     campaign.cover_image ||
-    CATEGORY_IMAGES[campaign.category] ||
+    CATEGORY_IMAGES[categorySlug] ||
     CATEGORY_IMAGES.other;
 
   const donors = campaign.total_donations ?? campaign.donors_count ?? 0;
 
   return (
     <Link
-      href={`/campaigns/${campaign.slug}`}
+      href={`/${locale}/campaigns/${campaign.slug}`}
       className={`group flex flex-col bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 ${
         featured ? 'ring-2 ring-green-500/30' : ''
       }`}
@@ -77,21 +81,21 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
 
         {/* Category badge */}
         <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/95 backdrop-blur-md rounded-full text-xs font-bold shadow-lg">
-          {getCategoryLabel(campaign.category)}
+          {categoryLabel}
         </div>
 
         {/* Urgent badge */}
         {(urgent || campaign.is_urgent) && (
           <div className="absolute top-4 right-4 px-3 py-1.5 bg-red-600 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1 animate-pulse">
             <AlertCircle className="w-3 h-3" />
-            SHOSHILINCH
+            {t('campaign.urgent')}
           </div>
         )}
 
         {/* Featured badge */}
         {featured && !urgent && !campaign.is_urgent && (
           <div className="absolute top-4 right-4 px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg">
-            ⭐ TANLANGAN
+            ⭐ {t('home.featuredBadge')}
           </div>
         )}
 
@@ -99,7 +103,7 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
         <div className="absolute bottom-4 left-4 right-4">
           <div className="bg-white/25 backdrop-blur-md rounded-full h-2 overflow-hidden">
             <div
-              className={`h-full bg-gradient-to-r ${getCategoryColor(campaign.category)} transition-all duration-500`}
+              className={`h-full bg-gradient-to-r ${getCategoryColor(categorySlug)} transition-all duration-500`}
               style={{ width: `${percent}%` }}
             />
           </div>
@@ -135,29 +139,29 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
           <div>
             <div className="text-xs text-gray-500 font-semibold mb-1 flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
-              Yig'ilgan
+              {t('campaign.raised')}
             </div>
             <div className="text-base font-black text-gray-900">
               {formatMoney(raised)} so'm
             </div>
             <div className="text-xs text-gray-500">
-              {formatMoney(goal)} dan
+              {formatMoney(goal)} {t('campaign.of')}
             </div>
           </div>
           <div>
             <div className="text-xs text-gray-500 font-semibold mb-1 flex items-center gap-1">
               <Users className="w-3 h-3" />
-              Xayriyachilar
+              {t('campaign.donors')}
             </div>
             <div className="text-base font-black text-gray-900">{donors}</div>
-            <div className="text-xs text-gray-500">{percent}% to'plandi</div>
+            <div className="text-xs text-gray-500">{percent}% {t('campaign.funded')}</div>
           </div>
         </div>
 
         {/* CTA (decorative — whole card is the link) */}
         <span className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold text-sm group-hover:shadow-lg group-hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2">
           <Heart className="w-4 h-4" />
-          Yordam Berish
+          {t('buttons.donateNow')}
         </span>
       </div>
     </Link>

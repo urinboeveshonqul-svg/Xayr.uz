@@ -14,7 +14,7 @@ async function getPendingCampaigns(): Promise<Campaign[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, profiles(full_name, avatar_url)')
+      .select('*, profiles:users(full_name, avatar_url), categories(slug)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
@@ -34,7 +34,7 @@ export default async function AdminPage() {
   if (!user) redirect('/auth/login');
 
   const { data: profile } = await supabase
-    .from('profiles')
+    .from('users')
     .select('role')
     .eq('id', user.id)
     .single();

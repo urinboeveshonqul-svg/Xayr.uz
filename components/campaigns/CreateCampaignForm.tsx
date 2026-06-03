@@ -18,7 +18,6 @@ const schema = z.object({
   category: z.enum(['medical', 'education', 'disaster', 'community', 'environment', 'animal', 'sport', 'other']),
   goal: z.coerce.number().min(100000, 'Maqsad kamida 100,000 so\'m bo\'lishi kerak'),
   deadline: z.string().optional().or(z.literal('')),
-  organizer: z.string().max(100).optional().or(z.literal('')),
   location: z.string().max(100).optional().or(z.literal('')),
   is_urgent: z.boolean().default(false),
 });
@@ -27,9 +26,10 @@ type FormData = z.infer<typeof schema>;
 
 interface CreateCampaignFormProps {
   userId: string;
+  categories: { id: string; slug: CampaignCategory }[];
 }
 
-export function CreateCampaignForm({ userId }: CreateCampaignFormProps) {
+export function CreateCampaignForm({ userId, categories }: CreateCampaignFormProps) {
   const router = useRouter();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -96,23 +96,21 @@ export function CreateCampaignForm({ userId }: CreateCampaignFormProps) {
 
       const slug = slugify(data.title) + '-' + Date.now().toString(36);
 
+      const category_id = categories.find((c) => c.slug === data.category)?.id ?? null;
+
       const { error } = await supabase.from('campaigns').insert({
         user_id: userId,
         title: data.title,
         slug,
         description: data.description,
         story: data.story || null,
-        category: data.category as CampaignCategory,
-        goal: data.goal,
+        category_id,
+        goal_amount: data.goal,
         deadline: data.deadline || null,
-        organizer: data.organizer || null,
         location: data.location || null,
         is_urgent: data.is_urgent,
         image_url,
         status: 'pending',
-        raised: 0,
-        donors_count: 0,
-        views: 0,
       });
 
       if (error) {
@@ -217,16 +215,10 @@ export function CreateCampaignForm({ userId }: CreateCampaignFormProps) {
         </div>
       </div>
 
-      {/* Organizer + Location */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="label">Tashkilotchi</label>
-          <input {...register('organizer')} className="input" placeholder="Ism yoki tashkilot nomi" />
-        </div>
-        <div>
-          <label className="label">Joylashuv</label>
-          <input {...register('location')} className="input" placeholder="Shahar, viloyat" />
-        </div>
+      {/* Location */}
+      <div>
+        <label className="label">Joylashuv</label>
+        <input {...register('location')} className="input" placeholder="Shahar, viloyat" />
       </div>
 
       {/* Deadline */}

@@ -7,7 +7,7 @@ import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
 import type { Campaign } from '@/types';
 
 interface Props {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }
 
 async function getCampaign(slug: string): Promise<Campaign | null> {
@@ -15,7 +15,7 @@ async function getCampaign(slug: string): Promise<Campaign | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, profiles(full_name, avatar_url)')
+      .select('*, profiles:users(full_name, avatar_url), categories(slug)')
       .eq('slug', slug)
       .single();
 
