@@ -36,6 +36,10 @@ export interface Campaign {
   created_at: string;
   updated_at: string;
   profiles?: Profile;
+  // Optional client-side fallback aliases (not stored in the DB).
+  // CampaignCard reads these as alternates for image_url / donors_count.
+  cover_image?: string | null;
+  total_donations?: number;
 }
 
 export interface Donation {
