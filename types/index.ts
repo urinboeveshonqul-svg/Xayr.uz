@@ -70,10 +70,14 @@ export interface CampaignUpdate {
 export interface Database {
   public: {
     Tables: {
-      profiles:         { Row: Profile;        Insert: Partial<Profile>;        Update: Partial<Profile> };
-      campaigns:        { Row: Campaign;       Insert: Partial<Campaign>;       Update: Partial<Campaign> };
-      donations:        { Row: Donation;       Insert: Partial<Donation>;       Update: Partial<Donation> };
-      campaign_updates: { Row: CampaignUpdate; Insert: Partial<CampaignUpdate>; Update: Partial<CampaignUpdate> };
+      profiles:         { Row: Profile;        Insert: Partial<Profile>;        Update: Partial<Profile>;        Relationships: [] };
+      campaigns:        { Row: Campaign;       Insert: Partial<Campaign>;       Update: Partial<Campaign>;       Relationships: [] };
+      donations:        { Row: Donation;       Insert: Partial<Donation>;       Update: Partial<Donation>;       Relationships: [] };
+      campaign_updates: { Row: CampaignUpdate; Insert: Partial<CampaignUpdate>; Update: Partial<CampaignUpdate>; Relationships: [] };
     };
+    Views:          { [_ in never]: never };
+    Functions:      { [_ in never]: never };
+    Enums:          { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
   };
 }
