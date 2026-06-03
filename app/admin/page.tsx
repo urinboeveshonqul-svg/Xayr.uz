@@ -19,7 +19,9 @@ async function getPendingCampaigns(): Promise<Campaign[]> {
       .order('created_at', { ascending: false });
 
     if (error) return [];
-    return (data as Campaign[]) ?? [];
+    // `profiles` embeds as a partial array in the inferred type; the runtime
+    // shape matches Campaign, so assert through `unknown` (TS-recommended).
+    return (data as unknown as Campaign[]) ?? [];
   } catch {
     return [];
   }

@@ -20,7 +20,7 @@ async function getCampaign(slug: string): Promise<Campaign | null> {
       .single();
 
     if (error || !data) return null;
-    return data as Campaign;
+    return data as unknown as Campaign;
   } catch {
     return null;
   }

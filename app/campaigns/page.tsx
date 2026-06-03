@@ -25,7 +25,7 @@ async function getCampaigns(): Promise<Campaign[]> {
       console.error('Error fetching campaigns:', error.message);
       return [];
     }
-    return (data as Campaign[]) ?? [];
+    return (data as unknown as Campaign[]) ?? [];
   } catch {
     return [];
   }

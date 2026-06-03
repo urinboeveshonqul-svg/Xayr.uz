@@ -24,7 +24,7 @@ async function getActiveCampaigns(): Promise<Campaign[]> {
       .limit(24);
 
     if (error) return [];
-    return (data as Campaign[]) ?? [];
+    return (data as unknown as Campaign[]) ?? [];
   } catch {
     return [];
   }
