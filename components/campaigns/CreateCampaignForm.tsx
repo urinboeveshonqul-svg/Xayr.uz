@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,8 +8,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Upload, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { slugify } from '@/lib/utils';
-import { CATEGORY_CONFIG } from '@/lib/utils';
+import { slugify, CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
 
 const schema = z.object({
@@ -35,6 +34,14 @@ export function CreateCampaignForm({ userId }: CreateCampaignFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const blobUrlRef = useRef<string | null>(null);
+
+  // Revoke blob URL when component unmounts to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    };
+  }, []);
 
   const {
     register,
@@ -52,8 +59,12 @@ export function CreateCampaignForm({ userId }: CreateCampaignFormProps) {
       toast.error('Rasm hajmi 5MB dan oshmasligi kerak');
       return;
     }
+    // Revoke previous blob URL before creating a new one
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    const url = URL.createObjectURL(file);
+    blobUrlRef.current = url;
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview(url);
   };
 
   const onSubmit = async (data: FormData) => {

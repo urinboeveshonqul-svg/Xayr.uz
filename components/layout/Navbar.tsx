@@ -2,20 +2,21 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Menu, X, Heart, LogOut, User, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Heart, LogOut, LayoutDashboard } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '@/types';
 
 export function Navbar() {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [user, setUser]         = useState<SupabaseUser | null>(null);
+  const [profile, setProfile]   = useState<Profile | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
 
+    // Initial load
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       if (data.user) {
@@ -28,9 +29,19 @@ export function Navbar() {
       }
     });
 
+    // Listen for auth changes — also re-fetch profile on sign-in
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user) setProfile(null);
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: p }) => setProfile(p));
+      } else {
+        setProfile(null);
+      }
     });
 
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -58,6 +69,7 @@ export function Navbar() {
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <span className="text-2xl">💚</span>

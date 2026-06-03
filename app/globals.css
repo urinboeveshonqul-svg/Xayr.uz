@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -16,7 +14,10 @@
   * { @apply border-gray-200 dark:border-gray-800; }
   body {
     @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50;
-    font-family: 'Inter', system-ui, sans-serif;
+    /* Use the CSS variable injected by next/font in layout.tsx */
+    font-family: var(--font-inter), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   html { scroll-behavior: smooth; }
 }
@@ -59,6 +60,9 @@
   .badge {
     @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
+  .badge-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
+  }
   .progress-bar {
     @apply h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden;
   }
@@ -70,6 +74,16 @@
   }
   .section-sub {
     @apply text-gray-500 dark:text-gray-400 mt-2 text-base;
+  }
+  /* Used by HowItWorks and home sections */
+  .section-eyebrow {
+    @apply inline-flex items-center gap-2 text-brand-600 dark:text-brand-400 text-sm font-semibold tracking-wide uppercase;
+  }
+  /* Used by CtaSection */
+  .card-hover {
+    @apply bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
+           dark:border-gray-800 shadow-sm hover:shadow-md hover:-translate-y-0.5
+           transition-all duration-200;
   }
 }
 

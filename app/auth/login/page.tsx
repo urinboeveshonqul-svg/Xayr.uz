@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { LoginForm } from '@/components/auth/LoginForm';
 
 export const metadata: Metadata = {
@@ -26,7 +27,17 @@ export default function LoginPage() {
           </p>
         </div>
         <div className="card p-8">
-          <LoginForm />
+          {/*
+            LoginForm uses useSearchParams() which requires a Suspense boundary.
+            Without this, next build fails with a hard error.
+          */}
+          <Suspense fallback={
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 rounded-full border-2 border-gray-200 border-t-brand-600 animate-spin" />
+            </div>
+          }>
+            <LoginForm />
+          </Suspense>
         </div>
       </div>
     </div>

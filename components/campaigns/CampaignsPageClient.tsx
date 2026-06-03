@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { CampaignGrid } from './CampaignGrid';
 import { CATEGORY_CONFIG } from '@/lib/utils';
 import type { Campaign, CampaignCategory } from '@/types';
