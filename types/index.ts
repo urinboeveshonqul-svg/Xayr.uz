@@ -111,6 +111,7 @@ export type Database = {
           goal_amount: number;
           current_amount: number;
           image_url: string | null;
+          images: string[];
           status: CampaignStatus;
           is_urgent: boolean;
           deadline: string | null;
@@ -131,6 +132,7 @@ export type Database = {
           goal_amount: number;
           current_amount?: number;
           image_url?: string | null;
+          images?: string[];
           status?: CampaignStatus;
           is_urgent?: boolean;
           deadline?: string | null;
@@ -151,6 +153,7 @@ export type Database = {
           goal_amount?: number;
           current_amount?: number;
           image_url?: string | null;
+          images?: string[];
           status?: CampaignStatus;
           is_urgent?: boolean;
           deadline?: string | null;
@@ -313,7 +316,33 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: { [_ in never]: never };
+    Views: {
+      campaign_donors: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          amount: number;
+          message: string | null;
+          created_at: string;
+          anonymous: boolean;
+          donor_name: string | null;
+          donor_avatar: string | null;
+        };
+        Relationships: [];
+      };
+      admin_stats: {
+        Row: {
+          users_count: number;
+          campaigns_count: number;
+          active_count: number;
+          pending_count: number;
+          completed_count: number;
+          donations_count: number;
+          total_raised: number;
+        };
+        Relationships: [];
+      };
+    };
     Functions: { [_ in never]: never };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -336,8 +365,10 @@ export type SavedCampaign = Row<'saved_campaigns'>;
 // Campaign as consumed by the UI: the row + optionally embedded relations.
 // Queries embed the organizer as `profiles:users(...)` and the category as
 // `categories(slug)`, so those keys are available on the result.
+export type Donor = Database['public']['Views']['campaign_donors']['Row'];
+
 export type Campaign = Row<'campaigns'> & {
-  profiles?: Pick<Profile, 'full_name' | 'avatar_url'> | null;
+  profiles?: (Pick<Profile, 'full_name' | 'avatar_url'> & { bio?: string | null }) | null;
   categories?: { slug: CampaignCategory } | null;
   cover_image?: string | null;
   total_donations?: number;

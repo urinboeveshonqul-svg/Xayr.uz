@@ -184,6 +184,40 @@
     "passwordUpdated": "Parol muvaffaqiyatli yangilandi!",
     "resetSent": "Tiklash havolasi yuborildi!"
   },
+  "donation": {
+    "historyTitle": "Mening xayriyalarim",
+    "noDonations": "Siz hali xayriya qilmagansiz",
+    "pending": "Kutilmoqda",
+    "completed": "Yakunlangan",
+    "failed": "Muvaffaqiyatsiz",
+    "refunded": "Qaytarilgan"
+  },
+  "detail": {
+    "recentDonors": "So'nggi xayriyachilar",
+    "anonymous": "Anonim",
+    "noDonors": "Birinchi bo'lib xayriya qiling",
+    "creatorTitle": "Tashkilotchi",
+    "similarTitle": "O'xshash kampaniyalar",
+    "commentsTitle": "Izohlar",
+    "writeComment": "Izoh yozing...",
+    "post": "Yuborish",
+    "posting": "Yuborilmoqda...",
+    "loginToComment": "Izoh qoldirish uchun tizimga kiring",
+    "noComments": "Hozircha izohlar yo'q"
+  },
+  "filters": {
+    "searchPlaceholder": "Kampaniya qidirish...",
+    "all": "Barchasi",
+    "sortNewest": "Eng yangi",
+    "sortMostRaised": "Ko'p to'plangan",
+    "sortMostDonors": "Ko'p donorlar",
+    "sortDeadline": "Muddati yaqin",
+    "urgentOnly": "Faqat shoshilinch",
+    "clear": "Tozalash",
+    "noResults": "Hech narsa topilmadi",
+    "prev": "Oldingi",
+    "next": "Keyingi"
+  },
   "language": {
     "label": "Til"
   }

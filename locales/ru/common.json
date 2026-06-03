@@ -184,6 +184,40 @@
     "passwordUpdated": "Пароль успешно обновлён!",
     "resetSent": "Ссылка для сброса отправлена!"
   },
+  "donation": {
+    "historyTitle": "Мои пожертвования",
+    "noDonations": "Вы ещё не делали пожертвований",
+    "pending": "В ожидании",
+    "completed": "Завершено",
+    "failed": "Не удалось",
+    "refunded": "Возвращено"
+  },
+  "detail": {
+    "recentDonors": "Последние доноры",
+    "anonymous": "Аноним",
+    "noDonors": "Станьте первым донором",
+    "creatorTitle": "Организатор",
+    "similarTitle": "Похожие кампании",
+    "commentsTitle": "Комментарии",
+    "writeComment": "Напишите комментарий...",
+    "post": "Отправить",
+    "posting": "Отправка...",
+    "loginToComment": "Войдите, чтобы оставить комментарий",
+    "noComments": "Пока нет комментариев"
+  },
+  "filters": {
+    "searchPlaceholder": "Поиск кампаний...",
+    "all": "Все",
+    "sortNewest": "Новые",
+    "sortMostRaised": "Больше собрано",
+    "sortMostDonors": "Больше доноров",
+    "sortDeadline": "Скоро дедлайн",
+    "urgentOnly": "Только срочные",
+    "clear": "Очистить",
+    "noResults": "Ничего не найдено",
+    "prev": "Назад",
+    "next": "Вперёд"
+  },
   "language": {
     "label": "Язык"
   }

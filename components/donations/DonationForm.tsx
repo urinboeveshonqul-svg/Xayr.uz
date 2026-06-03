@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, X } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { formatMoney } from '@/lib/utils';
 
 const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
@@ -15,7 +14,6 @@ const schema = z.object({
   amount: z.coerce
     .number({ invalid_type_error: 'Miqdor kiriting' })
     .min(1_000, 'Minimal xayriya miqdori 1,000 so\'m'),
-  donor_name: z.string().max(100).optional().or(z.literal('')),
   message: z.string().max(300).optional().or(z.literal('')),
   is_anonymous: z.boolean().default(false),
 });
@@ -59,24 +57,33 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const { error } = await supabase.from('donations').insert({
-        campaign_id: campaignId,
-        donor_id: user?.id ?? null,
-        amount: data.amount,
-        message: data.message || null,
-        anonymous: data.is_anonymous,
-        status: 'pending',
+      // Donations are created through the secure server API — the client can
+      // never set the status, so transaction records can't be tampered with.
+      const res = await fetch('/api/donations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId,
+          amount: data.amount,
+          anonymous: data.is_anonymous,
+          message: data.message || null,
+        }),
       });
 
-      if (error) {
-        toast.error('Xatolik: ' + error.message);
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        toast.error(json?.error ? `Xatolik: ${json.error}` : 'Xatolik yuz berdi');
         return;
       }
 
-      toast.success('Xayriyangiz qabul qilindi! To\'lov tez orada amalga oshiriladi.');
+      // A real payment gateway would return a checkout URL to redirect to.
+      if (json.redirectUrl) {
+        window.location.href = json.redirectUrl;
+        return;
+      }
+
+      toast.success(json.instructions || 'Xayriyangiz qabul qilindi!');
       onClose();
     } catch {
       toast.error('Kutilmagan xatolik yuz berdi');
@@ -146,19 +153,6 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
             Anonim xayriya qilish
           </span>
         </label>
-
-        {/* Donor name (shown when not anonymous) */}
-        {!isAnonymous && (
-          <div>
-            <label className="label">Ismingiz (ixtiyoriy)</label>
-            <input
-              {...register('donor_name')}
-              type="text"
-              className="input"
-              placeholder="Ism Familiya"
-            />
-          </div>
-        )}
 
         {/* Message */}
         <div>

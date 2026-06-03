@@ -2,33 +2,54 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
-  ChevronLeft, Zap, CheckCircle
+  ChevronLeft, Zap, CheckCircle, Send, Facebook, Link2
 } from 'lucide-react';
-import { formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
+import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { DonationForm } from '@/components/donations/DonationForm';
-import type { Campaign } from '@/types';
+import { useI18n } from '@/components/i18n/I18nProvider';
+import type { Campaign, Donor } from '@/types';
 
 interface CampaignDetailProps {
   campaign: Campaign;
+  donors: Donor[];
 }
 
-export function CampaignDetail({ campaign }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
+  const { t } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    setShareUrl(window.location.href);
+  }, []);
   const pct = getProgress(campaign.current_amount, campaign.goal_amount);
   const days = daysLeft(campaign.deadline);
   const cat = CATEGORY_CONFIG[campaign.categories?.slug ?? 'other'];
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: campaign.title, url: window.location.href });
-    } else {
-      await navigator.clipboard.writeText(window.location.href);
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl || window.location.href);
+      toast.success('Havola nusxalandi');
+    } catch {
+      /* clipboard unavailable */
     }
   };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: campaign.title, url: shareUrl || window.location.href });
+    } else {
+      await copyLink();
+    }
+  };
+
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(campaign.title)}`;
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -77,6 +98,31 @@ export function CampaignDetail({ campaign }: CampaignDetailProps) {
               </p>
             </div>
           </div>
+
+          {/* Additional images */}
+          {campaign.images && campaign.images.length > 0 && (
+            <div className="card p-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                Rasmlar
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {campaign.images.map((src, i) => (
+                  <div
+                    key={i}
+                    className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800"
+                  >
+                    <Image
+                      src={src}
+                      alt={`${campaign.title} ${i + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Story */}
           {campaign.story && (
@@ -133,6 +179,36 @@ export function CampaignDetail({ campaign }: CampaignDetailProps) {
               </div>
             </div>
           </div>
+
+          {/* Donor list */}
+          <div className="card p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              {t('detail.recentDonors')}
+            </h2>
+            {donors.length === 0 ? (
+              <p className="text-sm text-gray-400">{t('detail.noDonors')}</p>
+            ) : (
+              <ul className="space-y-3">
+                {donors.map((d) => {
+                  const name = d.donor_name ?? t('detail.anonymous');
+                  return (
+                    <li key={d.id} className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                        {name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
+                        {d.message && <p className="text-xs text-gray-500 truncate">{d.message}</p>}
+                      </div>
+                      <span className="text-sm font-bold text-brand-600 flex-shrink-0">
+                        {formatMoney(d.amount)} so&apos;m
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -184,15 +260,74 @@ export function CampaignDetail({ campaign }: CampaignDetailProps) {
               />
             )}
 
-            {/* Share */}
-            <button
-              onClick={handleShare}
-              className="btn-secondary w-full mt-3"
-            >
-              <Share2 className="w-4 h-4" />
-              Ulashish
-            </button>
+            {/* Share buttons */}
+            <div className="mt-4">
+              <p className="text-xs text-gray-400 mb-2 text-center">Ulashish</p>
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={handleShare}
+                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
+                  title="Ulashish"
+                  aria-label="Ulashish"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+                <a
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-500 hover:bg-blue-50 flex items-center justify-center transition-all"
+                  title="Telegram"
+                  aria-label="Telegram"
+                >
+                  <Send className="w-4 h-4" />
+                </a>
+                <a
+                  href={facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all"
+                  title="Facebook"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <button
+                  onClick={copyLink}
+                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
+                  title="Havolani nusxalash"
+                  aria-label="Havolani nusxalash"
+                >
+                  <Link2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Creator card */}
+          {campaign.profiles && (
+            <div className="card p-6">
+              <p className="text-xs text-gray-400 mb-3">{t('detail.creatorTitle')}</p>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                  {(campaign.profiles.full_name ?? 'U').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-gray-900 dark:text-white truncate">
+                    {campaign.profiles.full_name ?? 'Foydalanuvchi'}
+                  </p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-brand-600" /> Tasdiqlangan
+                  </p>
+                </div>
+              </div>
+              {campaign.profiles.bio && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed">
+                  {campaign.profiles.bio}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

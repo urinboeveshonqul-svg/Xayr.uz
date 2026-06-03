@@ -2,27 +2,30 @@
 -- XAYR — Crowdfunding Platform — COMPLETE SUPABASE SCHEMA
 -- Run once in: Supabase Dashboard → SQL Editor → "New query" → Run
 -- Target: PostgreSQL 15 / Supabase
--- Safe to re-run (idempotent guards on extensions, seeds, policies).
+--
+-- Strict execution order (so a fresh empty project runs clean):
+--   1. Extensions
+--   2. Tables          (created before anything references them)
+--   3. Indexes
+--   4. Functions       (created AFTER the tables they reference exist)
+--   5. Triggers
+--   6. RLS + Policies
+--   7. Storage
+--   8. Seed data
 -- ============================================================
 
--- ─── Extensions ─────────────────────────────────────────────
+
+-- ============================================================
+-- 1. EXTENSIONS
+-- ============================================================
 create extension if not exists pgcrypto;        -- gen_random_uuid()
 
--- ============================================================
--- HELPER: is_admin()  (SECURITY DEFINER so it bypasses RLS and
--- never causes recursive policy evaluation)
--- ============================================================
-create or replace function public.is_admin()
-returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.users where id = auth.uid() and role = 'admin'
-  );
-$$;
 
 -- ============================================================
--- 1. USERS  (public profile, 1:1 with auth.users)
+-- 2. TABLES   (order respects foreign-key dependencies)
 -- ============================================================
+
+-- 2.1 USERS  (public profile, 1:1 with auth.users) ----------
 create table if not exists public.users (
   id                 uuid primary key references auth.users (id) on delete cascade,
   email              text unique,
@@ -38,9 +41,7 @@ create table if not exists public.users (
   updated_at         timestamptz not null default now()
 );
 
--- ============================================================
--- 2. CATEGORIES
--- ============================================================
+-- 2.2 CATEGORIES --------------------------------------------
 create table if not exists public.categories (
   id         uuid primary key default gen_random_uuid(),
   slug       text unique not null,
@@ -52,9 +53,7 @@ create table if not exists public.categories (
   created_at timestamptz not null default now()
 );
 
--- ============================================================
--- 3. CAMPAIGNS
--- ============================================================
+-- 2.3 CAMPAIGNS ---------------------------------------------
 create table if not exists public.campaigns (
   id             uuid primary key default gen_random_uuid(),
   user_id        uuid not null references public.users (id) on delete cascade,
@@ -66,6 +65,7 @@ create table if not exists public.campaigns (
   goal_amount    bigint not null check (goal_amount > 0),
   current_amount bigint not null default 0 check (current_amount >= 0),
   image_url      text,
+  images         text[] not null default '{}',
   status         text not null default 'pending'
                    check (status in ('pending','active','rejected','completed','paused')),
   is_urgent      boolean not null default false,
@@ -77,9 +77,7 @@ create table if not exists public.campaigns (
   updated_at     timestamptz not null default now()
 );
 
--- ============================================================
--- 4. DONATIONS
--- ============================================================
+-- 2.4 DONATIONS ---------------------------------------------
 create table if not exists public.donations (
   id             uuid primary key default gen_random_uuid(),
   campaign_id    uuid not null references public.campaigns (id) on delete cascade,
@@ -94,9 +92,7 @@ create table if not exists public.donations (
   created_at     timestamptz not null default now()
 );
 
--- ============================================================
--- 5. CAMPAIGN_UPDATES
--- ============================================================
+-- 2.5 CAMPAIGN_UPDATES --------------------------------------
 create table if not exists public.campaign_updates (
   id          uuid primary key default gen_random_uuid(),
   campaign_id uuid not null references public.campaigns (id) on delete cascade,
@@ -106,9 +102,7 @@ create table if not exists public.campaign_updates (
   created_at  timestamptz not null default now()
 );
 
--- ============================================================
--- 6. COMMENTS  (supports threaded replies via parent_id)
--- ============================================================
+-- 2.6 COMMENTS  (threaded via parent_id) --------------------
 create table if not exists public.comments (
   id          uuid primary key default gen_random_uuid(),
   campaign_id uuid not null references public.campaigns (id) on delete cascade,
@@ -119,9 +113,7 @@ create table if not exists public.comments (
   updated_at  timestamptz not null default now()
 );
 
--- ============================================================
--- 7. NOTIFICATIONS
--- ============================================================
+-- 2.7 NOTIFICATIONS -----------------------------------------
 create table if not exists public.notifications (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references public.users (id) on delete cascade,
@@ -134,9 +126,7 @@ create table if not exists public.notifications (
   created_at timestamptz not null default now()
 );
 
--- ============================================================
--- 8. SAVED_CAMPAIGNS  (bookmarks / favourites)
--- ============================================================
+-- 2.8 SAVED_CAMPAIGNS  (bookmarks) --------------------------
 create table if not exists public.saved_campaigns (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references public.users (id) on delete cascade,
@@ -145,8 +135,9 @@ create table if not exists public.saved_campaigns (
   unique (user_id, campaign_id)
 );
 
+
 -- ============================================================
--- INDEXES
+-- 3. INDEXES
 -- ============================================================
 create index if not exists idx_campaigns_user        on public.campaigns (user_id);
 create index if not exists idx_campaigns_category     on public.campaigns (category_id);
@@ -169,11 +160,23 @@ create index if not exists idx_notifications_unread   on public.notifications (u
 create index if not exists idx_saved_user             on public.saved_campaigns (user_id);
 create index if not exists idx_saved_campaign         on public.saved_campaigns (campaign_id);
 
+
 -- ============================================================
--- TRIGGERS & FUNCTIONS
+-- 4. FUNCTIONS   (created AFTER all referenced tables exist)
 -- ============================================================
 
--- keep updated_at fresh ------------------------------------------------
+-- 4.1 is_admin() — SECURITY DEFINER avoids recursive RLS.
+--     `language sql` bodies are validated at creation time, so
+--     public.users MUST already exist (it does, from section 2).
+create or replace function public.is_admin()
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.users where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+-- 4.2 keep updated_at fresh ---------------------------------
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
 begin
@@ -181,16 +184,7 @@ begin
   return new;
 end; $$;
 
-drop trigger if exists trg_users_updated on public.users;
-create trigger trg_users_updated     before update on public.users     for each row execute function public.set_updated_at();
-
-drop trigger if exists trg_campaigns_updated on public.campaigns;
-create trigger trg_campaigns_updated before update on public.campaigns for each row execute function public.set_updated_at();
-
-drop trigger if exists trg_comments_updated on public.comments;
-create trigger trg_comments_updated  before update on public.comments  for each row execute function public.set_updated_at();
-
--- auto-create the public profile when an auth user signs up ------------
+-- 4.3 auto-create the public profile on auth signup ---------
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -206,12 +200,7 @@ begin
   return new;
 end; $$;
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-
--- credit a campaign + notify owner when a donation completes -----------
+-- 4.4 credit a campaign + notify owner on completed donation -
 create or replace function public.apply_donation()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -232,12 +221,7 @@ begin
   return new;
 end; $$;
 
-drop trigger if exists trg_apply_donation on public.donations;
-create trigger trg_apply_donation
-  after insert or update on public.donations
-  for each row execute function public.apply_donation();
-
--- notify the campaign owner on a new comment ---------------------------
+-- 4.5 notify the campaign owner on a new comment ------------
 create or replace function public.notify_on_comment()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
@@ -255,13 +239,37 @@ begin
   return new;
 end; $$;
 
+
+-- ============================================================
+-- 5. TRIGGERS   (created AFTER their functions + tables exist)
+-- ============================================================
+drop trigger if exists trg_users_updated on public.users;
+create trigger trg_users_updated     before update on public.users     for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_campaigns_updated on public.campaigns;
+create trigger trg_campaigns_updated before update on public.campaigns for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_comments_updated on public.comments;
+create trigger trg_comments_updated  before update on public.comments  for each row execute function public.set_updated_at();
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+drop trigger if exists trg_apply_donation on public.donations;
+create trigger trg_apply_donation
+  after insert or update on public.donations
+  for each row execute function public.apply_donation();
+
 drop trigger if exists trg_notify_comment on public.comments;
 create trigger trg_notify_comment
   after insert on public.comments
   for each row execute function public.notify_on_comment();
 
+
 -- ============================================================
--- ROW LEVEL SECURITY
+-- 6. ROW LEVEL SECURITY  (enable, then policies)
 -- ============================================================
 alter table public.users            enable row level security;
 alter table public.categories       enable row level security;
@@ -281,8 +289,8 @@ create policy users_insert_self on public.users for insert with check (auth.uid(
 create policy users_update_self on public.users for update using (auth.uid() = id) with check (auth.uid() = id);
 
 -- ── CATEGORIES ─────────────────────────────────────────────
-drop policy if exists categories_select_all   on public.categories;
-drop policy if exists categories_admin_write   on public.categories;
+drop policy if exists categories_select_all on public.categories;
+drop policy if exists categories_admin_write on public.categories;
 create policy categories_select_all on public.categories for select using (true);
 create policy categories_admin_write on public.categories for all
   using (public.is_admin()) with check (public.is_admin());
@@ -323,10 +331,10 @@ create policy updates_owner_write on public.campaign_updates for all
   with check (exists (select 1 from public.campaigns c where c.id = campaign_id and c.user_id = auth.uid()));
 
 -- ── COMMENTS ───────────────────────────────────────────────
-drop policy if exists comments_select_all          on public.comments;
-drop policy if exists comments_insert_own           on public.comments;
-drop policy if exists comments_update_own           on public.comments;
-drop policy if exists comments_delete_own_or_admin  on public.comments;
+drop policy if exists comments_select_all         on public.comments;
+drop policy if exists comments_insert_own          on public.comments;
+drop policy if exists comments_update_own          on public.comments;
+drop policy if exists comments_delete_own_or_admin on public.comments;
 create policy comments_select_all on public.comments for select using (true);
 create policy comments_insert_own on public.comments for insert with check (user_id = auth.uid());
 create policy comments_update_own on public.comments for update using (user_id = auth.uid()) with check (user_id = auth.uid());
@@ -350,17 +358,18 @@ create policy saved_select_own on public.saved_campaigns for select using (user_
 create policy saved_insert_own on public.saved_campaigns for insert with check (user_id = auth.uid());
 create policy saved_delete_own on public.saved_campaigns for delete using (user_id = auth.uid());
 
+
 -- ============================================================
--- STORAGE  (campaign images bucket)
+-- 7. STORAGE  (campaign images bucket)
 -- ============================================================
 insert into storage.buckets (id, name, public)
 values ('campaign-images', 'campaign-images', true)
 on conflict (id) do nothing;
 
-drop policy if exists campaign_images_read        on storage.objects;
-drop policy if exists campaign_images_insert      on storage.objects;
-drop policy if exists campaign_images_update_own  on storage.objects;
-drop policy if exists campaign_images_delete_own  on storage.objects;
+drop policy if exists campaign_images_read       on storage.objects;
+drop policy if exists campaign_images_insert     on storage.objects;
+drop policy if exists campaign_images_update_own on storage.objects;
+drop policy if exists campaign_images_delete_own on storage.objects;
 create policy campaign_images_read on storage.objects for select
   using (bucket_id = 'campaign-images');
 create policy campaign_images_insert on storage.objects for insert
@@ -370,8 +379,9 @@ create policy campaign_images_update_own on storage.objects for update
 create policy campaign_images_delete_own on storage.objects for delete
   using (bucket_id = 'campaign-images' and auth.uid()::text = (storage.foldername(name))[1]);
 
+
 -- ============================================================
--- SEED: categories (3-language labels)
+-- 8. SEED: categories (3-language labels)
 -- ============================================================
 insert into public.categories (slug, name_uz, name_ru, name_en, icon, sort_order) values
   ('medical',     'Tibbiyot',   'Медицина',     'Medical',     '🏥', 1),
@@ -385,6 +395,6 @@ insert into public.categories (slug, name_uz, name_ru, name_en, icon, sort_order
 on conflict (slug) do nothing;
 
 -- ============================================================
--- DONE. To grant yourself admin after signing up:
+-- DONE. Grant yourself admin after signing up:
 --   update public.users set role = 'admin' where email = 'you@example.com';
 -- ============================================================

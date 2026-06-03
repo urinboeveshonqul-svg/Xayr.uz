@@ -184,6 +184,40 @@
     "passwordUpdated": "Password updated successfully!",
     "resetSent": "Reset link sent!"
   },
+  "donation": {
+    "historyTitle": "My donations",
+    "noDonations": "You haven't donated yet",
+    "pending": "Pending",
+    "completed": "Completed",
+    "failed": "Failed",
+    "refunded": "Refunded"
+  },
+  "detail": {
+    "recentDonors": "Recent donors",
+    "anonymous": "Anonymous",
+    "noDonors": "Be the first to donate",
+    "creatorTitle": "Organizer",
+    "similarTitle": "Similar campaigns",
+    "commentsTitle": "Comments",
+    "writeComment": "Write a comment...",
+    "post": "Post",
+    "posting": "Posting...",
+    "loginToComment": "Log in to leave a comment",
+    "noComments": "No comments yet"
+  },
+  "filters": {
+    "searchPlaceholder": "Search campaigns...",
+    "all": "All",
+    "sortNewest": "Newest",
+    "sortMostRaised": "Most raised",
+    "sortMostDonors": "Most donors",
+    "sortDeadline": "Ending soon",
+    "urgentOnly": "Urgent only",
+    "clear": "Clear",
+    "noResults": "Nothing found",
+    "prev": "Previous",
+    "next": "Next"
+  },
   "language": {
     "label": "Language"
   }
