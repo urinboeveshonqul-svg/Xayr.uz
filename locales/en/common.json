@@ -262,5 +262,249 @@
   },
   "language": {
     "label": "Language"
+  },
+  "legal": {
+    "lastUpdated": "Last updated",
+    "effectiveDate": "January 1, 2026",
+    "tocTitle": "Contents",
+    "privacy": {
+      "title": "Privacy Policy",
+      "subtitle": "How we collect, use, and protect your personal data.",
+      "intro": "Xayr (\"we\", \"the platform\") respects your privacy. This policy explains what data we collect when you use the platform and how we use it. By using the platform, you agree to this policy.",
+      "sections": [
+        {
+          "id": "data-we-collect",
+          "heading": "Data we collect",
+          "paragraphs": ["We collect the data necessary to provide our services:"],
+          "bullets": [
+            "Account data: name, email, phone number, and password.",
+            "Profile data: avatar, bio, and preferred language.",
+            "Campaign data: the text and images of campaigns you create.",
+            "Transaction data: donation amount, date, and payment method.",
+            "Technical data: IP address, browser type, and usage statistics."
+          ]
+        },
+        {
+          "id": "how-we-use",
+          "heading": "How we use data",
+          "paragraphs": ["We use the collected data for the following purposes:"],
+          "bullets": [
+            "Creating your account and providing services.",
+            "Processing donations and payments.",
+            "Notifying you about campaign status and events.",
+            "Ensuring platform security and preventing fraud.",
+            "Improving our services and providing support."
+          ]
+        },
+        {
+          "id": "sharing",
+          "heading": "Sharing data",
+          "paragraphs": [
+            "We do not sell your personal data to third parties. Data may only be shared with payment systems, service partners, and government authorities where required by law.",
+            "When you create a campaign, its title, description, and images become publicly visible."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "payments",
+          "heading": "Payment data",
+          "paragraphs": [
+            "Payments are processed by licensed payment providers (Click, Payme, Uzcard, Humo). We do not store your full card numbers; this data is securely processed by the payment providers."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "cookies",
+          "heading": "Cookies and tracking technologies",
+          "paragraphs": [
+            "We use cookies to maintain your session and analyze platform usage. More details are provided in our Cookie Policy."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "security",
+          "heading": "Data security",
+          "paragraphs": [
+            "We use encryption, access controls, and secure servers to protect your data. However, we cannot guarantee 100% security of data transmission over the internet."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "your-rights",
+          "heading": "Your rights",
+          "paragraphs": ["You have the following rights:"],
+          "bullets": [
+            "Access and correct your personal data.",
+            "Request deletion of your account and data.",
+            "Opt out of marketing communications.",
+            "Object to the processing of your data."
+          ]
+        },
+        {
+          "id": "contact",
+          "heading": "Contact us",
+          "paragraphs": [
+            "If you have any questions about privacy, contact us at info@xayr.uz."
+          ],
+          "bullets": []
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "subtitle": "The rules and conditions for using the Xayr platform.",
+      "intro": "These terms govern your use of the Xayr platform. By accessing or using the platform, you agree to these terms. If you do not agree with the terms, please do not use the platform.",
+      "sections": [
+        {
+          "id": "acceptance",
+          "heading": "Acceptance of terms",
+          "paragraphs": [
+            "By using the platform, you confirm that you are at least 18 years old or have the consent of a legal guardian, and you agree to comply with these terms."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "account",
+          "heading": "Account and security",
+          "paragraphs": [
+            "You are responsible for keeping your account credentials confidential. You are responsible for all activity carried out through your account. Notify us immediately of any unauthorized access."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "campaigns",
+          "heading": "Campaigns and obligations",
+          "paragraphs": ["Campaign creators agree to:"],
+          "bullets": [
+            "Raise funds only for genuine and lawful purposes.",
+            "Provide accurate and truthful information about the campaign.",
+            "Use the funds raised for the stated purpose.",
+            "Complete identity verification where applicable."
+          ]
+        },
+        {
+          "id": "donations",
+          "heading": "Donations and payments",
+          "paragraphs": [
+            "Donations are voluntary. Confirmed payments are non-refundable except as provided by law. We monitor how campaigns use funds but do not guarantee the outcome of any campaign."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "prohibited",
+          "heading": "Prohibited activities",
+          "paragraphs": ["The following are prohibited on the platform:"],
+          "bullets": [
+            "Creating fake or misleading campaigns.",
+            "Posting illegal, violent, or hateful content.",
+            "Violating other users' rights or committing fraud.",
+            "Attempting to compromise platform security."
+          ]
+        },
+        {
+          "id": "fees",
+          "heading": "Fees",
+          "paragraphs": [
+            "Using the platform is free. Payment providers may charge their own transaction fees. Any platform fees are disclosed clearly in advance."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "liability",
+          "heading": "Limitation of liability",
+          "paragraphs": [
+            "The platform is provided \"as is\". To the extent permitted by law, we are not liable for indirect damages arising from the use of the platform."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "changes",
+          "heading": "Changes and governing law",
+          "paragraphs": [
+            "We may update these terms at any time. We will notify you of material changes. These terms are governed by the laws of the Republic of Uzbekistan."
+          ],
+          "bullets": []
+        }
+      ]
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "subtitle": "How and why we use cookies.",
+      "intro": "This policy explains how the Xayr platform uses cookies and similar technologies. Cookies are small text files stored on your device.",
+      "sections": [
+        {
+          "id": "what-are-cookies",
+          "heading": "What are cookies",
+          "paragraphs": [
+            "Cookies help the website function efficiently, remember your preferences, and improve your experience."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "types",
+          "heading": "Types of cookies we use",
+          "paragraphs": ["We use the following types of cookies:"],
+          "bullets": [
+            "Essential cookies: required for login and maintaining your session.",
+            "Preference cookies: remember your language and settings.",
+            "Analytics cookies: help us understand platform usage."
+          ]
+        },
+        {
+          "id": "third-party",
+          "heading": "Third-party cookies",
+          "paragraphs": [
+            "Payment providers and analytics services may set their own cookies. These cookies are governed by the privacy policies of the respective third parties."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "manage",
+          "heading": "Managing cookies",
+          "paragraphs": [
+            "You can block or delete cookies through your browser settings. However, if essential cookies are disabled, some platform features may not work correctly."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "updates",
+          "heading": "Changes to this policy",
+          "paragraphs": [
+            "We may update this Cookie Policy from time to time. The new version will be published on this page."
+          ],
+          "bullets": []
+        }
+      ]
+    }
+  },
+  "contactPage": {
+    "title": "Contact Us",
+    "subtitle": "Have a question or need help? Reach out to us anytime.",
+    "infoTitle": "Contact information",
+    "email": "Email",
+    "emailValue": "info@xayr.uz",
+    "phone": "Phone",
+    "phoneValue": "+998 71 200 00 00",
+    "address": "Address",
+    "addressValue": "Tashkent, Uzbekistan",
+    "hours": "Working hours",
+    "hoursValue": "Monday–Friday, 9:00–18:00",
+    "form": {
+      "title": "Send us a message",
+      "name": "Your name",
+      "namePlaceholder": "Enter your full name",
+      "email": "Your email",
+      "emailPlaceholder": "you@example.com",
+      "subject": "Subject",
+      "subjectPlaceholder": "Message subject",
+      "message": "Message",
+      "messagePlaceholder": "Write your message here...",
+      "submit": "Send message",
+      "sending": "Sending...",
+      "success": "Thank you! Your email app has opened with the message.",
+      "errName": "Please enter your name (at least 2 characters).",
+      "errEmail": "Please enter a valid email address.",
+      "errMessage": "The message must be at least 10 characters."
+    }
   }
 }

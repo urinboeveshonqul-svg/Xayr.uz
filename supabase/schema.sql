@@ -207,10 +207,15 @@ begin
   if (tg_op = 'INSERT' and new.status = 'completed')
      or (tg_op = 'UPDATE' and new.status = 'completed' and old.status is distinct from 'completed') then
 
+    -- Opt into the protected-field guard bypass: apply_donation runs as the
+    -- donor (auth.uid() is null for the service role that completes a payment),
+    -- so is_admin() is false. The flag is transaction-local and cleared after.
+    perform set_config('app.guard_campaign_bypass', 'on', true);
     update public.campaigns
        set current_amount = current_amount + new.amount,
            donors_count   = donors_count + 1
      where id = new.campaign_id;
+    perform set_config('app.guard_campaign_bypass', 'off', true);
 
     insert into public.notifications (user_id, type, title, body, link)
     select c.user_id, 'donation', 'Yangi xayriya',
@@ -239,6 +244,35 @@ begin
   return new;
 end; $$;
 
+-- 4.6 guard protected campaign fields ------------------------
+--     RLS gates which ROWS an owner may update, but not which COLUMNS. This
+--     trigger makes status / current_amount / donors_count / views writable
+--     only by admins (or the donation-credit path via the bypass flag); a
+--     campaign owner editing their campaign cannot fabricate totals.
+create or replace function public.guard_campaign_protected_fields()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if public.is_admin()
+     or current_setting('app.guard_campaign_bypass', true) = 'on' then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    new.current_amount := 0;
+    new.donors_count   := 0;
+    new.views          := 0;
+    if new.status is null or new.status not in ('draft', 'pending') then
+      new.status := 'pending';
+    end if;
+  elsif tg_op = 'UPDATE' then
+    new.status         := old.status;
+    new.current_amount := old.current_amount;
+    new.donors_count   := old.donors_count;
+    new.views          := old.views;
+  end if;
+  return new;
+end; $$;
+
 
 -- ============================================================
 -- 5. TRIGGERS   (created AFTER their functions + tables exist)
@@ -248,6 +282,11 @@ create trigger trg_users_updated     before update on public.users     for each 
 
 drop trigger if exists trg_campaigns_updated on public.campaigns;
 create trigger trg_campaigns_updated before update on public.campaigns for each row execute function public.set_updated_at();
+
+-- Name sorts before trg_campaigns_updated so the guard fires first.
+drop trigger if exists trg_campaign_field_guard on public.campaigns;
+create trigger trg_campaign_field_guard before insert or update on public.campaigns
+  for each row execute function public.guard_campaign_protected_fields();
 
 drop trigger if exists trg_comments_updated on public.comments;
 create trigger trg_comments_updated  before update on public.comments  for each row execute function public.set_updated_at();
@@ -304,6 +343,9 @@ create policy campaigns_select_public on public.campaigns for select
   using (status = 'active' or user_id = auth.uid() or public.is_admin());
 create policy campaigns_insert_own on public.campaigns for insert
   with check (user_id = auth.uid());
+-- Row-level ownership gate only. Column-level protection (owners cannot write
+-- status / current_amount / donors_count / views) is enforced by the
+-- guard_campaign_protected_fields() trigger, because RLS cannot restrict columns.
 create policy campaigns_update_own on public.campaigns for update
   using (user_id = auth.uid() or public.is_admin())
   with check (user_id = auth.uid() or public.is_admin());

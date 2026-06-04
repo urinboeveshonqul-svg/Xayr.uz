@@ -464,6 +464,16 @@ export type Campaign = Row<'campaigns'> & {
   total_donations?: number;
 };
 
+// Fields a campaign OWNER may edit. Protected fields (status, current_amount,
+// donors_count, views) are admin-only and enforced at the DB layer by the
+// guard_campaign_protected_fields() trigger — never put them in an owner-facing
+// update payload. Type any owner edit form's submit handler with this so the
+// protected columns are a compile-time error, not just a silent DB no-op.
+export type CampaignOwnerUpdate = Pick<
+  Database['public']['Tables']['campaigns']['Update'],
+  'title' | 'description' | 'goal_amount' | 'category_id' | 'images' | 'image_url' | 'story'
+>;
+
 export type Donation = Row<'donations'> & {
   campaigns?: Campaign;
   profiles?: Profile;

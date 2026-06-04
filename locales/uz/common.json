@@ -262,5 +262,249 @@
   },
   "language": {
     "label": "Til"
+  },
+  "legal": {
+    "lastUpdated": "Oxirgi yangilanish",
+    "effectiveDate": "1-yanvar, 2026",
+    "tocTitle": "Mundarija",
+    "privacy": {
+      "title": "Maxfiylik siyosati",
+      "subtitle": "Biz sizning shaxsiy ma'lumotlaringizni qanday to'plashimiz, ishlatishimiz va himoya qilishimiz haqida.",
+      "intro": "Xayr (\"biz\", \"platforma\") sizning maxfiyligingizni hurmat qiladi. Ushbu siyosat platformadan foydalanganingizda biz qanday ma'lumotlarni to'plashimizni va ulardan qanday foydalanishimizni tushuntiradi. Platformadan foydalanish orqali siz ushbu siyosatga rozilik bildirasiz.",
+      "sections": [
+        {
+          "id": "data-we-collect",
+          "heading": "Biz to'playdigan ma'lumotlar",
+          "paragraphs": ["Biz xizmatlarni taqdim etish uchun zarur bo'lgan ma'lumotlarni to'playmiz:"],
+          "bullets": [
+            "Hisob ma'lumotlari: ism, elektron pochta, telefon raqami va parol.",
+            "Profil ma'lumotlari: avatar, bio va afzal ko'rilgan til.",
+            "Kampaniya ma'lumotlari: siz yaratgan kampaniyalar matni va rasmlari.",
+            "Tranzaksiya ma'lumotlari: xayriya summasi, sana va to'lov usuli.",
+            "Texnik ma'lumotlar: IP-manzil, brauzer turi va foydalanish statistikasi."
+          ]
+        },
+        {
+          "id": "how-we-use",
+          "heading": "Ma'lumotlardan qanday foydalanamiz",
+          "paragraphs": ["To'plangan ma'lumotlardan quyidagi maqsadlarda foydalanamiz:"],
+          "bullets": [
+            "Hisobingizni yaratish va xizmatlarni taqdim etish.",
+            "Xayriya va to'lovlarni qayta ishlash.",
+            "Kampaniyalar holati va bildirishnomalar haqida xabar berish.",
+            "Platforma xavfsizligi va firibgarlikning oldini olish.",
+            "Xizmatlarimizni yaxshilash va qo'llab-quvvatlash ko'rsatish."
+          ]
+        },
+        {
+          "id": "sharing",
+          "heading": "Ma'lumotlarni ulashish",
+          "paragraphs": [
+            "Biz sizning shaxsiy ma'lumotlaringizni uchinchi shaxslarga sotmaymiz. Ma'lumotlar faqat to'lov tizimlari, xizmat ko'rsatuvchi hamkorlar va qonun talab qilgan hollarda davlat organlari bilan ulashilishi mumkin.",
+            "Kampaniya yaratganingizda, kampaniya nomi, tavsifi va rasmlari ommaga ochiq bo'ladi."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "payments",
+          "heading": "To'lov ma'lumotlari",
+          "paragraphs": [
+            "To'lovlar litsenziyalangan to'lov provayderlari (Click, Payme, Uzcard, Humo) orqali amalga oshiriladi. Biz sizning to'liq karta raqamlaringizni saqlamaymiz; ushbu ma'lumotlarni to'lov provayderlari xavfsiz tarzda qayta ishlaydi."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "cookies",
+          "heading": "Cookie va kuzatuv texnologiyalari",
+          "paragraphs": [
+            "Biz seansni saqlash va platformadan foydalanishni tahlil qilish uchun cookie-fayllardan foydalanamiz. Batafsil ma'lumot Cookie siyosatida keltirilgan."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "security",
+          "heading": "Ma'lumotlar xavfsizligi",
+          "paragraphs": [
+            "Biz ma'lumotlaringizni himoya qilish uchun shifrlash, kirishni cheklash va xavfsiz serverlardan foydalanamiz. Biroq, internet orqali uzatishning 100% xavfsizligini kafolatlay olmaymiz."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "your-rights",
+          "heading": "Sizning huquqlaringiz",
+          "paragraphs": ["Siz quyidagi huquqlarga egasiz:"],
+          "bullets": [
+            "Shaxsiy ma'lumotlaringizga kirish va ularni tuzatish.",
+            "Hisobingiz va ma'lumotlaringizni o'chirishni so'rash.",
+            "Marketing xabarlaridan voz kechish.",
+            "Ma'lumotlarni qayta ishlashga e'tiroz bildirish."
+          ]
+        },
+        {
+          "id": "contact",
+          "heading": "Biz bilan bog'lanish",
+          "paragraphs": [
+            "Maxfiylik bo'yicha savollaringiz bo'lsa, info@xayr.uz manzili orqali biz bilan bog'laning."
+          ],
+          "bullets": []
+        }
+      ]
+    },
+    "terms": {
+      "title": "Foydalanish shartlari",
+      "subtitle": "Xayr platformasidan foydalanish qoidalari va shartlari.",
+      "intro": "Ushbu shartlar Xayr platformasidan foydalanishni tartibga soladi. Platformaga kirish yoki undan foydalanish orqali siz ushbu shartlarga rozilik bildirasiz. Agar shartlarga rozi bo'lmasangiz, platformadan foydalanmang.",
+      "sections": [
+        {
+          "id": "acceptance",
+          "heading": "Shartlarni qabul qilish",
+          "paragraphs": [
+            "Platformadan foydalanish orqali siz 18 yoshdan oshganingizni yoki qonuniy vakilingiz roziligi borligini tasdiqlaysiz va ushbu shartlarga amal qilishga rozilik bildirasiz."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "account",
+          "heading": "Hisob va xavfsizlik",
+          "paragraphs": [
+            "Siz hisob ma'lumotlaringiz maxfiyligini saqlash uchun javobgarsiz. Hisobingiz orqali amalga oshirilgan barcha harakatlar uchun siz mas'ulsiz. Ruxsatsiz foydalanish haqida darhol bizga xabar bering."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "campaigns",
+          "heading": "Kampaniyalar va majburiyatlar",
+          "paragraphs": ["Kampaniya yaratuvchilar quyidagilarga rozi bo'lishadi:"],
+          "bullets": [
+            "Faqat haqiqiy va qonuniy maqsadlar uchun mablag' yig'ish.",
+            "Kampaniya haqida to'g'ri va aniq ma'lumot berish.",
+            "Yig'ilgan mablag'dan e'lon qilingan maqsadda foydalanish.",
+            "Tegishli hollarda shaxsni tasdiqlashdan (verifikatsiya) o'tish."
+          ]
+        },
+        {
+          "id": "donations",
+          "heading": "Xayriyalar va to'lovlar",
+          "paragraphs": [
+            "Xayriyalar ixtiyoriy hisoblanadi. Tasdiqlangan to'lovlar, qonunda nazarda tutilgan hollar bundan mustasno, qaytarilmaydi. Biz kampaniyalar tomonidan mablag'dan foydalanishni nazorat qilamiz, lekin har bir kampaniya natijasini kafolatlamaymiz."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "prohibited",
+          "heading": "Taqiqlangan harakatlar",
+          "paragraphs": ["Platformada quyidagilar taqiqlanadi:"],
+          "bullets": [
+            "Soxta yoki aldovchi kampaniyalar yaratish.",
+            "Noqonuniy, zo'ravonlik yoki nafrat targ'ib qiluvchi kontent.",
+            "Boshqa foydalanuvchilar huquqlarini buzish yoki firibgarlik.",
+            "Platforma xavfsizligini buzishga urinish."
+          ]
+        },
+        {
+          "id": "fees",
+          "heading": "Komissiyalar",
+          "paragraphs": [
+            "Platformadan foydalanish bepul. To'lov provayderlari tranzaksiyalar uchun o'z komissiyalarini olishlari mumkin. Har qanday platforma to'lovlari oldindan aniq ko'rsatiladi."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "liability",
+          "heading": "Mas'uliyatni cheklash",
+          "paragraphs": [
+            "Platforma \"qanday bo'lsa, shundayligicha\" taqdim etiladi. Qonun ruxsat bergan darajada, biz platformadan foydalanish natijasida yuzaga keladigan bilvosita zararlar uchun javobgar emasmiz."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "changes",
+          "heading": "O'zgartirishlar va amaldagi qonun",
+          "paragraphs": [
+            "Biz ushbu shartlarni istalgan vaqtda yangilashimiz mumkin. Muhim o'zgarishlar haqida xabar beramiz. Ushbu shartlar O'zbekiston Respublikasi qonunlariga muvofiq tartibga solinadi."
+          ],
+          "bullets": []
+        }
+      ]
+    },
+    "cookies": {
+      "title": "Cookie siyosati",
+      "subtitle": "Biz cookie-fayllardan qanday va nima uchun foydalanishimiz haqida.",
+      "intro": "Ushbu siyosat Xayr platformasi cookie-fayllar va shunga o'xshash texnologiyalardan qanday foydalanishini tushuntiradi. Cookie-lar — bu qurilmangizga saqlanadigan kichik matnli fayllar.",
+      "sections": [
+        {
+          "id": "what-are-cookies",
+          "heading": "Cookie nima",
+          "paragraphs": [
+            "Cookie-fayllar veb-saytni samarali ishlashiga, sizning sozlamalaringizni eslab qolishiga va foydalanish tajribasini yaxshilashiga yordam beradi."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "types",
+          "heading": "Biz foydalanadigan cookie turlari",
+          "paragraphs": ["Biz quyidagi turdagi cookie-fayllardan foydalanamiz:"],
+          "bullets": [
+            "Zaruriy cookie-lar: tizimga kirish va seansni saqlash uchun zarur.",
+            "Afzalliklar cookie-lari: tilingiz va sozlamalaringizni eslab qoladi.",
+            "Analitik cookie-lar: platformadan foydalanishni tushunishimizga yordam beradi."
+          ]
+        },
+        {
+          "id": "third-party",
+          "heading": "Uchinchi tomon cookie-lari",
+          "paragraphs": [
+            "To'lov provayderlari va analitika xizmatlari o'z cookie-fayllarini o'rnatishi mumkin. Ushbu cookie-lar tegishli uchinchi tomonlarning maxfiylik siyosatlari bilan tartibga solinadi."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "manage",
+          "heading": "Cookie-larni boshqarish",
+          "paragraphs": [
+            "Siz brauzeringiz sozlamalari orqali cookie-fayllarni bloklashingiz yoki o'chirishingiz mumkin. Biroq, zaruriy cookie-lar o'chirilsa, platformaning ba'zi funksiyalari to'g'ri ishlamasligi mumkin."
+          ],
+          "bullets": []
+        },
+        {
+          "id": "updates",
+          "heading": "Siyosatdagi o'zgarishlar",
+          "paragraphs": [
+            "Biz ushbu Cookie siyosatini vaqti-vaqti bilan yangilashimiz mumkin. Yangi versiya ushbu sahifada e'lon qilinadi."
+          ],
+          "bullets": []
+        }
+      ]
+    }
+  },
+  "contactPage": {
+    "title": "Biz bilan bog'lanish",
+    "subtitle": "Savollaringiz bormi yoki yordam kerakmi? Biz bilan bemalol bog'laning.",
+    "infoTitle": "Aloqa ma'lumotlari",
+    "email": "Email",
+    "emailValue": "info@xayr.uz",
+    "phone": "Telefon",
+    "phoneValue": "+998 71 200 00 00",
+    "address": "Manzil",
+    "addressValue": "Toshkent, O'zbekiston",
+    "hours": "Ish vaqti",
+    "hoursValue": "Dushanba–Juma, 9:00–18:00",
+    "form": {
+      "title": "Bizga xabar yuboring",
+      "name": "Ismingiz",
+      "namePlaceholder": "To'liq ismingizni kiriting",
+      "email": "Email manzilingiz",
+      "emailPlaceholder": "siz@example.com",
+      "subject": "Mavzu",
+      "subjectPlaceholder": "Xabar mavzusi",
+      "message": "Xabar",
+      "messagePlaceholder": "Xabaringizni shu yerga yozing...",
+      "submit": "Xabar yuborish",
+      "sending": "Yuborilmoqda...",
+      "success": "Rahmat! Pochta ilovangiz xabar bilan ochildi.",
+      "errName": "Iltimos, ismingizni kiriting (kamida 2 ta belgi).",
+      "errEmail": "Iltimos, to'g'ri email manzil kiriting.",
+      "errMessage": "Xabar kamida 10 ta belgidan iborat bo'lishi kerak."
+    }
   }
 }
