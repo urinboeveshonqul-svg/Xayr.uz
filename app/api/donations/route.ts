@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPaymentProvider } from '@/lib/payments';
+import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -15,6 +16,13 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  // 0) Rate limit by client IP to curb donation/payment spam.
+  const ip = getClientIp(request);
+  const rl = await enforceRateLimit('donation', `donation:${ip}`);
+  if (!rl.success) {
+    return tooManyRequests(rl, "Juda ko'p urinish. Iltimos, birozdan so'ng qayta urinib ko'ring.");
+  }
+
   // 1) Parse + validate
   let body: unknown;
   try {

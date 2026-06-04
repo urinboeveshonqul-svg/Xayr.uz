@@ -6,6 +6,7 @@ import { locales, isLocale, type Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
 import { EmailVerifyBanner } from '@/components/EmailVerifyBanner';
+import { METADATA_BASE, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/seo';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' });
@@ -21,15 +22,36 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const dict = await getDictionary(isLocale(locale) ? locale : 'uz');
+  const loc: Locale = isLocale(locale) ? locale : 'uz';
+  const dict = await getDictionary(loc);
+
   return {
+    // metadataBase makes every relative metadata URL (OG images, canonicals)
+    // resolve against the production origin. Inherited by all child routes.
+    metadataBase: METADATA_BASE,
     title: dict.meta.title,
     description: dict.meta.description,
-    keywords: ['xayriya', 'crowdfunding', 'uzbekistan', 'kampaniya', 'fundraising'],
+    keywords: ['xayriya', 'crowdfunding', 'uzbekistan', 'kampaniya', 'fundraising', 'xayr'],
+    // Canonical + hreflang for the locale home. Child pages override with their
+    // own path-specific alternates.
+    alternates: buildAlternates(loc, ''),
     openGraph: {
+      type: 'website',
+      siteName: 'Xayr',
+      url: localeUrl(loc, ''),
       title: dict.meta.title,
       description: dict.meta.description,
-      type: 'website',
+      locale: ogLocaleMap[loc],
+      alternateLocale: locales.filter((l) => l !== loc).map((l) => ogLocaleMap[l]),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: dict.meta.title,
+      description: dict.meta.description,
+    },
+    robots: {
+      index: true,
+      follow: true,
     },
   };
 }

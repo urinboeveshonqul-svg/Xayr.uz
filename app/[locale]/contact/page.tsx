@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ContactForm } from '@/components/contact/ContactForm';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
+import { pageMetadata } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ locale: string }>;
@@ -12,11 +13,14 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  const dict = await getDictionary(isLocale(locale) ? (locale as Locale) : 'uz');
-  return {
-    title: `${dict.contactPage.title} — Xayr`,
+  const loc: Locale = isLocale(locale) ? locale : 'uz';
+  const dict = await getDictionary(loc);
+  return pageMetadata({
+    locale: loc,
+    path: '/contact',
+    title: dict.contactPage.title,
     description: dict.contactPage.subtitle,
-  };
+  });
 }
 
 export default async function ContactPage({ params }: Props) {

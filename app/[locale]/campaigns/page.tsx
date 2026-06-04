@@ -6,13 +6,25 @@ import { CampaignGrid } from '@/components/campaigns/CampaignGrid';
 import { CampaignFilters } from '@/components/campaigns/CampaignFilters';
 import { Pagination } from '@/components/campaigns/Pagination';
 import { getDictionary } from '@/i18n/dictionaries';
-import { isLocale } from '@/i18n/config';
+import { isLocale, type Locale } from '@/i18n/config';
+import { pageMetadata } from '@/lib/seo';
 import type { Campaign, CampaignCategory } from '@/types';
 
-export const metadata: Metadata = {
-  title: 'Kampaniyalar — Xayr',
-  description: "Barcha faol xayriya kampaniyalarini ko'ring va yordam bering.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const loc: Locale = isLocale(locale) ? locale : 'uz';
+  const dict = await getDictionary(loc);
+  return pageMetadata({
+    locale: loc,
+    path: '/campaigns',
+    title: dict.nav.campaigns,
+    description: dict.meta.description,
+  });
+}
 
 // Listing depends on searchParams (filters/pagination) → always dynamic.
 export const dynamic = 'force-dynamic';

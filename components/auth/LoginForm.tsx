@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 
 const schema = z.object({
   email: z.string().email("To'g'ri email kiriting"),
@@ -30,18 +29,16 @@ export function LoginForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+      // Auth goes through our server route so it can be rate-limited.
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, password: data.password }),
       });
+      const json = await res.json().catch(() => ({}));
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Email yoki parol noto\'g\'ri');
-        } else {
-          toast.error(error.message);
-        }
+      if (!res.ok) {
+        toast.error(json?.error || 'Kirishda xatolik yuz berdi');
         return;
       }
 

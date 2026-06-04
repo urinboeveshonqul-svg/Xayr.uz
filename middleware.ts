@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { defaultLocale, isLocale, type Locale } from '@/i18n/config';
+import { enforceRateLimit, getClientIp, rateLimitHeaders } from '@/lib/rate-limit';
 
 // Routes (locale-stripped) that require an authenticated user.
 const PROTECTED = ['/profile', '/campaigns/create', '/admin'];
@@ -10,12 +11,35 @@ const AUTH_ONLY = ['/auth/login', '/auth/register'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // ── Rate limit admin surfaces (API + dashboard pages) ───────────────
+  // Done first so it covers /api/admin before the /api early-return below.
+  const segments = pathname.split('/');
+  const isAdminApi = pathname.startsWith('/api/admin');
+  const isAdminPage = isLocale(segments[1]) && segments[2] === 'admin';
+  if (isAdminApi || isAdminPage) {
+    const ip = getClientIp(request);
+    const rl = await enforceRateLimit('admin', `admin:${ip}`);
+    if (!rl.success) {
+      const headers = rateLimitHeaders(rl);
+      if (isAdminApi) {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers });
+      }
+      return new NextResponse('Too many requests. Please slow down.', {
+        status: 429,
+        headers: { ...headers, 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+  }
+
   // Leave route handlers / internals untouched (the auth callback must stay
   // locale-agnostic so Supabase redirect URLs keep working).
   if (
     pathname.startsWith('/auth/callback') ||
     pathname.startsWith('/api') ||
-    pathname.startsWith('/_next')
+    pathname.startsWith('/_next') ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname.includes('opengraph-image')
   ) {
     return NextResponse.next();
   }
@@ -89,6 +113,8 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Exclude Next internals, SEO/metadata files (robots.txt, sitemap.xml,
+    // *opengraph-image*), and static assets from the locale-redirect logic.
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*opengraph-image.*|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|xml|txt|webmanifest)$).*)',
   ],
 };

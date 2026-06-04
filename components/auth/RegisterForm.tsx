@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 
 const schema = z
   .object({
@@ -36,44 +35,32 @@ export function RegisterForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const supabase = createClient();
-      const { data: signUpData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          // handle_new_user trigger reads this to populate profiles.full_name
-          data: { full_name: data.full_name },
-          // Where the confirmation link returns the user (the callback route
-          // exchanges the code for a session, then forwards to `/`).
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      // Signup goes through our server route so it can be rate-limited.
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: data.full_name,
+          email: data.email,
+          password: data.password,
+        }),
       });
+      const json = await res.json().catch(() => ({}));
 
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('Bu email allaqachon ro\'yxatdan o\'tgan');
-        } else {
-          toast.error(error.message);
-        }
+      if (!res.ok) {
+        toast.error(json?.error || 'Ro\'yxatdan o\'tishda xatolik yuz berdi');
         return;
       }
 
-      // Supabase returns a user with an empty `identities` array when the email
-      // is already registered (prevents email enumeration). Treat as duplicate.
-      if (signUpData.user && signUpData.user.identities?.length === 0) {
-        toast.error('Bu email allaqachon ro\'yxatdan o\'tgan');
-        return;
-      }
-
-      if (signUpData.session) {
+      if (json.needsConfirmation) {
+        // Email confirmation required — show the verify-email notice.
+        toast.success('Tasdiqlash havolasi emailingizga yuborildi!');
+        router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
+      } else {
         // Email confirmation disabled — user is already signed in.
         toast.success('Ro\'yxatdan muvaffaqiyatli o\'tdingiz!');
         router.push('/');
         router.refresh();
-      } else {
-        // Email confirmation required — show the verify-email notice.
-        toast.success('Tasdiqlash havolasi emailingizga yuborildi!');
-        router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
       }
     } catch {
       toast.error('Kutilmagan xatolik yuz berdi');

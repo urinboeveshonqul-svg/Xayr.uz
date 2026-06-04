@@ -26,8 +26,7 @@ create table if not exists public.verification_requests (
   legal_name       text not null,
   date_of_birth    date not null,
   address          text not null,
-  phone            text not null,
-  phone_verified   boolean not null default false,
+  phone            text,                    -- optional contact info (no SMS/OTP verification)
   status           text not null default 'pending'
                      check (status in ('pending','verified','rejected')),
   rejection_reason text,
@@ -49,18 +48,7 @@ create table if not exists public.identity_documents (
 );
 create index if not exists idx_idoc_request on public.identity_documents(request_id);
 
--- ── 5. phone_otps (server-managed, hashed codes) ───────────
-create table if not exists public.phone_otps (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references public.users(id) on delete cascade,
-  phone      text not null,
-  code_hash  text not null,
-  verified   boolean not null default false,
-  attempts   int not null default 0,
-  expires_at timestamptz not null,
-  created_at timestamptz not null default now()
-);
-create index if not exists idx_otp_user on public.phone_otps(user_id);
+-- (Phone OTP verification has been removed — no phone_otps table.)
 
 -- ── 6. Helper: is_verified(uid) ────────────────────────────
 create or replace function public.is_verified(uid uuid)
@@ -94,7 +82,6 @@ create trigger trg_enforce_publish before insert or update on public.campaigns
 -- ── 8. RLS (writes are service-role only; reads are scoped) ──
 alter table public.verification_requests enable row level security;
 alter table public.identity_documents    enable row level security;
-alter table public.phone_otps            enable row level security;
 
 -- verification_requests: owner + admin may read; admin may update; inserts via service role.
 drop policy if exists vreq_select_own_admin on public.verification_requests;
@@ -108,8 +95,6 @@ create policy vreq_admin_update on public.verification_requests for update
 drop policy if exists idoc_admin_select on public.identity_documents;
 create policy idoc_admin_select on public.identity_documents for select
   using (public.is_admin());
-
--- phone_otps: no client policies → fully service-role only.
 
 -- ── 9. Private storage bucket for ID/selfie documents ───────
 insert into storage.buckets (id, name, public)

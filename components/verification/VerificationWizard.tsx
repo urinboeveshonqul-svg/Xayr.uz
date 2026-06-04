@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
-  Loader2, Upload, Check, ArrowLeft, ArrowRight, Phone, ShieldCheck, Camera,
+  Loader2, Upload, ArrowLeft, ArrowRight, ShieldCheck, Camera,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
@@ -15,22 +15,16 @@ type DocType = 'id_front' | 'id_back' | 'selfie';
 export function VerificationWizard({ userId }: { userId: string }) {
   const { t, locale } = useI18n();
   const router = useRouter();
-  const folder = useRef(Date.now().toString(36));
+  const folder = useState(() => Date.now().toString(36))[0];
 
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
-  // Step 1
+  // Step 1 — personal details
   const [legalName, setLegalName] = useState('');
   const [dob, setDob] = useState('');
   const [address, setAddress] = useState('');
-  // Step 2
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [codeSent, setCodeSent] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [otpBusy, setOtpBusy] = useState(false);
-  // Steps 3–4
+  // Steps 2–3 — identity documents + selfie
   const [paths, setPaths] = useState<Record<DocType, string | null>>({ id_front: null, id_back: null, selfie: null });
   const [previews, setPreviews] = useState<Record<DocType, string | null>>({ id_front: null, id_back: null, selfie: null });
   const [uploading, setUploading] = useState<DocType | null>(null);
@@ -41,7 +35,7 @@ export function VerificationWizard({ userId }: { userId: string }) {
     try {
       const supabase = createClient();
       const ext = file.name.split('.').pop() ?? 'jpg';
-      const path = `${userId}/${folder.current}/${type}.${ext}`;
+      const path = `${userId}/${folder}/${type}.${ext}`;
       const { error } = await supabase.storage
         .from('verification-documents')
         .upload(path, file, { upsert: true });
@@ -53,41 +47,13 @@ export function VerificationWizard({ userId }: { userId: string }) {
     }
   };
 
-  const sendCode = async () => {
-    setOtpBusy(true);
-    try {
-      const res = await fetch('/api/verification/request-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(json.error ?? 'Error'); return; }
-      setCodeSent(true);
-      if (json.devCode) toast.success(`Dev code: ${json.devCode}`, { duration: 8000 });
-    } finally { setOtpBusy(false); }
-  };
-
-  const verifyCode = async () => {
-    setOtpBusy(true);
-    try {
-      const res = await fetch('/api/verification/verify-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(json.error ?? 'Error'); return; }
-      setPhoneVerified(true);
-      toast.success(t('verify.phoneVerified'));
-    } finally { setOtpBusy(false); }
-  };
-
   const submit = async () => {
     setSubmitting(true);
     try {
       const res = await fetch('/api/verification/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          legal_name: legalName, date_of_birth: dob, address, phone,
+          legal_name: legalName, date_of_birth: dob, address,
           documents: { id_front: paths.id_front, id_back: paths.id_back, selfie: paths.selfie },
         }),
       });
@@ -100,12 +66,17 @@ export function VerificationWizard({ userId }: { userId: string }) {
   };
 
   const canNext =
-    (step === 0 && legalName.trim().length >= 3 && dob && address.trim().length >= 5) ||
-    (step === 1 && phoneVerified) ||
-    (step === 2 && !!paths.id_front) ||
-    (step === 3 && !!paths.selfie);
+    (step === 0 && legalName.trim().length >= 3 && !!dob && address.trim().length >= 5) ||
+    (step === 1 && !!paths.id_front) ||
+    (step === 2 && !!paths.selfie);
 
-  const titles = [t('verify.step1Title'), t('verify.step2Title'), t('verify.step3Title'), t('verify.step4Title'), t('verify.step5Title')];
+  const titles = [
+    t('verify.step1Title'),
+    t('verify.step3Title'),
+    t('verify.step4Title'),
+    t('verify.step5Title'),
+  ];
+  const TOTAL = titles.length;
 
   const UploadTile = ({ type, label }: { type: DocType; label: string }) => (
     <label className="block cursor-pointer">
@@ -133,15 +104,15 @@ export function VerificationWizard({ userId }: { userId: string }) {
       {/* Progress */}
       <div className="mb-6">
         <div className="flex items-center justify-between text-sm font-semibold text-gray-500 mb-2">
-          <span>{t('verify.step')} {step + 1}/5</span>
+          <span>{t('verify.step')} {step + 1}/{TOTAL}</span>
           <span className="text-brand-600">{titles[step]}</span>
         </div>
         <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-          <div className="h-full bg-brand-600 transition-all" style={{ width: `${((step + 1) / 5) * 100}%` }} />
+          <div className="h-full bg-brand-600 transition-all" style={{ width: `${((step + 1) / TOTAL) * 100}%` }} />
         </div>
       </div>
 
-      {/* Step content */}
+      {/* Step 1 — personal details */}
       {step === 0 && (
         <div className="space-y-4">
           <div><label className="label">{t('verify.legalName')}</label>
@@ -153,30 +124,8 @@ export function VerificationWizard({ userId }: { userId: string }) {
         </div>
       )}
 
+      {/* Step 2 — identity document */}
       {step === 1 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-brand-600"><Phone className="w-5 h-5" /><span className="font-semibold">{t('verify.step2Title')}</span></div>
-          <div className="flex gap-2">
-            <input className="input flex-1" placeholder="+998 90 123 45 67" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={phoneVerified} />
-            <button onClick={sendCode} disabled={otpBusy || phoneVerified || phone.length < 7} className="btn-secondary whitespace-nowrap">
-              {otpBusy && !codeSent ? <Loader2 className="w-4 h-4 animate-spin" /> : t('verify.sendCode')}
-            </button>
-          </div>
-          {codeSent && !phoneVerified && (
-            <div className="flex gap-2">
-              <input className="input flex-1" placeholder={t('verify.code')} value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
-              <button onClick={verifyCode} disabled={otpBusy || code.length < 4} className="btn-primary whitespace-nowrap">
-                {otpBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : t('verify.verifyCode')}
-              </button>
-            </div>
-          )}
-          {phoneVerified && (
-            <p className="flex items-center gap-2 text-green-600 font-semibold text-sm"><Check className="w-4 h-4" /> {t('verify.phoneVerified')}</p>
-          )}
-        </div>
-      )}
-
-      {step === 2 && (
         <div className="space-y-4">
           <p className="text-sm text-gray-500">{t('verify.step3Hint')}</p>
           <UploadTile type="id_front" label={t('verify.idFront')} />
@@ -184,7 +133,8 @@ export function VerificationWizard({ userId }: { userId: string }) {
         </div>
       )}
 
-      {step === 3 && (
+      {/* Step 3 — selfie */}
+      {step === 2 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-brand-600"><Camera className="w-5 h-5" /><span className="font-semibold">{t('verify.step4Title')}</span></div>
           <p className="text-sm text-gray-500">{t('verify.step4Hint')}</p>
@@ -192,13 +142,13 @@ export function VerificationWizard({ userId }: { userId: string }) {
         </div>
       )}
 
-      {step === 4 && (
+      {/* Step 4 — review */}
+      {step === 3 && (
         <div className="space-y-3 text-sm">
           <div className="flex items-center gap-2 text-brand-600 mb-2"><ShieldCheck className="w-5 h-5" /><span className="font-semibold">{t('verify.step5Title')}</span></div>
           <Row label={t('verify.legalName')} value={legalName} />
           <Row label={t('verify.dob')} value={dob} />
           <Row label={t('verify.address')} value={address} />
-          <Row label={t('verify.phone')} value={`${phone} ✓`} />
           <Row label={t('verify.step3Title')} value={paths.id_back ? '2' : '1'} />
           <Row label={t('verify.selfie')} value="✓" />
         </div>
@@ -211,7 +161,7 @@ export function VerificationWizard({ userId }: { userId: string }) {
             <ArrowLeft className="w-5 h-5" /> {t('verify.back')}
           </button>
         )}
-        {step < 4 ? (
+        {step < TOTAL - 1 ? (
           <button onClick={() => setStep((s) => s + 1)} disabled={!canNext} className="btn-primary py-4 text-base flex-1">
             {t('verify.next')} <ArrowRight className="w-5 h-5" />
           </button>

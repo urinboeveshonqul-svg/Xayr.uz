@@ -326,8 +326,7 @@ export type Database = {
           legal_name: string;
           date_of_birth: string;
           address: string;
-          phone: string;
-          phone_verified: boolean;
+          phone: string | null;
           status: 'pending' | 'verified' | 'rejected';
           rejection_reason: string | null;
           reviewed_by: string | null;
@@ -340,8 +339,7 @@ export type Database = {
           legal_name: string;
           date_of_birth: string;
           address: string;
-          phone: string;
-          phone_verified?: boolean;
+          phone?: string | null;
           status?: 'pending' | 'verified' | 'rejected';
           rejection_reason?: string | null;
           reviewed_by?: string | null;
@@ -374,35 +372,6 @@ export type Database = {
           created_at?: string;
         };
         Update: { storage_path?: string };
-        Relationships: [];
-      };
-      phone_otps: {
-        Row: {
-          id: string;
-          user_id: string;
-          phone: string;
-          code_hash: string;
-          verified: boolean;
-          attempts: number;
-          expires_at: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          phone: string;
-          code_hash: string;
-          verified?: boolean;
-          attempts?: number;
-          expires_at: string;
-          created_at?: string;
-        };
-        Update: {
-          verified?: boolean;
-          attempts?: number;
-          code_hash?: string;
-          expires_at?: string;
-        };
         Relationships: [];
       };
     };

@@ -4,6 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import { LegalDocument, type LegalSection } from '@/components/legal/LegalDocument';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
+import { pageMetadata } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ locale: string }>;
@@ -11,11 +12,14 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  const dict = await getDictionary(isLocale(locale) ? (locale as Locale) : 'uz');
-  return {
-    title: `${dict.legal.terms.title} — Xayr`,
+  const loc: Locale = isLocale(locale) ? locale : 'uz';
+  const dict = await getDictionary(loc);
+  return pageMetadata({
+    locale: loc,
+    path: '/terms',
+    title: dict.legal.terms.title,
     description: dict.legal.terms.subtitle,
-  };
+  });
 }
 
 export default async function TermsPage({ params }: Props) {

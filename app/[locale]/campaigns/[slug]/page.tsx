@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { isLocale, type Locale } from '@/i18n/config';
+import { pageMetadata } from '@/lib/seo';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
@@ -62,13 +64,28 @@ async function getSimilar(campaign: Campaign): Promise<Campaign[]> {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  const loc: Locale = isLocale(locale) ? locale : 'uz';
   const campaign = await getCampaign(slug);
-  if (!campaign) return { title: 'Kampaniya topilmadi — Xayr' };
-  return {
-    title: `${campaign.title} — Xayr`,
+
+  // Unknown campaign → noindex, still locale-aware.
+  if (!campaign) {
+    return pageMetadata({
+      locale: loc,
+      path: `/campaigns/${slug}`,
+      title: 'Kampaniya topilmadi',
+      noindex: true,
+    });
+  }
+
+  // OpenGraph image is supplied by the colocated opengraph-image.tsx route, so
+  // we deliberately omit `images` here and let Next.js merge in the file image.
+  return pageMetadata({
+    locale: loc,
+    path: `/campaigns/${slug}`,
+    title: campaign.title,
     description: campaign.description,
-  };
+  });
 }
 
 export default async function CampaignDetailPage({ params }: Props) {

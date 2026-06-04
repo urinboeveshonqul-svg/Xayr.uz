@@ -9,7 +9,8 @@ const schema = z.object({
   legal_name: z.string().min(3).max(120),
   date_of_birth: z.string().min(8).max(10), // YYYY-MM-DD
   address: z.string().min(5).max(300),
-  phone: z.string().min(7).max(20),
+  // Phone is optional contact info now (no SMS/OTP verification).
+  phone: z.string().max(20).nullable().optional(),
   documents: z.object({
     id_front: z.string(),
     id_back: z.string().nullable().optional(),
@@ -29,18 +30,7 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // 1) Require a verified OTP for this phone.
-  const { data: otp } = await admin
-    .from('phone_otps')
-    .select('verified')
-    .eq('user_id', user.id)
-    .eq('phone', phone.trim())
-    .eq('verified', true)
-    .limit(1)
-    .maybeSingle();
-  if (!otp) return NextResponse.json({ error: 'Phone not verified' }, { status: 400 });
-
-  // 2) Every document path must live in the user's own storage folder.
+  // Every document path must live in the user's own storage folder.
   const paths = [documents.id_front, documents.selfie, ...(documents.id_back ? [documents.id_back] : [])];
   for (const p of paths) {
     if (!p.startsWith(`${user.id}/`)) {
@@ -48,7 +38,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // 3) Create request + documents, set status = pending.
+  // Create request + documents, set status = pending.
   const { data: req, error: rErr } = await admin
     .from('verification_requests')
     .insert({
@@ -56,8 +46,7 @@ export async function POST(request: Request) {
       legal_name,
       date_of_birth,
       address,
-      phone,
-      phone_verified: true,
+      phone: phone?.trim() || null,
       status: 'pending',
     })
     .select('id')

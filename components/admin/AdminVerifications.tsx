@@ -10,7 +10,7 @@ export interface VerificationRow {
   legal_name: string;
   date_of_birth: string;
   address: string;
-  phone: string;
+  phone: string | null;
   status: string;
   created_at: string;
   users: { email: string | null; full_name: string | null } | null;
@@ -115,7 +115,7 @@ export function AdminVerifications({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900 dark:text-white">{r.legal_name}</p>
-                      <p className="text-xs text-gray-400">{r.users?.email} · {r.phone}</p>
+                      <p className="text-xs text-gray-400">{r.users?.email}{r.phone ? ` · ${r.phone}` : ''}</p>
                       <p className="text-xs text-gray-500 mt-1">🎂 {r.date_of_birth} · 📍 {r.address}</p>
                     </div>
                     <button onClick={() => viewDocs(r.id)} className="btn-ghost text-xs gap-1 border border-gray-200 dark:border-gray-700">
