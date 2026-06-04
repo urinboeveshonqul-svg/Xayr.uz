@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Megaphone, Users } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Users, ShieldCheck } from 'lucide-react';
 import { isLocale } from '@/i18n/config';
 
 export function AdminNav() {
@@ -14,6 +14,7 @@ export function AdminNav() {
   const tabs = [
     { href: `/${locale}/admin`, match: '/admin', label: 'Umumiy', icon: LayoutDashboard },
     { href: `/${locale}/admin/campaigns`, match: '/admin/campaigns', label: 'Kampaniyalar', icon: Megaphone },
+    { href: `/${locale}/admin/verifications`, match: '/admin/verifications', label: 'Tasdiqlash', icon: ShieldCheck },
     { href: `/${locale}/admin/users`, match: '/admin/users', label: 'Foydalanuvchilar', icon: Users },
   ];
 

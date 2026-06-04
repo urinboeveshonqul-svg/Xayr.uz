@@ -15,7 +15,8 @@ export type Json =
   | Json[];
 
 export type UserRole = 'user' | 'admin';
-export type CampaignStatus = 'pending' | 'active' | 'rejected' | 'completed' | 'paused';
+export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
+export type CampaignStatus = 'draft' | 'pending' | 'active' | 'rejected' | 'completed' | 'paused';
 export type CampaignCategory =
   | 'medical' | 'education' | 'disaster' | 'community'
   | 'environment' | 'animal' | 'sport' | 'other';
@@ -35,6 +36,7 @@ export type Database = {
           avatar_url: string | null;
           preferred_language: Locale;
           role: UserRole;
+          verification_status: VerificationStatus;
           bio: string | null;
           phone: string | null;
           created_at: string;
@@ -47,6 +49,7 @@ export type Database = {
           avatar_url?: string | null;
           preferred_language?: Locale;
           role?: UserRole;
+          verification_status?: VerificationStatus;
           bio?: string | null;
           phone?: string | null;
           created_at?: string;
@@ -59,6 +62,7 @@ export type Database = {
           avatar_url?: string | null;
           preferred_language?: Locale;
           role?: UserRole;
+          verification_status?: VerificationStatus;
           bio?: string | null;
           phone?: string | null;
           created_at?: string;
@@ -312,6 +316,92 @@ export type Database = {
           user_id?: string;
           campaign_id?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      verification_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          legal_name: string;
+          date_of_birth: string;
+          address: string;
+          phone: string;
+          phone_verified: boolean;
+          status: 'pending' | 'verified' | 'rejected';
+          rejection_reason: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          legal_name: string;
+          date_of_birth: string;
+          address: string;
+          phone: string;
+          phone_verified?: boolean;
+          status?: 'pending' | 'verified' | 'rejected';
+          rejection_reason?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          status?: 'pending' | 'verified' | 'rejected';
+          rejection_reason?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      identity_documents: {
+        Row: {
+          id: string;
+          request_id: string;
+          user_id: string;
+          doc_type: 'id_front' | 'id_back' | 'passport' | 'selfie';
+          storage_path: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          request_id: string;
+          user_id: string;
+          doc_type: 'id_front' | 'id_back' | 'passport' | 'selfie';
+          storage_path: string;
+          created_at?: string;
+        };
+        Update: { storage_path?: string };
+        Relationships: [];
+      };
+      phone_otps: {
+        Row: {
+          id: string;
+          user_id: string;
+          phone: string;
+          code_hash: string;
+          verified: boolean;
+          attempts: number;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          phone: string;
+          code_hash: string;
+          verified?: boolean;
+          attempts?: number;
+          expires_at: string;
+          created_at?: string;
+        };
+        Update: {
+          verified?: boolean;
+          attempts?: number;
+          code_hash?: string;
+          expires_at?: string;
         };
         Relationships: [];
       };

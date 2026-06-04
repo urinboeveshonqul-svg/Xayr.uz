@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { locales, isLocale, type Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
+import { EmailVerifyBanner } from '@/components/EmailVerifyBanner';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' });
@@ -49,6 +50,7 @@ export default async function LocaleLayout({
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <I18nProvider locale={locale as Locale} messages={messages}>
+          <EmailVerifyBanner />
           {children}
         </I18nProvider>
         <Toaster

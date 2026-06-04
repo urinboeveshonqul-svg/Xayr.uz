@@ -22,6 +22,13 @@ export default async function CreateCampaignPage() {
     .select('id, slug')
     .order('sort_order');
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('verification_status')
+    .eq('id', user.id)
+    .single();
+  const isVerified = profile?.verification_status === 'verified';
+
   return (
     <>
       <Navbar />
@@ -34,7 +41,7 @@ export default async function CreateCampaignPage() {
             </p>
           </div>
           <div className="card p-8">
-            <CreateCampaignForm userId={user.id} categories={categories ?? []} />
+            <CreateCampaignForm userId={user.id} categories={categories ?? []} isVerified={isVerified} />
           </div>
         </div>
       </main>

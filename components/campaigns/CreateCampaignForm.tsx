@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,11 +32,12 @@ type FormData = z.infer<typeof schema>;
 interface CreateCampaignFormProps {
   userId: string;
   categories: { id: string; slug: CampaignCategory }[];
+  isVerified: boolean;
 }
 
-export function CreateCampaignForm({ userId, categories }: CreateCampaignFormProps) {
+export function CreateCampaignForm({ userId, categories, isVerified }: CreateCampaignFormProps) {
   const router = useRouter();
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
 
   // Cover image (required)
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -160,7 +162,8 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
         is_urgent: data.is_urgent,
         image_url,
         images,
-        status: 'pending',
+        // Unverified authors can only draft; the DB trigger also enforces this.
+        status: isVerified ? 'pending' : 'draft',
       });
 
       if (error) {
@@ -168,8 +171,12 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
         return;
       }
 
-      toast.success('Kampaniya yaratildi! Moderatsiyadan o\'tgach faollashadi.');
-      router.push(`/${locale}/campaigns`);
+      toast.success(
+        isVerified
+          ? 'Kampaniya yaratildi! Moderatsiyadan o\'tgach faollashadi.'
+          : 'Kampaniya qoralama sifatida saqlandi.'
+      );
+      router.push(isVerified ? `/${locale}/campaigns` : `/${locale}/verify`);
       router.refresh();
     } catch (err) {
       toast.error('Rasm yuklashda yoki saqlashda xatolik');
@@ -183,6 +190,16 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Verification gate notice */}
+      {!isVerified && (
+        <div className="card p-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-900/40">
+          <p className="text-sm text-yellow-800 dark:text-yellow-300">{t('verify.draftNotice')}</p>
+          <Link href={`/${locale}/verify`} className="btn-primary mt-3 py-2.5 text-sm">
+            {t('verify.verifyToPublish')}
+          </Link>
+        </div>
+      )}
+
       {/* Cover image (required) */}
       <div>
         <label className="label">Muqova rasmi *</label>
