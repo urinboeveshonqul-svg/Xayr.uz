@@ -29,35 +29,38 @@ export function Navbar() {
     // effect — the Navbar renders on every page, so an unguarded throw here would
     // blank the entire site. On failure we degrade to the signed-out navbar.
     let unsubscribe = () => {};
+
+    // Load a user's profile row, swallowing any Supabase error. The Postgrest
+    // query builder is a PromiseLike (no .catch), so we use await + try/catch.
+    const loadProfile = async (
+      supabase: ReturnType<typeof createClient>,
+      userId: string
+    ) => {
+      try {
+        const { data: p } = await supabase.from('users').select('*').eq('id', userId).single();
+        setProfile(p);
+      } catch {
+        setProfile(null);
+      }
+    };
+
     try {
       const supabase = createClient();
 
-      supabase.auth
-        .getUser()
-        .then(({ data }) => {
+      (async () => {
+        try {
+          const { data } = await supabase.auth.getUser();
           setUser(data?.user ?? null);
-          if (data?.user) {
-            supabase
-              .from('users')
-              .select('*')
-              .eq('id', data.user.id)
-              .single()
-              .then(({ data: p }) => setProfile(p))
-              .catch(() => setProfile(null));
-          }
-        })
-        .catch(() => setUser(null));
+          if (data?.user) await loadProfile(supabase, data.user.id);
+        } catch {
+          setUser(null);
+        }
+      })();
 
       const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-            .then(({ data: p }) => setProfile(p))
-            .catch(() => setProfile(null));
+          void loadProfile(supabase, session.user.id);
         } else {
           setProfile(null);
         }
