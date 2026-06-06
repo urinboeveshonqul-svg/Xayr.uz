@@ -17,10 +17,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
+      # No package-lock.json is committed, so `npm ci` and setup-node's npm
+      # cache (both require a lock file) can't be used. Use `npm install`.
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Typecheck
         run: npm run typecheck
