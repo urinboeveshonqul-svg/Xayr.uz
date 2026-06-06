@@ -220,6 +220,20 @@
     "draftNotice": "Your campaign will be saved as a draft. To publish, verify your identity first.",
     "verifyToPublish": "Verify identity"
   },
+  "profileVerify": {
+    "cardTitle": "Verification Status",
+    "statusUnverified": "Unverified",
+    "statusPending": "Pending Review",
+    "statusVerified": "Verified",
+    "statusRejected": "Rejected",
+    "pendingMsg": "Your verification is under review.",
+    "verifiedMsg": "Your identity has been verified.",
+    "rejectedMsg": "Your verification was rejected.",
+    "reasonLabel": "Rejection reason",
+    "verifiedAtLabel": "Verified on",
+    "startBtn": "Start Verification",
+    "resubmitBtn": "Submit New Verification"
+  },
   "donation": {
     "historyTitle": "My donations",
     "noDonations": "You haven't donated yet",

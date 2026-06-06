@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProfileForm } from '@/components/profile/ProfileForm';
+import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
 
 export const metadata: Metadata = {
   title: 'Mening profilim — Xayr',
@@ -39,6 +40,13 @@ export default async function ProfilePage({
             <h1 className="section-title">Mening profilim</h1>
             <p className="section-sub">Shaxsiy ma'lumotlaringizni boshqaring</p>
           </div>
+
+          <VerificationStatusCard
+            status={profile.verification_status}
+            verifiedAt={profile.verified_at}
+            rejectionReason={profile.rejection_reason}
+          />
+
           <div className="card p-8">
             <ProfileForm profile={profile} email={user.email ?? ''} />
           </div>

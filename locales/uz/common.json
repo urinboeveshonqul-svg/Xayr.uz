@@ -220,6 +220,20 @@
     "draftNotice": "Kampaniyangiz qoralama sifatida saqlanadi. E'lon qilish uchun avval shaxsingizni tasdiqlang.",
     "verifyToPublish": "Shaxsni tasdiqlash"
   },
+  "profileVerify": {
+    "cardTitle": "Tasdiqlash holati",
+    "statusUnverified": "Tasdiqlanmagan",
+    "statusPending": "Ko'rib chiqilmoqda",
+    "statusVerified": "Tasdiqlangan",
+    "statusRejected": "Rad etilgan",
+    "pendingMsg": "Tasdiqlash arizangiz ko'rib chiqilmoqda.",
+    "verifiedMsg": "Shaxsingiz tasdiqlandi.",
+    "rejectedMsg": "Tasdiqlash arizangiz rad etildi.",
+    "reasonLabel": "Rad etish sababi",
+    "verifiedAtLabel": "Tasdiqlangan sana",
+    "startBtn": "Tasdiqlashni boshlash",
+    "resubmitBtn": "Qayta ariza topshirish"
+  },
   "donation": {
     "historyTitle": "Mening xayriyalarim",
     "noDonations": "Siz hali xayriya qilmagansiz",

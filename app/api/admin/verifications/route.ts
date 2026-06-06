@@ -74,7 +74,16 @@ export async function POST(request: Request) {
     })
     .eq('id', requestId);
 
-  await admin.from('users').update({ verification_status: newStatus }).eq('id', req.user_id);
+  // Mirror the decision onto the user row so the profile page can show it
+  // directly: set verified_at on approval, store the reason on rejection.
+  await admin
+    .from('users')
+    .update({
+      verification_status: newStatus,
+      verified_at: action === 'approve' ? new Date().toISOString() : null,
+      rejection_reason: action === 'reject' ? (reason ?? null) : null,
+    })
+    .eq('id', req.user_id);
 
   return NextResponse.json({ ok: true });
 }

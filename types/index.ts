@@ -37,6 +37,8 @@ export type Database = {
           preferred_language: Locale;
           role: UserRole;
           verification_status: VerificationStatus;
+          verified_at: string | null;
+          rejection_reason: string | null;
           bio: string | null;
           phone: string | null;
           created_at: string;
@@ -50,6 +52,8 @@ export type Database = {
           preferred_language?: Locale;
           role?: UserRole;
           verification_status?: VerificationStatus;
+          verified_at?: string | null;
+          rejection_reason?: string | null;
           bio?: string | null;
           phone?: string | null;
           created_at?: string;
@@ -63,6 +67,8 @@ export type Database = {
           preferred_language?: Locale;
           role?: UserRole;
           verification_status?: VerificationStatus;
+          verified_at?: string | null;
+          rejection_reason?: string | null;
           bio?: string | null;
           phone?: string | null;
           created_at?: string;
