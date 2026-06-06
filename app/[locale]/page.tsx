@@ -8,7 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ArrowRight, TrendingUp, Heart, Users, ShieldCheck,
-  Flame, Megaphone, HandHeart, Sparkles,
+  Flame, Megaphone, HandHeart, Sparkles, CheckCircle2,
 } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -26,6 +26,24 @@ async function getActiveCampaigns(): Promise<Campaign[]> {
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(24);
+
+    if (error) return [];
+    return (data as unknown as Campaign[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// Real completed campaigns — the basis of the Success Stories section.
+async function getCompletedCampaigns(): Promise<Campaign[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('*, profiles:users(full_name, avatar_url), categories(slug)')
+      .eq('status', 'completed')
+      .order('updated_at', { ascending: false })
+      .limit(6);
 
     if (error) return [];
     return (data as unknown as Campaign[]) ?? [];
@@ -79,9 +97,10 @@ export default async function HomePage({
   const dict = await getDictionary(lng);
   const L = (path: string) => `/${lng}${path}`;
 
-  const [campaigns, platformStats] = await Promise.all([
+  const [campaigns, platformStats, completedCampaigns] = await Promise.all([
     getActiveCampaigns(),
     getPlatformStats(),
+    getCompletedCampaigns(),
   ]);
 
   const featured = campaigns.slice(0, 3);
@@ -219,40 +238,59 @@ export default async function HomePage({
           </div>
         </section>
 
-        {/* TESTIMONIALS */}
-        <section className="py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-14">
-              <h2 className="text-3xl lg:text-4xl font-black text-gray-900 mb-4 tracking-tight">{dict.home.testimonialsTitle}</h2>
-              <p className="text-lg text-gray-600">{dict.home.testimonialsSubtitle}</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                { name: 'Dilnoza Rahimova', role: dict.categories.medical, quote: "O'g'limning operatsiyasi uchun zarur bo'lgan mablag'ni 15 kun ichida to'pladik. Sizlarga katta rahmat!", image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=128&h=128&fit=crop&auto=format' },
-                { name: 'Jasur Karimov', role: dict.categories.education, quote: 'Qishloqimiz maktabiga zamonaviy kutubxona qurishga muvaffaq bo\'ldik.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&h=128&fit=crop&auto=format' },
-                { name: 'Malika Toshmatova', role: dict.categories.community, quote: 'Har oy 5-10 ta kampaniyaga yordam beraman. Bu platforma juda qulay va ishonchli.', image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=128&h=128&fit=crop&auto=format' },
-              ].map((tItem, i) => (
-                <div key={i} className="bg-white p-8 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100">
-                  <div className="text-6xl text-green-500 leading-none mb-4 font-serif">&ldquo;</div>
-                  <p className="text-gray-700 text-lg mb-6 leading-relaxed">{tItem.quote}</p>
-                  <div className="flex items-center gap-4">
-                    <Image
-                      src={tItem.image}
-                      alt={tItem.name}
-                      width={56}
-                      height={56}
-                      className="w-14 h-14 rounded-full object-cover ring-2 ring-green-100"
-                    />
-                    <div>
-                      <div className="font-bold text-gray-900">{tItem.name}</div>
-                      <div className="text-sm text-gray-500">{tItem.role}</div>
+        {/* SUCCESS STORIES — real completed campaigns from Supabase. Hidden when none. */}
+        {completedCampaigns.length > 0 && (
+          <section className="py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center max-w-2xl mx-auto mb-14">
+                <h2 className="text-3xl lg:text-4xl font-black text-gray-900 mb-4 tracking-tight">{dict.home.testimonialsTitle}</h2>
+                <p className="text-lg text-gray-600">{dict.home.testimonialsSubtitle}</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {completedCampaigns.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={L(`/campaigns/${c.slug}`)}
+                    className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
+                  >
+                    <div className="relative aspect-[4/3] bg-gray-100">
+                      {c.image_url ? (
+                        <Image
+                          src={c.image_url}
+                          alt={c.title}
+                          fill
+                          quality={80}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100" />
+                      )}
+                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-green-600 text-white text-xs font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> {dict.donation.completed}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="font-black text-gray-900 line-clamp-2 leading-tight group-hover:text-green-600 transition-colors">{c.title}</h3>
+                      {c.profiles?.full_name && (
+                        <p className="text-sm text-gray-500 mt-1">{c.profiles.full_name}</p>
+                      )}
+                      <div className="mt-auto pt-4 border-t border-gray-100 flex items-end justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-base font-black text-gray-900 truncate">{formatMoney(c.current_amount ?? 0)} so'm</div>
+                          <div className="text-xs text-gray-500 truncate">{formatMoney(c.goal_amount ?? 0)} {dict.campaign.of}</div>
+                        </div>
+                        <div className="text-xs text-gray-400 flex-shrink-0">
+                          {new Date(c.updated_at).toLocaleDateString(lng)}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* CTA */}
         <section className="py-24 bg-gradient-to-br from-green-600 via-green-500 to-emerald-600 text-white relative overflow-hidden">

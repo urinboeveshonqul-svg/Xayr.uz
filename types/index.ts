@@ -241,6 +241,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      campaign_reports: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          user_id: string;
+          title: string;
+          message: string;
+          images: string[];
+          documents: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          user_id: string;
+          title: string;
+          message: string;
+          images?: string[];
+          documents?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          message?: string;
+          images?: string[];
+          documents?: string[];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       comments: {
         Row: {
           id: string;
@@ -423,6 +455,9 @@ type Row<T extends keyof Database['public']['Tables']> =
 export type Profile = Row<'users'>;
 export type Category = Row<'categories'>;
 export type CampaignUpdate = Row<'campaign_updates'>;
+export type CampaignReport = Row<'campaign_reports'> & {
+  profiles?: Pick<Profile, 'full_name' | 'avatar_url'> | null;
+};
 export type Comment = Row<'comments'>;
 export type Notification = Row<'notifications'>;
 export type SavedCampaign = Row<'saved_campaigns'>;
