@@ -26,8 +26,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Lint
-        run: npm run lint
+      # No `next lint` step: the repo has no ESLint config, so `next lint` would
+      # prompt interactively (and fail in CI). `next build` already skips ESLint
+      # when no config is present, so this keeps CI and Vercel build behaviour
+      # identical. Add an ESLint config + a lint step later if desired.
 
       - name: Build
         # Placeholder values: a valid URL keeps the Supabase clients from
