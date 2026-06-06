@@ -5,7 +5,13 @@ import Image from 'next/image';
 import { ArrowRight, Sparkles, Shield, Zap, Heart } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
-export function Hero() {
+export function Hero({
+  activeCampaigns = 0,
+  donors = 0,
+}: {
+  activeCampaigns?: number;
+  donors?: number;
+}) {
   const { t, locale } = useI18n();
   const L = (path: string) => `/${locale}${path}`;
 
@@ -95,10 +101,12 @@ export function Hero() {
               <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-500 rounded-[3rem] blur-2xl opacity-30 animate-pulse"></div>
               <div className="relative rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
                 <Image
-                  src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&h=800&fit=crop&auto=format"
-                  alt="Helping hands"
+                  src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=1200&fit=crop&crop=faces&auto=format"
+                  alt="Xayr — jamiyat yordami"
                   width={600}
                   height={600}
+                  sizes="(min-width: 1024px) 600px, 0px"
+                  quality={85}
                   className="w-full h-auto"
                   priority
                 />
@@ -109,7 +117,7 @@ export function Hero() {
             <div className="absolute -top-6 -right-6 bg-white rounded-2xl shadow-2xl p-5 animate-float border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white text-2xl font-black">
-                  12K
+                  {activeCampaigns.toLocaleString('uz-UZ')}
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 font-semibold">{t('hero.statActive')}</div>
@@ -121,7 +129,7 @@ export function Hero() {
             <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-2xl p-5 animate-float animation-delay-2000 border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white text-2xl font-black">
-                  89K
+                  {donors.toLocaleString('uz-UZ')}
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 font-semibold">{t('hero.statActive')}</div>

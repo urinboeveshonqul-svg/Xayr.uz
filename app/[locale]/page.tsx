@@ -109,7 +109,7 @@ export default async function HomePage({
     <>
       <Navbar />
       <main className="min-h-screen bg-white">
-        <Hero />
+        <Hero activeCampaigns={platformStats.active} donors={platformStats.donors} />
 
         {/* STATISTICS */}
         <section className="py-16 lg:py-20 bg-white border-b border-gray-100">
