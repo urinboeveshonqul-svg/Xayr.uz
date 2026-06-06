@@ -1,0 +1,39 @@
+name: CI
+
+# Catches the class of failure that took the site down (broken imports,
+# type errors, build breaks) BEFORE it reaches Vercel.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # Placeholder values: a valid URL keeps the Supabase clients from
+        # throwing at build time. No real secrets are needed — pages that read
+        # cookies render dynamically (at request time), not during the build.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: https://xayr.uz
+        run: npm run build

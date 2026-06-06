@@ -55,13 +55,32 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Path without the locale prefix, e.g. /uz/profile → /profile
+  const bare = pathname.slice(`/${pathLocale}`.length) || '/';
+
   // ── Locale present → refresh the Supabase session ───────────────────
+  // Hardened: a missing/invalid Supabase config or a transient auth/network
+  // error must NEVER throw out of the middleware — that surfaces on Vercel as
+  // MIDDLEWARE_INVOCATION_FAILED and 500s the ENTIRE site on every route. So we
+  // fail OPEN: if the session can't be refreshed we let the request through
+  // without auth gating. This is safe because every protected page, layout and
+  // route handler re-checks auth server-side, so failing open here never grants
+  // unauthorized access — it only avoids taking the whole site down.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        '[middleware] NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY missing — skipping auth refresh (fail-open).'
+      );
+    }
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -74,33 +93,33 @@ export async function middleware(request: NextRequest) {
           );
         },
       },
+    });
+
+    // IMPORTANT: Do not remove — refreshes the Supabase session on every request.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const isProtected = PROTECTED.some((p) => bare === p || bare.startsWith(`${p}/`));
+    if (!user && isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${pathLocale}/auth/login`;
+      url.searchParams.set('next', bare);
+      return copyCookies(supabaseResponse, NextResponse.redirect(url));
     }
-  );
 
-  // IMPORTANT: Do not remove — refreshes the Supabase session on every request.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    if (user && AUTH_ONLY.includes(bare)) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${pathLocale}`;
+      url.search = '';
+      return copyCookies(supabaseResponse, NextResponse.redirect(url));
+    }
 
-  // Path without the locale prefix, e.g. /uz/profile → /profile
-  const bare = pathname.slice(`/${pathLocale}`.length) || '/';
-
-  const isProtected = PROTECTED.some((p) => bare === p || bare.startsWith(`${p}/`));
-  if (!user && isProtected) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/${pathLocale}/auth/login`;
-    url.searchParams.set('next', bare);
-    return copyCookies(supabaseResponse, NextResponse.redirect(url));
+    return supabaseResponse;
+  } catch (err) {
+    console.error('[middleware] Supabase session refresh failed — allowing request (fail-open):', err);
+    return supabaseResponse;
   }
-
-  if (user && AUTH_ONLY.includes(bare)) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/${pathLocale}`;
-    url.search = '';
-    return copyCookies(supabaseResponse, NextResponse.redirect(url));
-  }
-
-  return supabaseResponse;
 }
 
 // Carry refreshed session cookies onto a redirect response.

@@ -6,9 +6,26 @@ import { locales, defaultLocale, type Locale } from '@/i18n/config';
  * with a sensible production fallback. Trailing slash stripped so we can safely
  * concatenate paths.
  */
-export const SITE_URL = (
-  process.env.NEXT_PUBLIC_APP_URL || 'https://xayr.uz'
-).replace(/\/+$/, '');
+const DEFAULT_SITE_URL = 'https://xayr.uz';
+
+/**
+ * Resolve + validate the site origin. A malformed NEXT_PUBLIC_APP_URL must not
+ * throw at module load — that would crash `new URL()` below and 500 every page
+ * that imports this module. We validate and fall back to the default instead.
+ */
+function resolveSiteUrl(): string {
+  const raw = (process.env.NEXT_PUBLIC_APP_URL || DEFAULT_SITE_URL).replace(/\/+$/, '');
+  try {
+    return new URL(raw).origin;
+  } catch {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[seo] Invalid NEXT_PUBLIC_APP_URL (${raw}) — falling back to ${DEFAULT_SITE_URL}.`);
+    }
+    return DEFAULT_SITE_URL;
+  }
+}
+
+export const SITE_URL = resolveSiteUrl();
 
 /** Used by `metadataBase` so all relative metadata URLs resolve absolutely. */
 export const METADATA_BASE = new URL(SITE_URL);
