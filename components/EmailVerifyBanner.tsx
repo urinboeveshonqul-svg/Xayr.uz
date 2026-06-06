@@ -13,11 +13,24 @@ export function EmailVerifyBanner() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      const u = data.user;
-      if (u && !u.email_confirmed_at && u.email) setEmail(u.email);
-    });
+    // Guard: if Supabase is unavailable (or env not yet configured) the client
+    // constructor or the network call can throw — the banner is non-critical, so
+    // fail silently instead of bubbling to the error boundary and blanking the page.
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      return;
+    }
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        const u = data?.user;
+        if (u && !u.email_confirmed_at && u.email) setEmail(u.email);
+      })
+      .catch(() => {
+        /* Supabase unreachable — leave the banner hidden. */
+      });
   }, []);
 
   const resend = async () => {
@@ -28,6 +41,8 @@ export function EmailVerifyBanner() {
       const { error } = await supabase.auth.resend({ type: 'signup', email });
       if (error) toast.error(error.message);
       else toast.success(t('verify.bannerSent'));
+    } catch {
+      toast.error(t('verify.bannerResend'));
     } finally {
       setSending(false);
     }

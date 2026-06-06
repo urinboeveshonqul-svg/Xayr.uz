@@ -20,46 +20,66 @@ export function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      if (data.user) {
-        supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single()
-          .then(({ data: p }) => setProfile(p));
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: p }) => setProfile(p));
-      } else {
-        setProfile(null);
-      }
-    });
-
+    // Scroll behaviour is independent of Supabase — wire it up first so the
+    // navbar still works even if auth is unavailable.
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
 
+    // Guard: a Supabase outage (or missing env) must not throw out of this
+    // effect — the Navbar renders on every page, so an unguarded throw here would
+    // blank the entire site. On failure we degrade to the signed-out navbar.
+    let unsubscribe = () => {};
+    try {
+      const supabase = createClient();
+
+      supabase.auth
+        .getUser()
+        .then(({ data }) => {
+          setUser(data?.user ?? null);
+          if (data?.user) {
+            supabase
+              .from('users')
+              .select('*')
+              .eq('id', data.user.id)
+              .single()
+              .then(({ data: p }) => setProfile(p))
+              .catch(() => setProfile(null));
+          }
+        })
+        .catch(() => setUser(null));
+
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+            .then(({ data: p }) => setProfile(p))
+            .catch(() => setProfile(null));
+        } else {
+          setProfile(null);
+        }
+      });
+      unsubscribe = () => listener.subscription.unsubscribe();
+    } catch {
+      /* Supabase unavailable — keep the signed-out navbar. */
+    }
+
     return () => {
-      listener.subscription.unsubscribe();
+      unsubscribe();
       window.removeEventListener('scroll', onScroll);
     };
   }, []);
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      /* ignore — still send the user home below */
+    }
     window.location.href = `/${locale}`;
   };
 
