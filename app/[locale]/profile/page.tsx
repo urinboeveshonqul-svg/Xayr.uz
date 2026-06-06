@@ -1,12 +1,13 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Heart } from 'lucide-react';
+import { Heart, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
+import type { CampaignReport } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Mening profilim — Xayr',
@@ -30,6 +31,21 @@ export default async function ProfilePage({
     .single();
 
   if (!profile) redirect('/');
+
+  // The creator's published completion reports (read-only). Public-read RLS;
+  // if the migration isn't applied the query errors → [] and the section hides.
+  type ReportRow = CampaignReport & { campaigns?: { title: string; slug: string } | null };
+  let reports: ReportRow[] = [];
+  try {
+    const { data } = await supabase
+      .from('campaign_reports')
+      .select('*, campaigns(title, slug)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    reports = (data as unknown as ReportRow[]) ?? [];
+  } catch {
+    reports = [];
+  }
 
   return (
     <>
@@ -63,6 +79,43 @@ export default async function ProfilePage({
             </span>
             <span className="ml-auto text-gray-400">→</span>
           </Link>
+
+          {/* Completion reports the user has published (read-only) */}
+          {reports.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">
+                Yakuniy hisobotlar
+              </h2>
+              <div className="space-y-3">
+                {reports.map((r) => (
+                  <div key={r.id} className="card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                          {r.title}
+                        </p>
+                        {r.campaigns?.slug && (
+                          <Link
+                            href={`/${locale}/campaigns/${r.campaigns.slug}`}
+                            className="text-sm text-brand-600 hover:underline truncate block mt-0.5"
+                          >
+                            {r.campaigns.title}
+                          </Link>
+                        )}
+                      </div>
+                      <time className="text-xs text-gray-400 flex-shrink-0">
+                        {new Date(r.created_at).toLocaleDateString('uz-UZ')}
+                      </time>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
+                      {r.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </main>
       <Footer />
