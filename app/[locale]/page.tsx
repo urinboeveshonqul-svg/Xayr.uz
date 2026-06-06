@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
@@ -33,6 +34,41 @@ async function getActiveCampaigns(): Promise<Campaign[]> {
   }
 }
 
+interface PlatformStats {
+  active: number;   // active campaigns
+  donors: number;   // completed donations
+  raised: number;   // sum of completed donation amounts
+  verified: number; // verified users (creators)
+}
+
+/**
+ * Real platform statistics, fetched server-side via the service-role client so
+ * counts are accurate regardless of RLS. Every value falls back to 0 — there are
+ * NO fake fallbacks. Any failure (missing service-role env, network) returns all
+ * zeros instead of throwing, so the homepage never breaks.
+ */
+async function getPlatformStats(): Promise<PlatformStats> {
+  const zero: PlatformStats = { active: 0, donors: 0, raised: 0, verified: 0 };
+  try {
+    const admin = createAdminClient();
+    const [activeRes, donorsRes, verifiedRes, raisedRes] = await Promise.all([
+      admin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      admin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+      admin.from('users').select('*', { count: 'exact', head: true }).eq('verification_status', 'verified'),
+      admin.from('donations').select('amount').eq('status', 'completed'),
+    ]);
+    const raised = (raisedRes.data ?? []).reduce((sum, d) => sum + (d.amount ?? 0), 0);
+    return {
+      active: activeRes.count ?? 0,
+      donors: donorsRes.count ?? 0,
+      verified: verifiedRes.count ?? 0,
+      raised,
+    };
+  } catch {
+    return zero;
+  }
+}
+
 export default async function HomePage({
   params,
 }: {
@@ -43,7 +79,10 @@ export default async function HomePage({
   const dict = await getDictionary(lng);
   const L = (path: string) => `/${lng}${path}`;
 
-  const campaigns = await getActiveCampaigns();
+  const [campaigns, platformStats] = await Promise.all([
+    getActiveCampaigns(),
+    getPlatformStats(),
+  ]);
 
   const featured = campaigns.slice(0, 3);
   const featuredIds = new Set(featured.map((c) => c.id));
@@ -52,15 +91,12 @@ export default async function HomePage({
     .filter((c) => !featuredIds.has(c.id))
     .slice(0, 8);
 
-  const totalRaised = campaigns.reduce((sum, c) => sum + (c.current_amount ?? 0), 0);
-  const totalDonors = campaigns.reduce((sum, c) => sum + (c.donors_count ?? 0), 0);
-  const activeCount = campaigns.length;
-
+  // Real platform statistics only — no fake fallbacks; zero renders as 0.
   const stats = [
-    { icon: Heart, value: activeCount > 0 ? `${activeCount}+` : '12,400+', label: dict.stats.active, color: 'text-red-500', bg: 'bg-red-50' },
-    { icon: Users, value: totalDonors > 0 ? `${formatMoney(totalDonors)}+` : '89,000+', label: dict.stats.donors, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { icon: TrendingUp, value: totalRaised > 0 ? `${formatMoney(totalRaised)} so'm` : "4.2 mlrd", label: dict.stats.raised, color: 'text-green-500', bg: 'bg-green-50' },
-    { icon: ShieldCheck, value: '100%', label: dict.stats.secure, color: 'text-purple-500', bg: 'bg-purple-50' },
+    { icon: Heart, value: platformStats.active.toLocaleString('uz-UZ'), label: dict.stats.active, color: 'text-red-500', bg: 'bg-red-50' },
+    { icon: Users, value: platformStats.donors.toLocaleString('uz-UZ'), label: dict.stats.donors, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { icon: TrendingUp, value: `${formatMoney(platformStats.raised)} so'm`, label: dict.stats.raised, color: 'text-green-500', bg: 'bg-green-50' },
+    { icon: ShieldCheck, value: platformStats.verified.toLocaleString('uz-UZ'), label: dict.stats.verified, color: 'text-purple-500', bg: 'bg-purple-50' },
   ];
 
   const howItWorks = [
