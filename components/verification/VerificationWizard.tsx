@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
-  Loader2, Upload, ArrowLeft, ArrowRight, ShieldCheck, Camera,
+  Loader2, Upload, ArrowLeft, ArrowRight, ShieldCheck, Camera, Check,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
@@ -150,7 +150,7 @@ export function VerificationWizard({ userId }: { userId: string }) {
           <Row label={t('verify.dob')} value={dob} />
           <Row label={t('verify.address')} value={address} />
           <Row label={t('verify.step3Title')} value={paths.id_back ? '2' : '1'} />
-          <Row label={t('verify.selfie')} value="✓" />
+          <Row label={t('verify.selfie')} value={<Check className="w-4 h-4 text-green-600" />} />
         </div>
       )}
 
@@ -175,7 +175,7 @@ export function VerificationWizard({ userId }: { userId: string }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 border-b border-gray-100 dark:border-gray-800 py-2">
       <span className="text-gray-500">{label}</span>

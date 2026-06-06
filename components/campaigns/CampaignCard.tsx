@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Users, TrendingUp, AlertCircle } from 'lucide-react';
-import { formatMoney } from '@/lib/utils';
+import { Heart, Users, TrendingUp, AlertCircle, Star } from 'lucide-react';
+import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign } from '@/types';
 
@@ -25,11 +25,6 @@ const CATEGORY_IMAGES: Record<string, string> = {
   other:       'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&h=600&fit=crop&auto=format',
 };
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  medical: '🏥', education: '📚', disaster: '🚨', community: '🤝',
-  environment: '🌱', animal: '🐾', sport: '⚽', other: '💡',
-};
-
 export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) {
   const { t, locale } = useI18n();
 
@@ -48,8 +43,7 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
     }
   };
 
-  const emoji = CATEGORY_EMOJI[categorySlug] ?? '💚';
-  const categoryLabel = `${emoji} ${t(`categories.${categorySlug}`)}`;
+  const CatIcon = CATEGORY_CONFIG[categorySlug]?.Icon ?? Heart;
 
   const imageSrc =
     campaign.image_url ||
@@ -66,22 +60,24 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
         featured ? 'ring-2 ring-green-500/30' : ''
       }`}
     >
-      {/* Image */}
-      <div className="relative w-full aspect-[16/10] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+      {/* Image — larger 4:3 cover, consistent across every card */}
+      <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
         <Image
           src={imageSrc}
           alt={campaign.title}
           fill
-          className="object-cover group-hover:scale-110 transition-transform duration-500"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          quality={80}
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
         />
 
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0" />
 
         {/* Category badge */}
-        <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/95 backdrop-blur-md rounded-full text-xs font-bold shadow-lg">
-          {categoryLabel}
+        <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/95 backdrop-blur-md rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
+          <CatIcon className="w-3.5 h-3.5" />
+          {t(`categories.${categorySlug}`)}
         </div>
 
         {/* Urgent badge */}
@@ -94,8 +90,8 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
 
         {/* Featured badge */}
         {featured && !urgent && !campaign.is_urgent && (
-          <div className="absolute top-4 right-4 px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg">
-            ⭐ {t('home.featuredBadge')}
+          <div className="absolute top-4 right-4 px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
+            <Star className="w-3 h-3 fill-current" /> {t('home.featuredBadge')}
           </div>
         )}
 

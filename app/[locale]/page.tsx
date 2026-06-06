@@ -4,6 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowRight, TrendingUp, Heart, Users, ShieldCheck,
   Flame, Megaphone, HandHeart, Sparkles,
@@ -145,7 +146,9 @@ export default async function HomePage({
         {campaigns.length === 0 && (
           <section className="py-24 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-xl">
-              <div className="text-7xl mb-6">💚</div>
+              <div className="flex justify-center mb-6">
+                <Heart className="w-16 h-16 text-green-500 fill-green-500" />
+              </div>
               <h2 className="text-3xl font-black text-gray-900 mb-4">{dict.home.emptyTitle}</h2>
               <p className="text-lg text-gray-600 mb-8">{dict.home.emptySubtitle}</p>
               <Link href={L('/campaigns/create')} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl text-lg font-black shadow-xl hover:scale-105 transition-all">
@@ -189,17 +192,21 @@ export default async function HomePage({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
-                { name: 'Dilnoza Rahimova', role: dict.categories.medical, quote: "O'g'limning operatsiyasi uchun zarur bo'lgan mablag'ni 15 kun ichida to'pladik. Sizlarga katta rahmat!" },
-                { name: 'Jasur Karimov', role: dict.categories.education, quote: 'Qishloqimiz maktabiga zamonaviy kutubxona qurishga muvaffaq bo\'ldik.' },
-                { name: 'Malika Toshmatova', role: dict.categories.community, quote: 'Har oy 5-10 ta kampaniyaga yordam beraman. Bu platforma juda qulay va ishonchli.' },
+                { name: 'Dilnoza Rahimova', role: dict.categories.medical, quote: "O'g'limning operatsiyasi uchun zarur bo'lgan mablag'ni 15 kun ichida to'pladik. Sizlarga katta rahmat!", image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=128&h=128&fit=crop&auto=format' },
+                { name: 'Jasur Karimov', role: dict.categories.education, quote: 'Qishloqimiz maktabiga zamonaviy kutubxona qurishga muvaffaq bo\'ldik.', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&h=128&fit=crop&auto=format' },
+                { name: 'Malika Toshmatova', role: dict.categories.community, quote: 'Har oy 5-10 ta kampaniyaga yordam beraman. Bu platforma juda qulay va ishonchli.', image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=128&h=128&fit=crop&auto=format' },
               ].map((tItem, i) => (
                 <div key={i} className="bg-white p-8 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100">
                   <div className="text-6xl text-green-500 leading-none mb-4 font-serif">&ldquo;</div>
                   <p className="text-gray-700 text-lg mb-6 leading-relaxed">{tItem.quote}</p>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-black text-lg">
-                      {tItem.name.charAt(0)}
-                    </div>
+                    <Image
+                      src={tItem.image}
+                      alt={tItem.name}
+                      width={56}
+                      height={56}
+                      className="w-14 h-14 rounded-full object-cover ring-2 ring-green-100"
+                    />
                     <div>
                       <div className="font-bold text-gray-900">{tItem.name}</div>
                       <div className="text-sm text-gray-500">{tItem.role}</div>
@@ -213,6 +220,15 @@ export default async function HomePage({
 
         {/* CTA */}
         <section className="py-24 bg-gradient-to-br from-green-600 via-green-500 to-emerald-600 text-white relative overflow-hidden">
+          {/* Community/volunteer imagery, blended softly behind the gradient for warmth */}
+          <Image
+            src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1600&h=700&fit=crop&auto=format"
+            alt=""
+            fill
+            aria-hidden
+            className="object-cover opacity-20 mix-blend-overlay pointer-events-none"
+            sizes="100vw"
+          />
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <h2 className="text-4xl lg:text-6xl font-black mb-6 tracking-tight">{dict.home.ctaTitle}</h2>
             <p className="text-xl lg:text-2xl mb-10 max-w-3xl mx-auto opacity-95">{dict.home.ctaSubtitle}</p>

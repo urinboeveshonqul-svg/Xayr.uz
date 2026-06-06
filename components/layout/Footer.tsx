@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Heart, Mail, Phone, MapPin, Facebook, Instagram, Send } from 'lucide-react';
+import { Heart, Mail, Phone, MapPin, Facebook, Instagram, Send, Check } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function Footer() {
@@ -33,7 +33,7 @@ export function Footer() {
           <div className="space-y-4">
             <Link href={L('')} className="flex items-center gap-3 group">
               <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">💚</span>
+                <Heart className="w-6 h-6 text-white fill-white" />
               </div>
               <span className="text-2xl font-black text-white">Xayr</span>
             </Link>
@@ -125,7 +125,7 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">✓</span>
+                <Check className="w-4 h-4 text-white" />
               </div>
               <span className="text-gray-400">{t('footer.verified')}</span>
             </div>

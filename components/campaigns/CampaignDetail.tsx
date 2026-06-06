@@ -75,12 +75,12 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   sizes="(max-width: 1024px) 100vw, 66vw"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-8xl">
-                  {cat.emoji}
+                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                  <cat.Icon className="w-24 h-24" />
                 </div>
               )}
               <div className="absolute top-4 left-4 flex gap-2">
-                <span className={`badge ${cat.color}`}>{cat.emoji} {cat.label}</span>
+                <span className={`badge ${cat.color}`}><cat.Icon className="w-3.5 h-3.5" /> {cat.label}</span>
                 {campaign.is_urgent && (
                   <span className="badge bg-red-500 text-white">
                     <Zap className="w-3 h-3" /> Shoshilinch

@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Upload, Loader2, ImagePlus, X } from 'lucide-react';
+import { Upload, Loader2, ImagePlus, X, Siren } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { slugify, CATEGORY_CONFIG } from '@/lib/utils';
@@ -304,7 +304,7 @@ export function CreateCampaignForm({ userId, categories, isVerified }: CreateCam
           <select {...register('category')} className="input">
             {(Object.keys(CATEGORY_CONFIG) as CampaignCategory[]).map((cat) => (
               <option key={cat} value={cat}>
-                {CATEGORY_CONFIG[cat].emoji} {CATEGORY_CONFIG[cat].label}
+                {CATEGORY_CONFIG[cat].label}
               </option>
             ))}
           </select>
@@ -344,8 +344,8 @@ export function CreateCampaignForm({ userId, categories, isVerified }: CreateCam
       {/* Urgent */}
       <label className="flex items-center gap-3 cursor-pointer">
         <input {...register('is_urgent')} type="checkbox" className="w-4 h-4 accent-brand-600" />
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          🆘 Shoshilinch kampaniya sifatida belgilash
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+          <Siren className="w-4 h-4 text-red-500" /> Shoshilinch kampaniya sifatida belgilash
         </span>
       </label>
 

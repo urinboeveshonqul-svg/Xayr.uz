@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Heart } from 'lucide-react';
 import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <span className="text-3xl">💚</span>
+            <Heart className="w-7 h-7 text-brand-600 fill-current" />
             <span className="text-2xl font-black text-brand-600">Xayr</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

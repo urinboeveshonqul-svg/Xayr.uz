@@ -218,7 +218,10 @@
     "submitting": "Yuborilmoqda...",
     "uploadHint": "Rasm yuklash uchun bosing (max 5MB)",
     "draftNotice": "Kampaniyangiz qoralama sifatida saqlanadi. E'lon qilish uchun avval shaxsingizni tasdiqlang.",
-    "verifyToPublish": "Shaxsni tasdiqlash"
+    "verifyToPublish": "Shaxsni tasdiqlash",
+    "trustSecure": "Bank darajasidagi xavfsizlik",
+    "trustPrivate": "Ma'lumotlaringiz maxfiy saqlanadi",
+    "trustReview": "24 soat ichida ko'rib chiqiladi"
   },
   "profileVerify": {
     "cardTitle": "Tasdiqlash holati",

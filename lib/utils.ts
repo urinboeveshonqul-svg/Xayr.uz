@@ -1,5 +1,10 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import {
+  type LucideIcon,
+  HeartPulse, GraduationCap, Siren, HeartHandshake, Leaf, PawPrint, Trophy, Lightbulb,
+} from 'lucide-react';
+import type { CampaignCategory } from '@/types';
 
 /** Merge Tailwind classes safely */
 export function cn(...inputs: ClassValue[]) {
@@ -51,17 +56,20 @@ export function slugify(text: string): string {
     .trim();
 }
 
-/** Category display config */
-export const CATEGORY_CONFIG = {
-  medical:     { label: 'Tibbiyot',      emoji: '🏥', color: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',    bg: '#fee2e2' },
-  education:   { label: 'Ta\'lim',       emoji: '📚', color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',  bg: '#dbeafe' },
-  disaster:    { label: 'Favqulodda',    emoji: '🆘', color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400', bg: '#ffedd5' },
-  community:   { label: 'Jamiyat',       emoji: '🤝', color: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',  bg: '#dcfce7' },
-  environment: { label: 'Ekologiya',     emoji: '🌱', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400', bg: '#d1fae5' },
-  animal:      { label: 'Hayvonlar',     emoji: '🐾', color: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400', bg: '#fef9c3' },
-  sport:       { label: 'Sport',         emoji: '⚽', color: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400', bg: '#ede9fe' },
-  other:       { label: 'Boshqa',        emoji: '💡', color: 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400',    bg: '#f3f4f6' },
-} as const;
+/** Category display config. `Icon` is a Lucide component (replaces the old emoji). */
+export const CATEGORY_CONFIG: Record<
+  CampaignCategory,
+  { label: string; Icon: LucideIcon; color: string; bg: string }
+> = {
+  medical:     { label: 'Tibbiyot',      Icon: HeartPulse,     color: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',    bg: '#fee2e2' },
+  education:   { label: 'Ta\'lim',       Icon: GraduationCap,  color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',  bg: '#dbeafe' },
+  disaster:    { label: 'Favqulodda',    Icon: Siren,          color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400', bg: '#ffedd5' },
+  community:   { label: 'Jamiyat',       Icon: HeartHandshake, color: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',  bg: '#dcfce7' },
+  environment: { label: 'Ekologiya',     Icon: Leaf,           color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400', bg: '#d1fae5' },
+  animal:      { label: 'Hayvonlar',     Icon: PawPrint,       color: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400', bg: '#fef9c3' },
+  sport:       { label: 'Sport',         Icon: Trophy,         color: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400', bg: '#ede9fe' },
+  other:       { label: 'Boshqa',        Icon: Lightbulb,      color: 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400',    bg: '#f3f4f6' },
+};
 
 export const STATUS_CONFIG = {
   pending:   { label: 'Kutilmoqda',   color: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' },

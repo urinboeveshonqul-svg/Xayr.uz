@@ -12,7 +12,9 @@ export function CampaignGrid({ campaigns, emptyMessage }: CampaignGridProps) {
   if (campaigns.length === 0) {
     return (
       <div className="text-center py-20">
-        <div className="text-6xl mb-4">💚</div>
+        <div className="flex justify-center mb-4">
+          <Heart className="w-14 h-14 text-green-500 fill-green-500" />
+        </div>
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
           {emptyMessage ?? 'Hozircha kampaniyalar yo\'q'}
         </h3>

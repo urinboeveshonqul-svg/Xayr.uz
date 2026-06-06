@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User } from 'lucide-react';
+import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User, HeartPulse, GraduationCap, Siren } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
@@ -100,7 +100,7 @@ export function Navbar() {
           {/* Logo */}
           <Link href={L('')} className="flex items-center gap-3 group">
             <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <span className="text-2xl">💚</span>
+              <Heart className="w-6 h-6 text-white fill-white" />
             </div>
             <span className="text-2xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
               Xayr
@@ -217,14 +217,14 @@ export function Navbar() {
           <Link href={L('/campaigns')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
             {t('nav.campaigns')}
           </Link>
-          <Link href={L('/campaigns?category=medical')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
-            🏥 {t('nav.medical')}
+          <Link href={L('/campaigns?category=medical')} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+            <HeartPulse className="w-4 h-4" /> {t('nav.medical')}
           </Link>
-          <Link href={L('/campaigns?category=education')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
-            📚 {t('nav.education')}
+          <Link href={L('/campaigns?category=education')} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+            <GraduationCap className="w-4 h-4" /> {t('nav.education')}
           </Link>
-          <Link href={L('/campaigns?category=disaster')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
-            🚨 {t('nav.emergency')}
+          <Link href={L('/campaigns?category=disaster')} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+            <Siren className="w-4 h-4" /> {t('nav.emergency')}
           </Link>
 
           {user ? (

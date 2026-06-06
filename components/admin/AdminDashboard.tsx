@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { CheckCircle, XCircle, ExternalLink, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, ExternalLink, Clock, Loader2, Siren, Target, MapPin } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
 import type { Campaign } from '@/types';
@@ -45,7 +45,9 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
   if (campaigns.length === 0) {
     return (
       <div className="card p-12 text-center">
-        <div className="text-5xl mb-4">✅</div>
+        <div className="flex justify-center mb-4">
+          <CheckCircle className="w-12 h-12 text-green-500" />
+        </div>
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
           Kutilayotgan kampaniyalar yo'q
         </h3>
@@ -74,7 +76,7 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
           <div key={campaign.id} className="card p-5">
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Thumbnail */}
-              <div className="relative w-full sm:w-32 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 flex items-center justify-center text-4xl">
+              <div className="relative w-full sm:w-32 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 flex items-center justify-center text-gray-400">
                 {campaign.image_url ? (
                   <Image
                     src={campaign.image_url}
@@ -84,7 +86,7 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
                     sizes="128px"
                   />
                 ) : (
-                  cat.emoji
+                  <cat.Icon className="w-8 h-8" />
                 )}
               </div>
 
@@ -92,10 +94,10 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-start gap-2 mb-1">
                   <span className={`badge ${cat.color}`}>
-                    {cat.emoji} {cat.label}
+                    <cat.Icon className="w-3.5 h-3.5" /> {cat.label}
                   </span>
                   {campaign.is_urgent && (
-                    <span className="badge bg-red-500 text-white">🆘 Shoshilinch</span>
+                    <span className="badge bg-red-500 text-white"><Siren className="w-3 h-3" /> Shoshilinch</span>
                   )}
                 </div>
 
@@ -108,9 +110,9 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
-                  <span>🎯 Maqsad: {formatMoney(campaign.goal_amount)} so'm</span>
-                  {campaign.location && <span>📍 {campaign.location}</span>}
-                  <span>🕐 {timeAgo(campaign.created_at)}</span>
+                  <span className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> Maqsad: {formatMoney(campaign.goal_amount)} so'm</span>
+                  {campaign.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {campaign.location}</span>}
+                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {timeAgo(campaign.created_at)}</span>
                 </div>
               </div>
 

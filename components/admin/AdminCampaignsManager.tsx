@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { ExternalLink, Trash2, Loader2 } from 'lucide-react';
+import { ExternalLink, Trash2, Loader2, Siren } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney } from '@/lib/utils';
 import type { Campaign, CampaignStatus } from '@/types';
@@ -107,7 +107,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`badge ${STATUS_BADGE[c.status] ?? ''}`}>{c.status}</span>
-                  {c.is_urgent && <span className="badge bg-red-500 text-white">🆘</span>}
+                  {c.is_urgent && <span className="badge bg-red-500 text-white"><Siren className="w-3 h-3" /></span>}
                 </div>
                 <p className="font-semibold text-gray-900 dark:text-white truncate">{c.title}</p>
                 <p className="text-xs text-gray-400">

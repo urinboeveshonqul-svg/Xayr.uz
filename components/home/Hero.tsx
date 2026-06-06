@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
+import { ArrowRight, Sparkles, Shield, Zap, Heart } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function Hero() {
@@ -82,7 +82,7 @@ export function Hero() {
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <span className="text-xl">💚</span>
+                  <Heart className="w-5 h-5 text-green-600 fill-green-600" />
                 </div>
                 <span className="text-sm font-semibold">{t('hero.trustNoFee')}</span>
               </div>

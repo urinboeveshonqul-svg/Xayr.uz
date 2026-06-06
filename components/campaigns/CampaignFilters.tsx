@@ -102,19 +102,22 @@ export function CampaignFilters() {
         >
           {t('filters.all')}
         </button>
-        {(Object.keys(CATEGORY_CONFIG) as CampaignCategory[]).map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={`badge cursor-pointer transition-all ${
-              category === cat
-                ? 'bg-brand-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-          >
-            {CATEGORY_CONFIG[cat].emoji} {t(`categories.${cat}`)}
-          </button>
-        ))}
+        {(Object.keys(CATEGORY_CONFIG) as CampaignCategory[]).map((cat) => {
+          const CatIcon = CATEGORY_CONFIG[cat].Icon;
+          return (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={`badge cursor-pointer transition-all ${
+                category === cat
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              <CatIcon className="w-3.5 h-3.5" /> {t(`categories.${cat}`)}
+            </button>
+          );
+        })}
       </div>
 
       {/* Urgent + clear */}

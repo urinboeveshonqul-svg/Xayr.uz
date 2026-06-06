@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { MailCheck } from 'lucide-react';
+import { MailCheck, Heart } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Emailni tasdiqlang — Xayr',
@@ -17,7 +17,7 @@ export default async function VerifyEmailPage({ searchParams }: Props) {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-12">
       <div className="w-full max-w-md text-center">
         <Link href="/" className="inline-flex items-center gap-2 mb-8">
-          <span className="text-3xl">💚</span>
+          <Heart className="w-7 h-7 text-brand-600 fill-current" />
           <span className="text-2xl font-black text-brand-600">Xayr</span>
         </Link>
         <div className="card p-8">

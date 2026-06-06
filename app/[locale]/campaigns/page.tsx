@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { SearchX } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignGrid } from '@/components/campaigns/CampaignGrid';
@@ -139,7 +140,9 @@ export default async function CampaignsPage({
             </>
           ) : (
             <div className="text-center py-20">
-              <div className="text-6xl mb-4">🔍</div>
+              <div className="flex justify-center mb-4">
+                <SearchX className="w-14 h-14 text-gray-300" />
+              </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                 {dict.filters.noResults}
               </h3>

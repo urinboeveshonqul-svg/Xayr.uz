@@ -218,7 +218,10 @@
     "submitting": "Submitting...",
     "uploadHint": "Tap to upload a photo (max 5MB)",
     "draftNotice": "Your campaign will be saved as a draft. To publish, verify your identity first.",
-    "verifyToPublish": "Verify identity"
+    "verifyToPublish": "Verify identity",
+    "trustSecure": "Bank-level security",
+    "trustPrivate": "Your data stays private",
+    "trustReview": "Reviewed within 24 hours"
   },
   "profileVerify": {
     "cardTitle": "Verification Status",

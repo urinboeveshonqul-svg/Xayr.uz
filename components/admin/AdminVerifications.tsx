@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Loader2, Eye, Check, X } from 'lucide-react';
+import { Loader2, Eye, Check, X, Cake, MapPin } from 'lucide-react';
 
 export interface VerificationRow {
   id: string;
@@ -116,7 +116,11 @@ export function AdminVerifications({
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900 dark:text-white">{r.legal_name}</p>
                       <p className="text-xs text-gray-400">{r.users?.email}{r.phone ? ` · ${r.phone}` : ''}</p>
-                      <p className="text-xs text-gray-500 mt-1">🎂 {r.date_of_birth} · 📍 {r.address}</p>
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                        <Cake className="w-3.5 h-3.5" /> {r.date_of_birth}
+                        <span className="text-gray-300">·</span>
+                        <MapPin className="w-3.5 h-3.5" /> {r.address}
+                      </p>
                     </div>
                     <button onClick={() => viewDocs(r.id)} className="btn-ghost text-xs gap-1 border border-gray-200 dark:border-gray-700">
                       <Eye className="w-4 h-4" /> Hujjatlar

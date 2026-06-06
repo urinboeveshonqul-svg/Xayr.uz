@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, CreditCard } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 
 const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
@@ -166,8 +166,9 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
         </div>
 
         {/* Payment notice */}
-        <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl px-3 py-2 leading-relaxed">
-          💳 To'lov tizimi tez orada ulanadi. Xayriyangiz qayd etiladi va siz bilan bog'laniladi.
+        <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl px-3 py-2 leading-relaxed flex items-start gap-2">
+          <CreditCard className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>To'lov tizimi tez orada ulanadi. Xayriyangiz qayd etiladi va siz bilan bog'laniladi.</span>
         </p>
 
         {/* Submit */}
