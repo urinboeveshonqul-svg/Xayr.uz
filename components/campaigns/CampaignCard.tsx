@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Users, TrendingUp, AlertCircle, Star } from 'lucide-react';
+import { Heart, Users, AlertCircle, Star } from 'lucide-react';
 import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign } from '@/types';
@@ -130,27 +130,26 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
           </p>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 pt-4 mt-auto border-t border-gray-100">
-          <div>
-            <div className="text-xs text-gray-500 font-semibold mb-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              {t('campaign.raised')}
-            </div>
-            <div className="text-base font-black text-gray-900">
-              {formatMoney(raised)} so'm
-            </div>
-            <div className="text-xs text-gray-500">
-              {formatMoney(goal)} {t('campaign.of')}
-            </div>
+        {/* Progress — primary trust signal */}
+        <div className="pt-4 mt-auto border-t border-gray-100 space-y-2.5">
+          <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r ${getCategoryColor(categorySlug)} transition-all duration-500`}
+              style={{ width: `${percent}%` }}
+            />
           </div>
-          <div>
-            <div className="text-xs text-gray-500 font-semibold mb-1 flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              {t('campaign.donors')}
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-base font-black text-gray-900 truncate">{formatMoney(raised)} so'm</div>
+              <div className="text-xs text-gray-500 truncate">{formatMoney(goal)} {t('campaign.of')}</div>
             </div>
-            <div className="text-base font-black text-gray-900">{donors}</div>
-            <div className="text-xs text-gray-500">{percent}% {t('campaign.funded')}</div>
+            <div className="text-right flex-shrink-0">
+              <div className="text-base font-black text-green-600">{percent}%</div>
+              <div className="text-xs text-gray-500 flex items-center gap-1 justify-end">
+                <Users className="w-3 h-3" />
+                {donors}
+              </div>
+            </div>
           </div>
         </div>
 

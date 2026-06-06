@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Heart, Mail, Phone, MapPin, Facebook, Instagram, Send, Check } from 'lucide-react';
+import {
+  Heart, Mail, Phone, MapPin, Facebook, Instagram, Send,
+  ShieldCheck, BadgeCheck, Headphones,
+} from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function Footer() {
@@ -24,136 +27,123 @@ export function Footer() {
     { href: L('/contact'), label: t('footer.contact') },
   ];
 
-  return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+  const trust = [
+    { Icon: ShieldCheck, label: t('footer.secure') },
+    { Icon: BadgeCheck, label: t('footer.verified') },
+    { Icon: Headphones, label: t('footer.support247') },
+  ];
 
-          {/* Brand */}
-          <div className="space-y-4">
-            <Link href={L('')} className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <Heart className="w-6 h-6 text-white fill-white" />
+  const socials = [
+    { href: '#', Icon: Send, label: 'Telegram' },
+    { href: '#', Icon: Instagram, label: 'Instagram' },
+    { href: '#', Icon: Facebook, label: 'Facebook' },
+  ];
+
+  return (
+    <footer className="bg-gray-900 text-gray-400">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Main 4-column grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 py-14">
+
+          {/* Brand + social */}
+          <div className="col-span-2 lg:col-span-1 space-y-4">
+            <Link href={L('')} className="inline-flex items-center gap-2.5">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Heart className="w-5 h-5 text-white fill-white" />
               </div>
-              <span className="text-2xl font-black text-white">Xayr</span>
+              <span className="text-xl font-black tracking-tight text-white">Xayr</span>
             </Link>
-            <p className="text-sm leading-relaxed text-gray-400">
-              {t('footer.tagline')}
-            </p>
-            <div className="flex items-center gap-3">
-              <a href="#" className="w-10 h-10 bg-gray-800 hover:bg-green-600 rounded-xl flex items-center justify-center transition-all hover:scale-110">
-                <Send className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-gray-800 hover:bg-green-600 rounded-xl flex items-center justify-center transition-all hover:scale-110">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-gray-800 hover:bg-green-600 rounded-xl flex items-center justify-center transition-all hover:scale-110">
-                <Facebook className="w-5 h-5" />
-              </a>
+            <p className="text-sm leading-relaxed max-w-xs">{t('footer.tagline')}</p>
+            <div className="flex items-center gap-2 pt-1">
+              {socials.map(({ href, Icon, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-green-600 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <Icon className="w-4 h-4" />
+                </a>
+              ))}
             </div>
           </div>
 
           {/* Platform */}
-          <div>
-            <h3 className="text-white font-black text-lg mb-6">{t('footer.platformTitle')}</h3>
+          <nav aria-label={t('footer.platformTitle')}>
+            <h3 className="text-white font-bold text-xs uppercase tracking-wider mb-4">
+              {t('footer.platformTitle')}
+            </h3>
             <ul className="space-y-3">
               {platformLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm hover:text-green-400 transition-colors hover:translate-x-1 inline-block">
-                    → {link.label}
+                  <Link href={link.href} className="text-sm text-gray-400 hover:text-white transition-colors">
+                    {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
           {/* Support */}
-          <div>
-            <h3 className="text-white font-black text-lg mb-6">{t('footer.supportTitle')}</h3>
+          <nav aria-label={t('footer.supportTitle')}>
+            <h3 className="text-white font-bold text-xs uppercase tracking-wider mb-4">
+              {t('footer.supportTitle')}
+            </h3>
             <ul className="space-y-3">
               {supportLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm hover:text-green-400 transition-colors hover:translate-x-1 inline-block">
-                    → {link.label}
+                  <Link href={link.href} className="text-sm text-gray-400 hover:text-white transition-colors">
+                    {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-black text-lg mb-6">{t('footer.contactTitle')}</h3>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-sm">
-                <Mail className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-white font-semibold mb-1">{t('footer.emailLabel')}</div>
-                  <a href="mailto:info@xayr.uz" className="hover:text-green-400 transition-colors">
-                    info@xayr.uz
-                  </a>
-                </div>
+            <h3 className="text-white font-bold text-xs uppercase tracking-wider mb-4">
+              {t('footer.contactTitle')}
+            </h3>
+            <ul className="space-y-4 text-sm">
+              <li className="flex items-start gap-3">
+                <Mail className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <a href="mailto:info@xayr.uz" className="hover:text-white transition-colors">info@xayr.uz</a>
               </li>
-              <li className="flex items-start gap-3 text-sm">
-                <Phone className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-white font-semibold mb-1">{t('footer.phoneLabel')}</div>
-                  <a href="tel:+998712000000" className="hover:text-green-400 transition-colors">
-                    +998 71 200 00 00
-                  </a>
-                </div>
+              <li className="flex items-start gap-3">
+                <Phone className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <a href="tel:+998712000000" className="hover:text-white transition-colors">+998 71 200 00 00</a>
               </li>
-              <li className="flex items-start gap-3 text-sm">
-                <MapPin className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="text-white font-semibold mb-1">{t('footer.addressLabel')}</div>
-                  <span>{t('footer.address')}</span>
-                </div>
+              <li className="flex items-start gap-3">
+                <MapPin className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>{t('footer.address')}</span>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Trust Badges */}
-        <div className="border-t border-gray-800 pt-8 mb-8">
-          <div className="flex flex-wrap items-center justify-center gap-8">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                <Heart className="w-4 h-4 text-white" />
+        {/* Trust & safety */}
+        <div className="border-t border-gray-800 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4 sm:gap-10">
+            {trust.map(({ Icon, label }) => (
+              <div key={label} className="flex items-center justify-center gap-2.5">
+                <Icon className="w-5 h-5 text-green-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-300">{label}</span>
               </div>
-              <span className="text-gray-400">{t('footer.secure')}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Check className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-gray-400">{t('footer.verified')}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">24/7</span>
-              </div>
-              <span className="text-gray-400">{t('footer.support247')}</span>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            <Link href={L('/privacy')} className="hover:text-green-400 transition-colors">
-              {t('footer.privacy')}
-            </Link>
-            <Link href={L('/terms')} className="hover:text-green-400 transition-colors">
-              {t('footer.terms')}
-            </Link>
-            <Link href={L('/cookies')} className="hover:text-green-400 transition-colors">
-              {t('footer.cookies')}
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-            <span>© {new Date().getFullYear()} Xayr. {t('footer.rights')}</span>
+        {/* Copyright + legal */}
+        <div className="border-t border-gray-800 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+          <p className="text-gray-500 order-2 md:order-1">
+            © {new Date().getFullYear()} Xayr. {t('footer.rights')}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 order-1 md:order-2">
+            <Link href={L('/privacy')} className="text-gray-400 hover:text-white transition-colors">{t('footer.privacy')}</Link>
+            <Link href={L('/terms')} className="text-gray-400 hover:text-white transition-colors">{t('footer.terms')}</Link>
+            <Link href={L('/cookies')} className="text-gray-400 hover:text-white transition-colors">{t('footer.cookies')}</Link>
           </div>
         </div>
       </div>

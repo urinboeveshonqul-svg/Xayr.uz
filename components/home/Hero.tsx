@@ -60,7 +60,7 @@ export function Hero() {
               </Link>
               <Link
                 href={L('/campaigns')}
-                className="px-8 py-5 bg-white text-gray-900 rounded-2xl text-lg font-black shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 border-2 border-gray-200 flex items-center justify-center gap-2"
+                className="px-8 py-5 bg-transparent text-gray-800 rounded-2xl text-lg font-bold border-2 border-gray-300 hover:border-green-500 hover:text-green-700 transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <span>{t('hero.ctaDonate')}</span>
               </Link>
