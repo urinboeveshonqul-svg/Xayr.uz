@@ -100,8 +100,10 @@ export function Hero({
             <div className="relative w-full max-w-lg">
               <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-500 rounded-[3rem] blur-2xl opacity-30 animate-pulse"></div>
               <div className="relative rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
+                {/* To use your own photo: replace /public/hero.png and keep this src.
+                    Layout, dimensions, and responsive behavior are unchanged. */}
                 <Image
-                  src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=1200&fit=crop&crop=faces&auto=format"
+                  src="/hero.png"
                   alt="Xayr — jamiyat yordami"
                   width={600}
                   height={600}
