@@ -13,7 +13,7 @@ const REASON_LABEL: Record<string, string> = {
   other: 'Boshqa',
 };
 
-interface FlagRow {
+export interface FlagRow {
   id: string;
   campaign_id: string;
   reason: string;

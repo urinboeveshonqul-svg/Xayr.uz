@@ -1,22 +1,58 @@
 import { Flag } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { AdminCampaignFlags } from '@/components/admin/AdminCampaignFlags';
+import { AdminCampaignFlags, type FlagRow } from '@/components/admin/AdminCampaignFlags';
 import { isLocale } from '@/i18n/config';
 
 export const dynamic = 'force-dynamic';
 
-async function getFlags() {
+// The joined campaign/reporter data is assembled from simple column-only queries
+// (no PostgREST embeds), so every Supabase result type is unambiguous — no
+// object-vs-array inference and no casts. Three indexed lookups, merged in memory.
+async function getFlags(): Promise<FlagRow[]> {
   try {
     const admin = createAdminClient();
-    const { data } = await admin
+
+    const { data: flagRows } = await admin
       .from('campaign_flags')
-      .select(`
-        id, campaign_id, reason, details, status, created_at, resolved_at,
-        campaigns ( title, slug ),
-        reporter:users!reporter_id ( full_name )
-      `)
+      .select('id, campaign_id, reporter_id, reason, details, status, created_at, resolved_at')
       .order('created_at', { ascending: false });
-    return data ?? [];
+
+    if (!flagRows || flagRows.length === 0) return [];
+
+    const campaignIds = [...new Set(flagRows.map((f) => f.campaign_id))];
+    const reporterIds = [
+      ...new Set(flagRows.map((f) => f.reporter_id).filter((id): id is string => id !== null)),
+    ];
+
+    const [{ data: campaigns }, { data: reporters }] = await Promise.all([
+      admin.from('campaigns').select('id, title, slug').in('id', campaignIds),
+      admin.from('users').select('id, full_name').in('id', reporterIds),
+    ]);
+
+    const campaignById = new Map(
+      (campaigns ?? []).map((c): [string, { title: string; slug: string }] => [
+        c.id,
+        { title: c.title, slug: c.slug },
+      ])
+    );
+    const reporterById = new Map(
+      (reporters ?? []).map((u): [string, { full_name: string | null }] => [
+        u.id,
+        { full_name: u.full_name },
+      ])
+    );
+
+    return flagRows.map((f) => ({
+      id: f.id,
+      campaign_id: f.campaign_id,
+      reason: f.reason,
+      details: f.details,
+      status: f.status,
+      created_at: f.created_at,
+      resolved_at: f.resolved_at,
+      campaigns: campaignById.get(f.campaign_id) ?? null,
+      reporter: f.reporter_id ? reporterById.get(f.reporter_id) ?? null : null,
+    }));
   } catch {
     return [];
   }
