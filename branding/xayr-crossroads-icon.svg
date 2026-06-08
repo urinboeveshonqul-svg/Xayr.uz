@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-labelledby="t d">
+  <title id="t">Xayr icon — Crossroads</title>
+  <desc id="d">A geometric X monogram on a rounded square; the four arms stop short of center, leaving a clean negative-space seam.</desc>
+
+  <!-- Flat emerald tile -->
+  <rect x="0" y="0" width="96" height="96" rx="24" fill="#059669"/>
+
+  <!-- Custom geometric X: four arms with a precise central gap (true negative space) -->
+  <g stroke="#ffffff" stroke-width="13" stroke-linecap="butt">
+    <line x1="24" y1="24" x2="42" y2="42"/>
+    <line x1="72" y1="72" x2="54" y2="54"/>
+    <line x1="72" y1="24" x2="54" y2="42"/>
+    <line x1="24" y1="72" x2="42" y2="54"/>
+  </g>
+</svg>

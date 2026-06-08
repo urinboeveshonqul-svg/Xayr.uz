@@ -11,6 +11,7 @@ import {
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { DonationForm } from '@/components/donations/DonationForm';
+import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign, Donor } from '@/types';
 
@@ -302,6 +303,8 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                 </button>
               </div>
             </div>
+
+            <ReportCampaignButton campaignId={campaign.id} />
           </div>
 
           {/* Creator card */}

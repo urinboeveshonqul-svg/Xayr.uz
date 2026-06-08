@@ -8,9 +8,10 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
 import { CompletionReportForm } from '@/components/campaigns/CompletionReportForm';
+import { CampaignUpdates } from '@/components/campaigns/CampaignUpdates';
 import { SimilarCampaigns } from '@/components/campaigns/SimilarCampaigns';
 import { Comments } from '@/components/campaigns/Comments';
-import type { Campaign, Donor, CampaignReport } from '@/types';
+import type { Campaign, Donor, CampaignReport, CampaignUpdate } from '@/types';
 
 interface Props {
   params: Promise<{ locale: string; slug: string }>;
@@ -49,6 +50,20 @@ async function getDonors(campaignId: string): Promise<Donor[]> {
 
 // Completion reports are public (creports_select_all RLS). If the migration
 // isn't applied yet, the query errors → we return [] and the section stays hidden.
+async function getUpdates(campaignId: string): Promise<CampaignUpdate[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('campaign_updates')
+      .select('id, campaign_id, user_id, title, content, created_at')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: false });
+    return (data as unknown as CampaignUpdate[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 async function getReports(campaignId: string): Promise<CampaignReport[]> {
   try {
     const supabase = await createClient();
@@ -122,10 +137,11 @@ export default async function CampaignDetailPage({ params }: Props) {
     isOwner = false;
   }
 
-  const [donors, similar, reports] = await Promise.all([
+  const [donors, similar, reports, updates] = await Promise.all([
     getDonors(campaign.id),
     getSimilar(campaign),
     getReports(campaign.id),
+    getUpdates(campaign.id),
   ]);
 
   return (
@@ -188,6 +204,13 @@ export default async function CampaignDetailPage({ params }: Props) {
             {isOwner && campaign.status === 'completed' && (
               <CompletionReportForm campaignId={campaign.id} userId={campaign.user_id} />
             )}
+
+            <CampaignUpdates
+              campaignId={campaign.id}
+              campaignUserId={campaign.user_id}
+              isOwner={isOwner}
+              initialUpdates={updates}
+            />
 
             <Comments campaignId={campaign.id} />
             <SimilarCampaigns campaigns={similar} />

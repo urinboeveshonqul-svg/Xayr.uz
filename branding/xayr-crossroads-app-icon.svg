@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-labelledby="t d">
+  <title id="t">Xayr app icon — Crossroads</title>
+  <desc id="d">Full-bleed flat emerald tile with a white geometric X and ~25% safe-area padding; the OS applies corner masking.</desc>
+
+  <!-- Full-bleed background; platform masks the corners (iOS squircle / Android shapes) -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#059669"/>
+
+  <!-- Geometric X scaled from the 96-unit master (×10.667), centered with generous safe area -->
+  <g transform="scale(10.6667)" stroke="#ffffff" stroke-width="13" stroke-linecap="butt">
+    <line x1="24" y1="24" x2="42" y2="42"/>
+    <line x1="72" y1="72" x2="54" y2="54"/>
+    <line x1="72" y1="24" x2="54" y2="42"/>
+    <line x1="24" y1="72" x2="42" y2="54"/>
+  </g>
+</svg>

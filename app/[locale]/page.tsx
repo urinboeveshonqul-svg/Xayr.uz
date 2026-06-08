@@ -13,7 +13,7 @@ import {
 import { formatMoney } from '@/lib/utils';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
-import type { Campaign } from '@/types';
+import type { Campaign, CampaignReport } from '@/types';
 
 export const revalidate = 60;
 
@@ -49,6 +49,28 @@ async function getCompletedCampaigns(): Promise<Campaign[]> {
     return (data as unknown as Campaign[]) ?? [];
   } catch {
     return [];
+  }
+}
+
+// Latest completion report per completed campaign (for Success Stories cards).
+async function getCompletionReports(campaignIds: string[]): Promise<Map<string, CampaignReport>> {
+  if (campaignIds.length === 0) return new Map();
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('campaign_reports')
+      .select('id, campaign_id, user_id, title, message, images, documents, created_at, updated_at')
+      .in('campaign_id', campaignIds)
+      .order('created_at', { ascending: false });
+
+    const map = new Map<string, CampaignReport>();
+    for (const r of (data as unknown as CampaignReport[]) ?? []) {
+      // Keep only the most recent report per campaign (first in desc order).
+      if (!map.has(r.campaign_id)) map.set(r.campaign_id, r);
+    }
+    return map;
+  } catch {
+    return new Map();
   }
 }
 
@@ -102,6 +124,8 @@ export default async function HomePage({
     getPlatformStats(),
     getCompletedCampaigns(),
   ]);
+
+  const completionReports = await getCompletionReports(completedCampaigns.map((c) => c.id));
 
   const featured = campaigns.slice(0, 3);
   const featuredIds = new Set(featured.map((c) => c.id));
@@ -247,46 +271,94 @@ export default async function HomePage({
                 <p className="text-lg text-gray-600">{dict.home.testimonialsSubtitle}</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {completedCampaigns.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={L(`/campaigns/${c.slug}`)}
-                    className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
-                  >
-                    <div className="relative aspect-[4/3] bg-gray-100">
-                      {c.image_url ? (
-                        <Image
-                          src={c.image_url}
-                          alt={c.title}
-                          fill
-                          quality={80}
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100" />
-                      )}
-                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-green-600 text-white text-xs font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> {dict.donation.completed}
-                      </div>
-                    </div>
-                    <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-black text-gray-900 line-clamp-2 leading-tight group-hover:text-green-600 transition-colors">{c.title}</h3>
-                      {c.profiles?.full_name && (
-                        <p className="text-sm text-gray-500 mt-1">{c.profiles.full_name}</p>
-                      )}
-                      <div className="mt-auto pt-4 border-t border-gray-100 flex items-end justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-base font-black text-gray-900 truncate">{formatMoney(c.current_amount ?? 0)} so'm</div>
-                          <div className="text-xs text-gray-500 truncate">{formatMoney(c.goal_amount ?? 0)} {dict.campaign.of}</div>
-                        </div>
-                        <div className="text-xs text-gray-400 flex-shrink-0">
-                          {new Date(c.updated_at).toLocaleDateString(lng)}
+                {completedCampaigns.map((c) => {
+                  const report = completionReports.get(c.id) ?? null;
+                  // Prefer first report image over campaign cover when a report exists.
+                  const coverImage = (report?.images?.[0]) || c.image_url || null;
+                  const excerpt = report
+                    ? report.message.length > 140
+                      ? report.message.slice(0, 140).trimEnd() + '…'
+                      : report.message
+                    : null;
+
+                  return (
+                    <Link
+                      key={c.id}
+                      href={L(`/campaigns/${c.slug}`)}
+                      className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
+                    >
+                      {/* Cover image */}
+                      <div className="relative aspect-[4/3] bg-gray-100">
+                        {coverImage ? (
+                          <Image
+                            src={coverImage}
+                            alt={c.title}
+                            fill
+                            quality={80}
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100" />
+                        )}
+                        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-green-600 text-white text-xs font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> {dict.donation.completed}
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+
+                      {/* Card body */}
+                      <div className="p-5 flex flex-col flex-1">
+                        {/* Campaign title */}
+                        <h3 className="font-black text-gray-900 line-clamp-2 leading-tight group-hover:text-green-600 transition-colors">
+                          {c.title}
+                        </h3>
+                        {c.profiles?.full_name && (
+                          <p className="text-sm text-gray-500 mt-1">{c.profiles.full_name}</p>
+                        )}
+
+                        {/* Completion report block */}
+                        {report && (
+                          <div className="mt-3 p-3 rounded-2xl bg-green-50 border border-green-100">
+                            <p className="text-xs font-bold text-green-700 mb-1 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {report.title}
+                            </p>
+                            {excerpt && (
+                              <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
+                                {excerpt}
+                              </p>
+                            )}
+                            {/* Thumbnail strip for extra report images */}
+                            {report.images.length > 1 && (
+                              <div className="flex gap-1.5 mt-2 overflow-hidden">
+                                {report.images.slice(1, 4).map((src, i) => (
+                                  <div
+                                    key={i}
+                                    className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={src} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Amount footer */}
+                        <div className="mt-auto pt-4 border-t border-gray-100 flex items-end justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-base font-black text-gray-900 truncate">{formatMoney(c.current_amount ?? 0)} so'm</div>
+                            <div className="text-xs text-gray-500 truncate">{formatMoney(c.goal_amount ?? 0)} {dict.campaign.of}</div>
+                          </div>
+                          <div className="text-xs text-gray-400 flex-shrink-0">
+                            {new Date(c.updated_at).toLocaleDateString(lng)}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </section>

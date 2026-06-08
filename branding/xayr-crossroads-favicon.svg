@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="64" height="64" role="img" aria-labelledby="t d">
+  <title id="t">Xayr favicon — Crossroads</title>
+  <desc id="d">Bold geometric X on a flat emerald tile; the solid tile keeps the mark legible at 16–32px on any tab color.</desc>
+
+  <!-- Slightly tighter corner radius reads better at tiny sizes -->
+  <rect x="0" y="0" width="96" height="96" rx="20" fill="#059669"/>
+
+  <!-- Heavier stroke + marginally larger X so the seam survives at favicon scale -->
+  <g stroke="#ffffff" stroke-width="15" stroke-linecap="butt">
+    <line x1="22" y1="22" x2="42" y2="42"/>
+    <line x1="74" y1="74" x2="54" y2="54"/>
+    <line x1="74" y1="22" x2="54" y2="42"/>
+    <line x1="22" y1="74" x2="42" y2="54"/>
+  </g>
+</svg>

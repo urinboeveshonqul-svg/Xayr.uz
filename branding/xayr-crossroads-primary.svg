@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 96" width="300" height="96" role="img" aria-labelledby="t d">
+  <title id="t">Xayr logo — Crossroads</title>
+  <desc id="d">Crossroads X icon with the Xayr wordmark, for light backgrounds. Flat colors only.</desc>
+
+  <!-- Icon: flat emerald tile + geometric X -->
+  <rect x="0" y="0" width="96" height="96" rx="24" fill="#059669"/>
+  <g stroke="#ffffff" stroke-width="13" stroke-linecap="butt">
+    <line x1="24" y1="24" x2="42" y2="42"/>
+    <line x1="72" y1="72" x2="54" y2="54"/>
+    <line x1="72" y1="24" x2="54" y2="42"/>
+    <line x1="24" y1="72" x2="42" y2="54"/>
+  </g>
+
+  <!-- Wordmark: single flat slate, no gradient -->
+  <text x="116" y="63" font-family="'Inter','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif"
+        font-size="53" font-weight="800" letter-spacing="-1.5" fill="#0f172a">Xayr</text>
+</svg>

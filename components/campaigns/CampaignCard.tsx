@@ -5,12 +5,15 @@ import Image from 'next/image';
 import { Heart, Users, AlertCircle, Star } from 'lucide-react';
 import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { SaveButton } from '@/components/campaigns/SaveButton';
 import type { Campaign } from '@/types';
 
 interface CampaignCardProps {
   campaign: Campaign;
   featured?: boolean;
   urgent?: boolean;
+  /** When known by the parent (e.g. the Saved page), seeds the save state. */
+  savedInitial?: boolean;
 }
 
 // Category-based placeholder images (used when a campaign has no uploaded image)
@@ -25,7 +28,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
   other:       'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&h=600&fit=crop&auto=format',
 };
 
-export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) {
+export function CampaignCard({ campaign, featured, urgent, savedInitial }: CampaignCardProps) {
   const { t, locale } = useI18n();
 
   const raised  = campaign.current_amount ?? 0;
@@ -80,20 +83,23 @@ export function CampaignCard({ campaign, featured, urgent }: CampaignCardProps) 
           {t(`categories.${categorySlug}`)}
         </div>
 
-        {/* Urgent badge */}
-        {(urgent || campaign.is_urgent) && (
-          <div className="absolute top-4 right-4 px-3 py-1.5 bg-red-600 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1 animate-pulse">
-            <AlertCircle className="w-3 h-3" />
-            {t('campaign.urgent')}
-          </div>
-        )}
+        {/* Top-right stack: save button + (urgent | featured) badge */}
+        <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+          <SaveButton campaignId={campaign.id} initialSaved={savedInitial} />
 
-        {/* Featured badge */}
-        {featured && !urgent && !campaign.is_urgent && (
-          <div className="absolute top-4 right-4 px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
-            <Star className="w-3 h-3 fill-current" /> {t('home.featuredBadge')}
-          </div>
-        )}
+          {(urgent || campaign.is_urgent) && (
+            <div className="px-3 py-1.5 bg-red-600 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1 animate-pulse">
+              <AlertCircle className="w-3 h-3" />
+              {t('campaign.urgent')}
+            </div>
+          )}
+
+          {featured && !urgent && !campaign.is_urgent && (
+            <div className="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
+              <Star className="w-3 h-3 fill-current" /> {t('home.featuredBadge')}
+            </div>
+          )}
+        </div>
 
         {/* Progress bar over image */}
         <div className="absolute bottom-4 left-4 right-4">

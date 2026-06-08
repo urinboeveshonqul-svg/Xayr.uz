@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import { notFound } from 'next/navigation';
@@ -10,6 +10,16 @@ import { METADATA_BASE, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/se
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' });
+
+// Browser-chrome (mobile address bar) theming. Matches the page surface per OS
+// scheme: white in light mode, deep slate in dark. The PWA brand color lives in
+// app/manifest.ts (theme_color #059669).
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b1220' },
+  ],
+};
 
 // Pre-render the three locales at build time (SEO-friendly static params).
 export function generateStaticParams() {

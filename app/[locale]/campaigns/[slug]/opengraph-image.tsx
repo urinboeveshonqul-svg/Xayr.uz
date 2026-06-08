@@ -101,21 +101,27 @@ export default async function OgImage({ params }: Props) {
           color: '#ffffff',
         }}
       >
-        {/* Brand */}
+        {/* Brand — Crossroads mark (white tile + emerald X for contrast on green) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div
             style={{
               width: '72px',
               height: '72px',
               borderRadius: '20px',
-              background: 'rgba(255,255,255,0.15)',
+              background: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '40px',
             }}
           >
-            💚
+            <svg width="72" height="72" viewBox="0 0 96 96" fill="none">
+              <path
+                d="M24 24 L42 42 M72 72 L54 54 M72 24 L54 42 M24 72 L42 54"
+                stroke="#059669"
+                strokeWidth="13"
+                strokeLinecap="butt"
+              />
+            </svg>
           </div>
           <div style={{ fontSize: '44px', fontWeight: 700, letterSpacing: '-1px' }}>Xayr</div>
         </div>

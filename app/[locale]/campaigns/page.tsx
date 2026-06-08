@@ -78,9 +78,26 @@ async function getCampaigns(sp: SearchParams): Promise<{
     // Sanitize the search term for the PostgREST `or` filter grammar.
     const q = (sp.q ?? '').replace(/[,()%*]/g, ' ').trim();
     if (q) {
-      query = query.or(
-        `title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`
-      );
+      // Creator name lives on the joined users table, which PostgREST can't
+      // OR against the base table in one filter. Resolve matching creators to
+      // their ids first, then add `user_id.in.(...)` to the campaigns OR clause.
+      // UUIDs are grammar-safe (no commas/parens), so no extra escaping needed.
+      const { data: creators } = await supabase
+        .from('users')
+        .select('id')
+        .ilike('full_name', `%${q}%`)
+        .limit(200);
+      const creatorIds = (creators ?? []).map((c) => c.id);
+
+      const orParts = [
+        `title.ilike.%${q}%`,
+        `description.ilike.%${q}%`,
+        `location.ilike.%${q}%`,
+      ];
+      if (creatorIds.length > 0) {
+        orParts.push(`user_id.in.(${creatorIds.join(',')})`);
+      }
+      query = query.or(orParts.join(','));
     }
 
     const orderColumn =

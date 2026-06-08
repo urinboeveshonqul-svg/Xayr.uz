@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import {
-  Heart, Mail, Phone, MapPin, Facebook, Instagram, Send,
+  Mail, Phone, MapPin, Facebook, Instagram, Send,
   ShieldCheck, BadgeCheck, Headphones,
 } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { CrossroadsGlyph } from '@/components/brand/CrossroadsGlyph';
 
 export function Footer() {
   const { t, locale } = useI18n();
@@ -49,8 +50,8 @@ export function Footer() {
           {/* Brand + social */}
           <div className="col-span-2 lg:col-span-1 space-y-4">
             <Link href={L('')} className="inline-flex items-center gap-2.5">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Heart className="w-5 h-5 text-white fill-white" />
+              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <CrossroadsGlyph className="w-10 h-10 text-white" />
               </div>
               <span className="text-xl font-black tracking-tight text-white">Xayr</span>
             </Link>
