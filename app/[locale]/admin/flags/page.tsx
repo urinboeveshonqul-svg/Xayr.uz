@@ -53,7 +53,7 @@ export default async function AdminFlagsPage({
       </div>
 
       <AdminCampaignFlags
-        initialFlags={flags as Parameters<typeof AdminCampaignFlags>[0]['initialFlags']}
+        initialFlags={flags}
         locale={lng}
       />
     </div>
