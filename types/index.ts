@@ -273,6 +273,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      campaign_flags: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          reporter_id: string | null;
+          reason: 'fraud' | 'misleading' | 'spam' | 'other';
+          details: string | null;
+          status: 'pending' | 'resolved';
+          resolved_by: string | null;
+          resolved_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          reporter_id?: string | null;
+          reason: 'fraud' | 'misleading' | 'spam' | 'other';
+          details?: string | null;
+          status?: 'pending' | 'resolved';
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          campaign_id?: string;
+          reporter_id?: string | null;
+          reason?: 'fraud' | 'misleading' | 'spam' | 'other';
+          details?: string | null;
+          status?: 'pending' | 'resolved';
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       comments: {
         Row: {
           id: string;
