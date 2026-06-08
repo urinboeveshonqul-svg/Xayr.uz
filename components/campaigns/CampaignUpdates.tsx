@@ -76,7 +76,7 @@ export function CampaignUpdates({
       toast.error(error.message);
       return;
     }
-    toast.success('Yangilik qo'shildi');
+    toast.success("Yangilik qo'shildi");
     reset();
     setShowForm(false);
     await load();
