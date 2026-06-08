@@ -366,15 +366,16 @@ export default async function HomePage({
 
         {/* CTA */}
         <section className="py-24 bg-gradient-to-br from-green-600 via-green-500 to-emerald-600 text-white relative overflow-hidden">
-          {/* Community/volunteer imagery, blended softly behind the gradient for warmth */}
+          {/* Real-impact photo, shown clearly */}
           <Image
-            src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1600&h=700&fit=crop&auto=format"
-            alt=""
+            src="/cta-community.jpg"
+            alt="Xayr orqali yordam olgan oila va jamiyat a'zolari"
             fill
-            aria-hidden
-            className="object-cover opacity-20 mix-blend-overlay pointer-events-none"
+            className="object-cover object-center pointer-events-none"
             sizes="100vw"
           />
+          {/* Translucent brand-green scrim: keeps white text readable while the photo stays clearly visible */}
+          <div className="absolute inset-0 bg-gradient-to-br from-green-900/80 via-green-800/60 to-emerald-900/75 pointer-events-none" />
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <h2 className="text-4xl lg:text-6xl font-black mb-6 tracking-tight">{dict.home.ctaTitle}</h2>
             <p className="text-xl lg:text-2xl mb-10 max-w-3xl mx-auto opacity-95">{dict.home.ctaSubtitle}</p>
