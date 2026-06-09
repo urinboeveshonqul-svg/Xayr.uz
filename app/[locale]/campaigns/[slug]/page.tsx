@@ -8,6 +8,7 @@ import { pageMetadata } from '@/lib/seo';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
+import { ViewTracker } from '@/components/campaigns/ViewTracker';
 import { CompletionReportForm } from '@/components/campaigns/CompletionReportForm';
 import { CompletionReports } from '@/components/campaigns/CompletionReports';
 import { CampaignUpdates } from '@/components/campaigns/CampaignUpdates';
@@ -152,6 +153,7 @@ export default async function CampaignDetailPage({ params }: Props) {
       <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <ViewTracker campaignId={campaign.id} />
           <CampaignDetail campaign={campaign} donors={donors} />
 
           <div className="max-w-5xl mx-auto">

@@ -15,7 +15,7 @@ const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 export const rateLimitEnabled = Boolean(url && token);
 
-export type LimiterName = 'login' | 'signup' | 'donation' | 'admin';
+export type LimiterName = 'login' | 'signup' | 'donation' | 'admin' | 'views';
 
 // (count, window) per limiter — tune here in one place.
 const CONFIG: Record<LimiterName, { tokens: number; window: `${number} ${'s' | 'm' | 'h'}` }> = {
@@ -23,6 +23,7 @@ const CONFIG: Record<LimiterName, { tokens: number; window: `${number} ${'s' | '
   signup: { tokens: 3, window: '60 s' },
   donation: { tokens: 10, window: '60 s' },
   admin: { tokens: 30, window: '10 s' },
+  views: { tokens: 5, window: '1 h' },
 };
 
 export interface RateLimitResult {
@@ -71,6 +72,7 @@ async function getLimiters(): Promise<LimiterMap | null> {
           signup: make('signup'),
           donation: make('donation'),
           admin: make('admin'),
+          views: make('views'),
         };
       } catch (err) {
         console.error('[rate-limit] init failed — disabling (fail-open):', err);
