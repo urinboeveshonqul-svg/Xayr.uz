@@ -15,9 +15,6 @@ export function Footer() {
   const platformLinks = [
     { href: L('/campaigns'), label: t('nav.campaigns') },
     { href: L('/campaigns/create'), label: t('footer.createProject') },
-    { href: L('/campaigns?category=medical'), label: t('footer.medicalHelp') },
-    { href: L('/campaigns?category=education'), label: t('footer.eduProjects') },
-    { href: L('/campaigns?category=disaster'), label: t('footer.emergencyHelp') },
   ];
 
   const supportLinks = [
