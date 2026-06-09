@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { CrossroadsGlyph } from '@/components/brand/CrossroadsGlyph';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '@/types';
 
@@ -151,6 +152,7 @@ export function Navbar() {
                   <Heart className="w-4 h-4" />
                   {t('nav.createProject')}
                 </Link>
+                <NotificationBell />
                 <Link href={L('/profile')} className="p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all" title={t('nav.profile')}>
                   <User className="w-5 h-5" />
                 </Link>
@@ -170,14 +172,17 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            className="lg:hidden p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-all"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Menu"
-          >
-            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile actions: notifications + menu */}
+          <div className="lg:hidden flex items-center gap-1">
+            <NotificationBell />
+            <button
+              className="p-2 rounded-xl text-gray-700 hover:bg-gray-100 transition-all"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Menu"
+            >
+              {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Search Bar (Desktop) */}
