@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { CheckCircle2, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { BarChart3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
@@ -8,6 +9,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
 import { CompletionReportForm } from '@/components/campaigns/CompletionReportForm';
+import { CompletionReports } from '@/components/campaigns/CompletionReports';
 import { CampaignUpdates } from '@/components/campaigns/CampaignUpdates';
 import { SimilarCampaigns } from '@/components/campaigns/SimilarCampaigns';
 import { Comments } from '@/components/campaigns/Comments';
@@ -55,7 +57,7 @@ async function getUpdates(campaignId: string): Promise<CampaignUpdate[]> {
     const supabase = await createClient();
     const { data } = await supabase
       .from('campaign_updates')
-      .select('id, campaign_id, user_id, title, content, created_at')
+      .select('id, campaign_id, user_id, title, content, images, documents, created_at')
       .eq('campaign_id', campaignId)
       .order('created_at', { ascending: false });
     return (data as unknown as CampaignUpdate[]) ?? [];
@@ -122,7 +124,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CampaignDetailPage({ params }: Props) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  const loc = isLocale(locale) ? locale : 'uz';
   const campaign = await getCampaign(slug);
 
   if (!campaign) notFound();
@@ -152,52 +155,28 @@ export default async function CampaignDetailPage({ params }: Props) {
           <CampaignDetail campaign={campaign} donors={donors} />
 
           <div className="max-w-5xl mx-auto">
-            {/* Completion reports — read-only, shown only on completed campaigns */}
-            {campaign.status === 'completed' && reports.length > 0 && (
-              <section className="mt-8">
-                <h2 className="text-xl font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  Yakuniy hisobot
-                </h2>
-                <div className="space-y-4">
-                  {reports.map((r) => (
-                    <article key={r.id} className="card p-6">
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <h3 className="font-bold text-gray-900 dark:text-white">{r.title}</h3>
-                        <time className="text-xs text-gray-400 flex-shrink-0">
-                          {new Date(r.created_at).toLocaleDateString('uz-UZ')}
-                        </time>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
-                        {r.message}
-                      </p>
-                      {r.images.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                          {r.images.map((src, i) => (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img key={i} src={src} alt="" className="w-full h-32 object-cover rounded-xl" />
-                          ))}
-                        </div>
-                      )}
-                      {r.documents.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          {r.documents.map((doc, i) => (
-                            <a
-                              key={i}
-                              href={doc}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:underline"
-                            >
-                              <FileText className="w-4 h-4" /> Hujjat {i + 1}
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </section>
+            {/* Owner-only entry point to the analytics dashboard */}
+            {isOwner && (
+              <Link
+                href={`/${loc}/campaigns/${slug}/analytics`}
+                className="mb-6 card p-4 flex items-center justify-between hover:shadow-md transition-all"
+              >
+                <span className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                  <BarChart3 className="w-5 h-5 text-brand-600" />
+                  Kampaniya analitikasi
+                </span>
+                <span className="text-gray-400">→</span>
+              </Link>
+            )}
+
+            {/* Completion reports — gallery + document viewer; owner can edit/delete */}
+            {campaign.status === 'completed' && (
+              <CompletionReports
+                reports={reports}
+                isOwner={isOwner}
+                campaignId={campaign.id}
+                userId={campaign.user_id}
+              />
             )}
 
             {/* Creator-only publish form — owner of a completed campaign */}

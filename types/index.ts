@@ -221,6 +221,8 @@ export type Database = {
           user_id: string;
           title: string;
           content: string;
+          images: string[];
+          documents: string[];
           created_at: string;
         };
         Insert: {
@@ -229,6 +231,8 @@ export type Database = {
           user_id: string;
           title: string;
           content: string;
+          images?: string[];
+          documents?: string[];
           created_at?: string;
         };
         Update: {
@@ -237,6 +241,8 @@ export type Database = {
           user_id?: string;
           title?: string;
           content?: string;
+          images?: string[];
+          documents?: string[];
           created_at?: string;
         };
         Relationships: [];

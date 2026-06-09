@@ -1,0 +1,194 @@
+import Link from 'next/link';
+import {
+  TrendingUp, Users, Eye, Target, Coins, Clock, BarChart3, Megaphone, ArrowLeft, Heart,
+} from 'lucide-react';
+import { formatMoney, getProgress, daysLeft, timeAgo } from '@/lib/utils';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+
+interface CampaignInfo {
+  title: string;
+  slug: string;
+  goal_amount: number;
+  current_amount: number;
+  donors_count: number;
+  views: number;
+  status: string;
+  deadline: string | null;
+  created_at: string;
+}
+interface DonationItem {
+  id: string;
+  amount: number;
+  donor_name: string | null;
+  message: string | null;
+  created_at: string;
+}
+interface UpdateItem {
+  id: string;
+  title: string;
+  created_at: string;
+}
+interface ChartBucket {
+  label: string;
+  total: number;
+}
+
+const STATUS: Record<string, { label: string; cls: string }> = {
+  draft:     { label: 'Qoralama',     cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+  pending:   { label: 'Kutilmoqda',   cls: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' },
+  active:    { label: 'Faol',         cls: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
+  paused:    { label: "To'xtatilgan", cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+  rejected:  { label: 'Rad etilgan',  cls: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
+  completed: { label: 'Yakunlangan',  cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
+};
+
+export function CampaignAnalytics({
+  campaign,
+  recentDonations,
+  recentUpdates,
+  chart,
+  locale,
+}: {
+  campaign: CampaignInfo;
+  recentDonations: DonationItem[];
+  recentUpdates: UpdateItem[];
+  chart: ChartBucket[];
+  locale: string;
+}) {
+  const pct = getProgress(campaign.current_amount, campaign.goal_amount);
+  const days = daysLeft(campaign.deadline);
+  const avg = campaign.donors_count > 0 ? Math.round(campaign.current_amount / campaign.donors_count) : 0;
+  const status = STATUS[campaign.status] ?? STATUS.active;
+  const maxBar = Math.max(...chart.map((c) => c.total), 1);
+  const hasChartData = chart.some((c) => c.total > 0);
+
+  const cards = [
+    { icon: TrendingUp, label: "Yig'ilgan mablag'", value: `${formatMoney(campaign.current_amount)} so'm`, color: 'text-green-600',   bg: 'bg-green-50 dark:bg-green-900/20' },
+    { icon: Target,     label: 'Bajarildi',         value: `${pct}%`,                                       color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { icon: Users,      label: 'Xayriyachilar',     value: campaign.donors_count.toLocaleString('uz-UZ'),   color: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { icon: Coins,      label: "O'rtacha xayriya",  value: `${formatMoney(avg)} so'm`,                      color: 'text-amber-600',   bg: 'bg-amber-50 dark:bg-amber-900/20' },
+    { icon: Eye,        label: "Ko'rishlar",        value: campaign.views.toLocaleString('uz-UZ'),          color: 'text-purple-600',  bg: 'bg-purple-50 dark:bg-purple-900/20' },
+    { icon: Clock,      label: 'Kun qoldi',         value: days !== null ? String(days > 0 ? days : 0) : '∞', color: 'text-orange-600',  bg: 'bg-orange-50 dark:bg-orange-900/20' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="min-w-0">
+          <Link href={`/${locale}/campaigns/${campaign.slug}`} className="btn-ghost inline-flex mb-2 text-sm">
+            <ArrowLeft className="w-4 h-4" /> Kampaniyaga qaytish
+          </Link>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-brand-600" /> Analitika
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5 truncate">{campaign.title}</p>
+        </div>
+        <span className={`badge self-start ${status.cls}`}>{status.label}</span>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {cards.map((c, i) => (
+          <div key={i} className="card p-5">
+            <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center mb-3`}>
+              <c.icon className={`w-5 h-5 ${c.color}`} />
+            </div>
+            <div className="text-xl font-black text-gray-900 dark:text-white break-words">{c.value}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-0.5">{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress toward goal */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-3 gap-3">
+          <h2 className="font-bold text-gray-900 dark:text-white">Maqsad sari</h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {formatMoney(campaign.current_amount)} / {formatMoney(campaign.goal_amount)} so&apos;m
+          </span>
+        </div>
+        <ProgressBar raised={campaign.current_amount} goal={campaign.goal_amount} />
+      </div>
+
+      {/* Donations chart — only when there is data */}
+      {hasChartData && (
+        <div className="card p-6">
+          <h2 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-brand-600" /> Xayriyalar (so&apos;nggi 14 kun)
+          </h2>
+          <div className="flex items-end gap-1 h-40">
+            {chart.map((c, i) => (
+              <div
+                key={i}
+                className="flex-1 bg-gradient-to-t from-green-500 to-emerald-400 rounded-t-sm"
+                style={{ height: `${(c.total / maxBar) * 100}%` }}
+                title={`${formatMoney(c.total)} so'm`}
+              />
+            ))}
+          </div>
+          <div className="flex gap-1 mt-2">
+            {chart.map((c, i) => (
+              <span key={i} className="flex-1 text-center text-[10px] text-gray-400">
+                {i % 2 === 0 ? c.label : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent donations + recent updates */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card p-6">
+          <h2 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Heart className="w-5 h-5 text-red-500" /> So&apos;nggi xayriyalar
+          </h2>
+          {recentDonations.length === 0 ? (
+            <p className="text-sm text-gray-400">Hozircha xayriyalar yo&apos;q</p>
+          ) : (
+            <ul className="space-y-3">
+              {recentDonations.map((d) => {
+                const name = d.donor_name ?? 'Anonim';
+                return (
+                  <li key={d.id} className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
+                      <p className="text-xs text-gray-400">{timeAgo(d.created_at)}</p>
+                    </div>
+                    <span className="text-sm font-bold text-brand-600 flex-shrink-0">
+                      {formatMoney(d.amount)} so&apos;m
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="card p-6">
+          <h2 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-brand-600" /> So&apos;nggi yangiliklar
+          </h2>
+          {recentUpdates.length === 0 ? (
+            <p className="text-sm text-gray-400">Hozircha yangiliklar yo&apos;q</p>
+          ) : (
+            <ul className="space-y-3">
+              {recentUpdates.map((u) => (
+                <li key={u.id} className="flex items-start gap-3">
+                  <span className="mt-1.5 w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{u.title}</p>
+                    <p className="text-xs text-gray-400">{timeAgo(u.created_at)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

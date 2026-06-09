@@ -8,24 +8,37 @@ import { createClient } from '@/lib/supabase/client';
 
 const MAX = 5 * 1024 * 1024; // 5MB per file
 
+interface EditableReport {
+  id: string;
+  title: string;
+  message: string;
+  images: string[];
+  documents: string[];
+}
+
 /**
- * Creator-only form to publish a completion report on a COMPLETED campaign.
- * Rendered only for the campaign owner (server-side gate on the page); the API
- * route re-checks ownership + completed status. Files upload to the public
- * `campaign-reports` bucket under {userId}/... (required by the bucket's RLS).
+ * Owner-only completion report editor. Creates a report (POST) or, when `report`
+ * is provided, edits it (PATCH) — both via the existing /api/campaigns/reports
+ * route (which re-checks ownership + completed status). Files upload to the
+ * public `campaign-reports` bucket under {userId}/... (bucket RLS).
  */
 export function CompletionReportForm({
   campaignId,
   userId,
+  report,
+  onDone,
 }: {
   campaignId: string;
   userId: string;
+  report?: EditableReport;
+  onDone?: () => void;
 }) {
   const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  const [documents, setDocuments] = useState<string[]>([]);
+  const isEdit = !!report;
+  const [title, setTitle] = useState(report?.title ?? '');
+  const [message, setMessage] = useState(report?.message ?? '');
+  const [images, setImages] = useState<string[]>(report?.images ?? []);
+  const [documents, setDocuments] = useState<string[]>(report?.documents ?? []);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -62,21 +75,30 @@ export function CompletionReportForm({
     }
     setSubmitting(true);
     try {
+      // Same route for both flows — POST creates, PATCH edits (existing API).
       const res = await fetch('/api/campaigns/reports', {
-        method: 'POST',
+        method: report ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId, title, message, images, documents }),
+        body: JSON.stringify(
+          report
+            ? { id: report.id, title, message, images, documents }
+            : { campaignId, title, message, images, documents }
+        ),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(json.error ?? 'Xatolik yuz berdi');
         return;
       }
-      toast.success('Yakuniy hisobot chop etildi');
-      setTitle('');
-      setMessage('');
-      setImages([]);
-      setDocuments([]);
+      toast.success(report ? 'Hisobot yangilandi' : 'Yakuniy hisobot chop etildi');
+      if (report) {
+        onDone?.();
+      } else {
+        setTitle('');
+        setMessage('');
+        setImages([]);
+        setDocuments([]);
+      }
       router.refresh();
     } catch {
       toast.error('Kutilmagan xatolik yuz berdi');
@@ -86,10 +108,10 @@ export function CompletionReportForm({
   };
 
   return (
-    <section className="card p-6 mt-8">
+    <section className={`card p-6 ${isEdit ? '' : 'mt-8'}`}>
       <h2 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2 mb-4">
         <CheckCircle2 className="w-5 h-5 text-green-600" />
-        Yakuniy hisobot chop etish
+        {isEdit ? 'Hisobotni tahrirlash' : 'Yakuniy hisobot chop etish'}
       </h2>
 
       <form onSubmit={submit} className="space-y-4">
@@ -185,23 +207,26 @@ export function CompletionReportForm({
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting || uploading}
-          className="btn-primary py-3 text-base"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" /> Chop etilmoqda...
-            </>
-          ) : uploading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" /> Yuklanmoqda...
-            </>
-          ) : (
-            'Hisobotni chop etish'
+        <div className="flex gap-2">
+          {isEdit && (
+            <button type="button" onClick={onDone} className="btn-ghost py-3">
+              Bekor qilish
+            </button>
           )}
-        </button>
+          <button
+            type="submit"
+            disabled={submitting || uploading}
+            className="btn-primary py-3 text-base"
+          >
+            {submitting ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Saqlanmoqda...</>
+            ) : uploading ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Yuklanmoqda...</>
+            ) : (
+              isEdit ? 'Saqlash' : 'Hisobotni chop etish'
+            )}
+          </button>
+        </div>
       </form>
     </section>
   );
