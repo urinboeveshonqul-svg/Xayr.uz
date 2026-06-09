@@ -12,6 +12,7 @@ import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, t
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { DonationForm } from '@/components/donations/DonationForm';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
+import { SaveButton } from '@/components/campaigns/SaveButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign, Donor } from '@/types';
 
@@ -260,6 +261,14 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                 onClose={() => setShowDonation(false)}
               />
             )}
+
+            {/* Save (bookmark) — reuses the shared SaveButton */}
+            <div className="mt-4">
+              <p className="text-xs text-gray-400 mb-2 text-center">Saqlash</p>
+              <div className="flex justify-center">
+                <SaveButton campaignId={campaign.id} />
+              </div>
+            </div>
 
             {/* Share buttons */}
             <div className="mt-4">
