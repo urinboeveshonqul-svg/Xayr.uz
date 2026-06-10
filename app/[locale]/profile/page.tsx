@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Heart, CheckCircle2, Bookmark } from 'lucide-react';
+import { Heart, CheckCircle2, Bookmark, Users, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -33,6 +33,13 @@ export default async function ProfilePage({
 
   if (!profile) redirect('/');
 
+  // Follower / following counts (public-read RLS; null counts → 0 if the
+  // creator-followers migration hasn't been applied yet).
+  const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
+    supabase.from('creator_followers').select('*', { count: 'exact', head: true }).eq('creator_id', user.id),
+    supabase.from('creator_followers').select('*', { count: 'exact', head: true }).eq('follower_id', user.id),
+  ]);
+
   // The creator's published completion reports (read-only). Public-read RLS;
   // if the migration isn't applied the query errors → [] and the section hides.
   type ReportRow = CampaignReport & { campaigns?: { title: string; slug: string } | null };
@@ -63,6 +70,33 @@ export default async function ProfilePage({
             verifiedAt={profile.verified_at}
             rejectionReason={profile.rejection_reason}
           />
+
+          {/* Follower / following stats */}
+          <div className="card p-4 mb-6 flex items-center justify-around text-center">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
+                <Users className="w-4 h-4 text-brand-600" />
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
+                  {(followersCount ?? 0).toLocaleString('uz-UZ')}
+                </div>
+                <div className="text-xs text-gray-400">Obunachilar</div>
+              </div>
+            </div>
+            <div className="w-px h-8 bg-gray-100 dark:bg-gray-800" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
+                <UserPlus className="w-4 h-4 text-brand-600" />
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
+                  {(followingCount ?? 0).toLocaleString('uz-UZ')}
+                </div>
+                <div className="text-xs text-gray-400">Kuzatilmoqda</div>
+              </div>
+            </div>
+          </div>
 
           <div className="card p-8">
             <ProfileForm profile={profile} email={user.email ?? ''} />

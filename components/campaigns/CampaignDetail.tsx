@@ -13,6 +13,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { DonationForm } from '@/components/donations/DonationForm';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { SaveButton } from '@/components/campaigns/SaveButton';
+import { FollowButton } from '@/components/profile/FollowButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign, Donor } from '@/types';
 
@@ -338,6 +339,10 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   {campaign.profiles.bio}
                 </p>
               )}
+
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <FollowButton creatorId={campaign.user_id} />
+              </div>
             </div>
           )}
         </div>

@@ -365,6 +365,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      creator_followers: {
+        Row: {
+          id: string;
+          follower_id: string;
+          creator_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          follower_id: string;
+          creator_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          follower_id?: string;
+          creator_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
