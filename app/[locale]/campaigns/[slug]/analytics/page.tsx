@@ -5,6 +5,7 @@ import { isLocale } from '@/i18n/config';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignAnalytics } from '@/components/campaigns/CampaignAnalytics';
+import { CampaignPayouts, type CampaignPayoutRow } from '@/components/campaigns/CampaignPayouts';
 
 export const metadata: Metadata = { title: 'Kampaniya analitikasi — Xayr' };
 export const dynamic = 'force-dynamic';
@@ -68,6 +69,45 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
     chart.push({ label: String(d.getDate()), total: byDay.get(key) ?? 0 });
   }
 
+  // ── Withdrawal / payout data (owner-only; RLS scopes reads to the owner) ──
+  const { data: payoutRows } = await supabase
+    .from('payout_requests')
+    .select('*')
+    .eq('campaign_id', campaign.id)
+    .order('created_at', { ascending: false });
+  const payoutRequests = payoutRows ?? [];
+
+  const { data: payoutEventRows } = await supabase
+    .from('payout_request_events')
+    .select('*')
+    .in('request_id', payoutRequests.map((r) => r.id))
+    .order('created_at', { ascending: true });
+  const payoutEvents = payoutEventRows ?? [];
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('verification_status')
+    .eq('id', user.id)
+    .single();
+
+  // Mirrors campaign_available_balance(): committed = active + paid.
+  const COMMITTED = ['pending_review', 'approved', 'info_requested', 'paid'];
+  const committed = payoutRequests
+    .filter((r) => COMMITTED.includes(r.status))
+    .reduce((sum, r) => sum + r.amount, 0);
+  const available = Math.max(0, (campaign.current_amount ?? 0) - committed);
+
+  const eventsByReq = new Map<string, typeof payoutEvents>();
+  for (const e of payoutEvents) {
+    const arr = eventsByReq.get(e.request_id) ?? [];
+    arr.push(e);
+    eventsByReq.set(e.request_id, arr);
+  }
+  const payoutRequestRows: CampaignPayoutRow[] = payoutRequests.map((r) => ({
+    ...r,
+    events: eventsByReq.get(r.id) ?? [],
+  }));
+
   return (
     <>
       <Navbar />
@@ -78,6 +118,15 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             recentDonations={donationRows ?? []}
             recentUpdates={updateRows ?? []}
             chart={chart}
+            locale={loc}
+          />
+
+          <CampaignPayouts
+            campaignId={campaign.id}
+            campaignStatus={campaign.status}
+            available={available}
+            isVerified={profile?.verification_status === 'verified'}
+            requests={payoutRequestRows}
             locale={loc}
           />
         </div>
