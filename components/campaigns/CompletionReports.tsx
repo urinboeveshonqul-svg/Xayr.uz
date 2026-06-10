@@ -1,12 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import {
-  CheckCircle2, FileText, Pencil, Trash2, Loader2, X, ChevronLeft, ChevronRight, ExternalLink,
-} from 'lucide-react';
+import { CheckCircle2, FileText, Pencil, Trash2, Loader2, ExternalLink } from 'lucide-react';
 import { CompletionReportForm } from '@/components/campaigns/CompletionReportForm';
+import { ImageGrid } from '@/components/ui/Gallery';
 
 interface ReportRow {
   id: string;
@@ -22,6 +21,8 @@ interface Props {
   isOwner: boolean;
   campaignId: string;
   userId: string;
+  /** Campaign's original images — used for the Avval/Keyin (before/after) pair. */
+  beforeImages?: string[];
 }
 
 function docExt(url: string): string {
@@ -30,33 +31,10 @@ function docExt(url: string): string {
   return ext.length <= 5 ? ext.toUpperCase() : 'FILE';
 }
 
-export function CompletionReports({ reports, isOwner, campaignId, userId }: Props) {
+export function CompletionReports({ reports, isOwner, campaignId, userId, beforeImages }: Props) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
-
-  const closeLb = useCallback(() => setLightbox(null), []);
-  const prevLb = useCallback(
-    () => setLightbox((l) => (l ? { ...l, index: (l.index - 1 + l.images.length) % l.images.length } : l)),
-    []
-  );
-  const nextLb = useCallback(
-    () => setLightbox((l) => (l ? { ...l, index: (l.index + 1) % l.images.length } : l)),
-    []
-  );
-
-  // Keyboard navigation for the lightbox.
-  useEffect(() => {
-    if (!lightbox) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeLb();
-      else if (e.key === 'ArrowLeft') prevLb();
-      else if (e.key === 'ArrowRight') nextLb();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [lightbox, closeLb, prevLb, nextLb]);
 
   if (reports.length === 0) return null;
 
@@ -138,25 +116,27 @@ export function CompletionReports({ reports, isOwner, campaignId, userId }: Prop
                   {r.message}
                 </p>
 
+                {/* Before / After — campaign's original image vs the report's result */}
+                {beforeImages && beforeImages.length > 0 && r.images.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                      Avval / Keyin
+                    </p>
+                    <ImageGrid
+                      images={[beforeImages[0], r.images[0]]}
+                      labels={['Avval', 'Keyin']}
+                      cols={2}
+                    />
+                  </div>
+                )}
+
                 {/* Image gallery */}
                 {r.images.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {r.images.map((src, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setLightbox({ images: r.images, index: i })}
-                        className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800"
-                        aria-label="Rasmni kattalashtirish"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={src}
-                          alt=""
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </button>
-                    ))}
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                      Galereya
+                    </p>
+                    <ImageGrid images={r.images} />
                   </div>
                 )}
 
@@ -196,54 +176,6 @@ export function CompletionReports({ reports, isOwner, campaignId, userId }: Prop
         )}
       </div>
 
-      {/* Lightbox */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
-          onClick={closeLb}
-        >
-          <button
-            onClick={closeLb}
-            className="absolute top-4 right-4 text-white/80 hover:text-white"
-            aria-label="Yopish"
-          >
-            <X className="w-7 h-7" />
-          </button>
-
-          {lightbox.images.length > 1 && (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); prevLb(); }}
-                className="absolute left-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
-                aria-label="Oldingi"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); nextLb(); }}
-                className="absolute right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
-                aria-label="Keyingi"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </>
-          )}
-
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={lightbox.images[lightbox.index]}
-            alt=""
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
-          />
-
-          {lightbox.images.length > 1 && (
-            <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
-              {lightbox.index + 1} / {lightbox.images.length}
-            </span>
-          )}
-        </div>
-      )}
     </section>
   );
 }

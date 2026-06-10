@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react';
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { Gallery } from '@/components/ui/Gallery';
 import { DonationForm } from '@/components/donations/DonationForm';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { SaveButton } from '@/components/campaigns/SaveButton';
@@ -33,6 +33,22 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   const pct = getProgress(campaign.current_amount, campaign.goal_amount);
   const days = daysLeft(campaign.deadline);
   const cat = CATEGORY_CONFIG[campaign.categories?.slug ?? 'other'];
+
+  // Cover + additional images, deduped — one gallery for everything.
+  const galleryImages = [
+    ...new Set([campaign.image_url, ...(campaign.images ?? [])].filter((s): s is string => !!s)),
+  ];
+
+  const badges = (
+    <div className="absolute top-4 left-4 flex gap-2 z-10">
+      <span className={`badge ${cat.color}`}><cat.Icon className="w-3.5 h-3.5" /> {cat.label}</span>
+      {campaign.is_urgent && (
+        <span className="badge bg-red-500 text-white">
+          <Zap className="w-3 h-3" /> Shoshilinch
+        </span>
+      )}
+    </div>
+  );
 
   const copyLink = async () => {
     try {
@@ -65,32 +81,18 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Image */}
+          {/* Gallery: main viewer + thumbnail strip + lightbox + mobile swipe */}
           <div className="card overflow-hidden">
-            <div className="relative h-72 sm:h-96 bg-gray-100 dark:bg-gray-800">
-              {campaign.image_url ? (
-                <Image
-                  src={campaign.image_url}
-                  alt={campaign.title}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 66vw"
-                />
-              ) : (
+            {galleryImages.length > 0 ? (
+              <Gallery images={galleryImages} alt={campaign.title} priority overlay={badges} />
+            ) : (
+              <div className="relative h-72 sm:h-96 bg-gray-100 dark:bg-gray-800">
                 <div className="w-full h-full flex items-center justify-center text-gray-300">
                   <cat.Icon className="w-24 h-24" />
                 </div>
-              )}
-              <div className="absolute top-4 left-4 flex gap-2">
-                <span className={`badge ${cat.color}`}><cat.Icon className="w-3.5 h-3.5" /> {cat.label}</span>
-                {campaign.is_urgent && (
-                  <span className="badge bg-red-500 text-white">
-                    <Zap className="w-3 h-3" /> Shoshilinch
-                  </span>
-                )}
+                {badges}
               </div>
-            </div>
+            )}
 
             <div className="p-6">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3 leading-tight">
@@ -101,31 +103,6 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
               </p>
             </div>
           </div>
-
-          {/* Additional images */}
-          {campaign.images && campaign.images.length > 0 && (
-            <div className="card p-6">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                Rasmlar
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {campaign.images.map((src, i) => (
-                  <div
-                    key={i}
-                    className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800"
-                  >
-                    <Image
-                      src={src}
-                      alt={`${campaign.title} ${i + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Story */}
           {campaign.story && (

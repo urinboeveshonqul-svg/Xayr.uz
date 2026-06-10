@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { timeAgo } from '@/lib/utils';
+import { ImageGrid } from '@/components/ui/Gallery';
 
 const MAX = 5 * 1024 * 1024; // 5MB per file
 // Reuse the existing public own-folder bucket (same one completion reports use).
@@ -365,13 +366,8 @@ export function CampaignUpdates({
                 </p>
 
                 {u.images?.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                    {u.images.map((src, i) => (
-                      <a key={i} href={src} target="_blank" rel="noopener noreferrer" className="block">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={src} alt="" className="w-full h-28 object-cover rounded-xl" />
-                      </a>
-                    ))}
+                  <div className="mt-4">
+                    <ImageGrid images={u.images} />
                   </div>
                 )}
 

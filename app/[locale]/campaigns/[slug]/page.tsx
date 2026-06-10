@@ -226,6 +226,9 @@ export default async function CampaignDetailPage({ params }: Props) {
                 isOwner={canManageReports}
                 campaignId={campaign.id}
                 userId={campaign.user_id}
+                beforeImages={[campaign.image_url, ...(campaign.images ?? [])].filter(
+                  (s): s is string => !!s
+                )}
               />
             )}
 
