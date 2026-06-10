@@ -4,6 +4,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
+import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -236,6 +237,9 @@ export default async function HomePage({
             </div>
           </section>
         )}
+
+        {/* RECENTLY VIEWED — per-user (client); hidden when empty */}
+        <RecentlyViewed title="So'nggi ko'rilgan kampaniyalar" />
 
         {/* HOW IT WORKS */}
         <section className="py-20 lg:py-24 bg-white">

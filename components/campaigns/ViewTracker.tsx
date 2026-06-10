@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { addRecent } from '@/lib/recently-viewed';
 
 // Per-browser dedup window: a refresh within this period won't re-count.
 const WINDOW_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -13,6 +14,10 @@ const WINDOW_MS = 6 * 60 * 60 * 1000; // 6 hours
  */
 export function ViewTracker({ campaignId }: { campaignId: string }) {
   useEffect(() => {
+    // Always update the guest recency list (move-to-top, cap 10) — cheap, local.
+    // Logged-in history is recorded server-side via the beacon below.
+    addRecent(campaignId);
+
     const key = `xayr_v_${campaignId}`;
     try {
       const last = Number(localStorage.getItem(key) ?? 0);

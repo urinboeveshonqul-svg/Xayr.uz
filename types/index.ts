@@ -419,6 +419,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      recently_viewed: {
+        Row: {
+          id: string;
+          user_id: string;
+          campaign_id: string;
+          viewed_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          campaign_id: string;
+          viewed_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          campaign_id?: string;
+          viewed_at?: string;
+        };
+        Relationships: [];
+      };
       payout_requests: {
         Row: {
           id: string;
@@ -576,6 +597,10 @@ export type Database = {
     };
     Functions: {
       increment_campaign_views: {
+        Args: { p_campaign_id: string };
+        Returns: undefined;
+      };
+      record_campaign_view: {
         Args: { p_campaign_id: string };
         Returns: undefined;
       };

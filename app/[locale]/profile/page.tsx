@@ -7,6 +7,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
+import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import type { CampaignReport } from '@/types';
 
 export const metadata: Metadata = {
@@ -92,6 +93,9 @@ export default async function ProfilePage({
             </span>
             <span className="ml-auto text-gray-400">→</span>
           </Link>
+
+          {/* Recently viewed campaigns — per-user (client); hidden when empty */}
+          <RecentlyViewed title="So'nggi ko'rilgan kampaniyalar" compact />
 
           {/* Completion reports the user has published (read-only) */}
           {reports.length > 0 && (

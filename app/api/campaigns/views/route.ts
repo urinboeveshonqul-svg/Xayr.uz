@@ -41,6 +41,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, counted: false });
     }
 
+    // Record the logged-in user's recently-viewed history (DB dedups + prunes).
+    // Independent of the view-counter rate limit below; never blocks the counter.
+    if (user) {
+      await supabase.rpc('record_campaign_view', { p_campaign_id: campaignId });
+    }
+
     // Backstop against refresh/scripted spam (per visitor IP + campaign).
     const rl = await enforceRateLimit('views', `${getClientIp(request)}:${campaignId}`);
     if (!rl.success) {
