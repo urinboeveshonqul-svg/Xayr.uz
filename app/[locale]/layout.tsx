@@ -6,6 +6,7 @@ import { locales, isLocale, type Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
 import { EmailVerifyBanner } from '@/components/EmailVerifyBanner';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { METADATA_BASE, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/seo';
 import './globals.css';
 
@@ -19,6 +20,9 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0b1220' },
   ],
+  // Required for env(safe-area-inset-*) to work on notched iPhones
+  // (mobile bottom navigation + sticky donate bar).
+  viewportFit: 'cover',
 };
 
 // Pre-render the three locales at build time (SEO-friendly static params).
@@ -84,6 +88,7 @@ export default async function LocaleLayout({
         <I18nProvider locale={locale as Locale} messages={messages}>
           <EmailVerifyBanner />
           {children}
+          <BottomNav />
         </I18nProvider>
         <Toaster
           position="bottom-right"

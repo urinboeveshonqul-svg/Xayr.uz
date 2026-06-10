@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
@@ -26,10 +26,30 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   const { t } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  // Mobile sticky donate bar: appears after scrolling past the hero.
+  const [showSticky, setShowSticky] = useState(false);
+  const donateCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setShareUrl(window.location.href);
   }, []);
+
+  useEffect(() => {
+    // Passive listener; setState bails out unless the threshold flips, so
+    // scrolling causes no re-renders beyond the two transitions.
+    const onScroll = () => {
+      const next = window.scrollY > 400;
+      setShowSticky((s) => (s === next ? s : next));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const donateFromSticky = () => {
+    setShowDonation(true);
+    donateCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
   const pct = getProgress(campaign.current_amount, campaign.goal_amount);
   const days = daysLeft(campaign.deadline);
   const cat = CATEGORY_CONFIG[campaign.categories?.slug ?? 'other'];
@@ -194,7 +214,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Donation card */}
-          <div className="card p-6 sticky top-24">
+          <div ref={donateCardRef} className="card p-6 sticky top-24">
             {/* Stats */}
             <div className="mb-5">
               <div className="text-3xl font-black text-brand-600 mb-1">
@@ -228,7 +248,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
             {!showDonation ? (
               <button
                 onClick={() => setShowDonation(true)}
-                className="btn-primary w-full text-base py-3"
+                className="btn-primary w-full text-base py-4 min-h-[56px] lg:min-h-0 lg:py-3"
               >
                 <Heart className="w-5 h-5" />
                 Xayriya qilish
@@ -254,7 +274,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
               <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={handleShare}
-                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
+                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
                   title="Ulashish"
                   aria-label="Ulashish"
                 >
@@ -264,7 +284,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   href={telegramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-500 hover:bg-blue-50 flex items-center justify-center transition-all"
+                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-500 hover:bg-blue-50 flex items-center justify-center transition-all"
                   title="Telegram"
                   aria-label="Telegram"
                 >
@@ -274,7 +294,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   href={facebookUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all"
+                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all"
                   title="Facebook"
                   aria-label="Facebook"
                 >
@@ -282,7 +302,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                 </a>
                 <button
                   onClick={copyLink}
-                  className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
+                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
                   title="Havolani nusxalash"
                   aria-label="Havolani nusxalash"
                 >
@@ -324,6 +344,36 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
           )}
         </div>
       </div>
+
+      {/* Mobile sticky donate bar — sits above the bottom nav; hides while the
+          donation form is open. Desktop unchanged (lg:hidden). */}
+      {showSticky && !showDonation && (
+        <div className="lg:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 px-3 pb-2 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 p-3 flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-brand-600 truncate">
+                {formatMoneyFull(campaign.current_amount)}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="h-1.5 flex-1 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-brand-500"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className="text-xs font-bold text-gray-500 flex-shrink-0">{pct}%</span>
+              </div>
+            </div>
+            <button
+              onClick={donateFromSticky}
+              className="btn-primary px-5 min-h-[48px] flex-shrink-0"
+            >
+              <Heart className="w-4 h-4" />
+              Xayriya qilish
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
