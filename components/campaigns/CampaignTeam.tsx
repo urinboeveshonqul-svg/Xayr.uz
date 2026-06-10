@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Users, UserPlus, Trash2, Loader2, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { Avatar } from '@/components/ui/Avatar';
 import type { TeamRole } from '@/types';
 
 export interface TeamMemberRow {
@@ -12,6 +13,7 @@ export interface TeamMemberRow {
   user_id: string;
   role: TeamRole;
   full_name: string | null;
+  avatar_url: string | null;
 }
 
 const ROLE_LABEL: Record<TeamRole, string> = {
@@ -133,9 +135,7 @@ export function CampaignTeam({
           const name = m.full_name ?? 'Foydalanuvchi';
           return (
             <li key={m.id} className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                {name.charAt(0).toUpperCase()}
-              </div>
+              <Avatar src={m.avatar_url} name={name} className="w-9 h-9 text-xs" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
                   {name}

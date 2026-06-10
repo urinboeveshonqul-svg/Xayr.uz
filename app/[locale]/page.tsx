@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
+import { Avatar } from '@/components/ui/Avatar';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -317,7 +318,14 @@ export default async function HomePage({
                           {c.title}
                         </h3>
                         {c.profiles?.full_name && (
-                          <p className="text-sm text-gray-500 mt-1">{c.profiles.full_name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Avatar
+                              src={c.profiles.avatar_url}
+                              name={c.profiles.full_name}
+                              className="w-5 h-5 text-[9px]"
+                            />
+                            <p className="text-sm text-gray-500 truncate">{c.profiles.full_name}</p>
+                          </div>
                         )}
 
                         {/* Completion report block */}

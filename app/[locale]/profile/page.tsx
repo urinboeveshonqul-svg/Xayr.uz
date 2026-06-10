@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
 import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
+import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import type { CampaignReport } from '@/types';
@@ -89,6 +90,12 @@ export default async function ProfilePage({
             <h1 className="section-title">Mening profilim</h1>
             <p className="section-sub">Shaxsiy ma'lumotlaringizni boshqaring</p>
           </div>
+
+          <AvatarUpload
+            userId={user.id}
+            initialUrl={profile.avatar_url}
+            name={profile.full_name}
+          />
 
           <VerificationStatusCard
             status={profile.verification_status}

@@ -8,6 +8,7 @@ import { useI18n } from '@/components/i18n/I18nProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
 import { CrossroadsGlyph } from '@/components/brand/CrossroadsGlyph';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { Avatar } from '@/components/ui/Avatar';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '@/types';
 
@@ -154,7 +155,11 @@ export function Navbar() {
                 </Link>
                 <NotificationBell />
                 <Link href={L('/profile')} className="p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all" title={t('nav.profile')}>
-                  <User className="w-5 h-5" />
+                  {profile?.avatar_url ? (
+                    <Avatar src={profile.avatar_url} name={profile.full_name} className="w-7 h-7 text-[10px]" />
+                  ) : (
+                    <User className="w-5 h-5" />
+                  )}
                 </Link>
                 <button onClick={handleSignOut} className="p-3 rounded-xl text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all" title={t('nav.logout')}>
                   <LogOut className="w-5 h-5" />

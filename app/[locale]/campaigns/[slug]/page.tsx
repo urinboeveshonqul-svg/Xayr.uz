@@ -82,15 +82,16 @@ async function getTeam(campaignId: string): Promise<TeamMemberRow[]> {
 
     const { data: users } = await supabase
       .from('users')
-      .select('id, full_name')
+      .select('id, full_name, avatar_url')
       .in('id', rows.map((r) => r.user_id));
-    const nameById = new Map((users ?? []).map((u) => [u.id, u.full_name] as const));
+    const userById = new Map((users ?? []).map((u) => [u.id, u] as const));
 
     return rows.map((r) => ({
       id: r.id,
       user_id: r.user_id,
       role: r.role,
-      full_name: nameById.get(r.user_id) ?? null,
+      full_name: userById.get(r.user_id)?.full_name ?? null,
+      avatar_url: userById.get(r.user_id)?.avatar_url ?? null,
     }));
   } catch {
     return [];

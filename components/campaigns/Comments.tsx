@@ -10,6 +10,7 @@ import { Loader2, MessageCircle, Send } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { timeAgo } from '@/lib/utils';
+import { Avatar } from '@/components/ui/Avatar';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface CommentRow {
@@ -135,9 +136,7 @@ export function Comments({ campaignId }: { campaignId: string }) {
             const name = c.users?.full_name ?? 'User';
             return (
               <div key={c.id} className="card p-4 flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                  {name.charAt(0).toUpperCase()}
-                </div>
+                <Avatar src={c.users?.avatar_url} name={name} className="w-10 h-10 text-sm" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-gray-900 dark:text-white text-sm">{name}</span>

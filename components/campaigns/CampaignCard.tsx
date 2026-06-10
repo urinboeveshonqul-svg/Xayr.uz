@@ -6,6 +6,7 @@ import { Heart, Users, AlertCircle, Star } from 'lucide-react';
 import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { SaveButton } from '@/components/campaigns/SaveButton';
+import { Avatar } from '@/components/ui/Avatar';
 import type { Campaign } from '@/types';
 
 interface CampaignCardProps {
@@ -117,9 +118,11 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
         {/* Organizer */}
         {campaign.profiles?.full_name && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-xs shadow">
-              {campaign.profiles.full_name.charAt(0).toUpperCase()}
-            </div>
+            <Avatar
+              src={campaign.profiles.avatar_url}
+              name={campaign.profiles.full_name}
+              className="w-8 h-8 text-xs shadow"
+            />
             <span className="font-semibold truncate">{campaign.profiles.full_name}</span>
           </div>
         )}

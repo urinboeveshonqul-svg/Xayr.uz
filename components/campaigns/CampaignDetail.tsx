@@ -10,6 +10,7 @@ import {
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Gallery } from '@/components/ui/Gallery';
+import { Avatar } from '@/components/ui/Avatar';
 import { DonationForm } from '@/components/donations/DonationForm';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { SaveButton } from '@/components/campaigns/SaveButton';
@@ -193,9 +194,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   const name = d.donor_name ?? t('detail.anonymous');
                   return (
                     <li key={d.id} className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                        {name.charAt(0).toUpperCase()}
-                      </div>
+                      <Avatar src={d.donor_avatar} name={name} className="w-9 h-9 text-xs" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
                         {d.message && <p className="text-xs text-gray-500 truncate">{d.message}</p>}
@@ -319,9 +318,11 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
             <div className="card p-6">
               <p className="text-xs text-gray-400 mb-3">{t('detail.creatorTitle')}</p>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                  {(campaign.profiles.full_name ?? 'U').charAt(0).toUpperCase()}
-                </div>
+                <Avatar
+                  src={campaign.profiles.avatar_url}
+                  name={campaign.profiles.full_name}
+                  className="w-12 h-12 text-lg"
+                />
                 <div className="min-w-0">
                   <p className="font-bold text-gray-900 dark:text-white truncate">
                     {campaign.profiles.full_name ?? 'Foydalanuvchi'}
