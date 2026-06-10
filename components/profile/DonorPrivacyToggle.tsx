@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Globe, Lock, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -17,25 +18,40 @@ export function DonorPrivacyToggle({
   userId: string;
   initial: boolean;
 }) {
+  const router = useRouter();
   const [isPublic, setIsPublic] = useState(initial);
   const [busy, setBusy] = useState(false);
 
   const toggle = async () => {
     if (busy) return;
     const next = !isPublic;
-    setIsPublic(next); // optimistic
+    setIsPublic(next); // optimistic — UI flips instantly
     setBusy(true);
     try {
-      const { error } = await createClient()
+      // .select().single() verifies the write actually PERSISTED: a silent
+      // 0-row no-op (RLS mismatch) or a missing column can't masquerade as
+      // success anymore — both revert with a precise error.
+      const { data, error } = await createClient()
         .from('users')
         .update({ donor_stats_public: next })
-        .eq('id', userId);
-      if (error) {
-        setIsPublic(!next);
-        toast.error('Xatolik yuz berdi');
+        .eq('id', userId)
+        .select('donor_stats_public')
+        .single();
+
+      if (error || data?.donor_stats_public !== next) {
+        setIsPublic(!next); // revert
+        const missingColumn =
+          error?.code === '42703' || (error?.message ?? '').includes('donor_stats_public');
+        toast.error(
+          missingColumn
+            ? "Ma'lumotlar bazasi yangilanmagan (donor-profiles.sql migratsiyasi kerak)"
+            : error?.message ?? "Saqlanmadi — qayta urinib ko'ring"
+        );
         return;
       }
+
       toast.success(next ? 'Statistika ommaviy qilindi' : 'Statistika maxfiy qilindi');
+      router.refresh(); // keep the server-rendered profile state in sync
     } finally {
       setBusy(false);
     }
