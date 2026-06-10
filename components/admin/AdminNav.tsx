@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Megaphone, Users, ShieldCheck, Flag } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Users, ShieldCheck, Flag, Wallet } from 'lucide-react';
 import { isLocale } from '@/i18n/config';
 
 export function AdminNav() {
@@ -17,6 +17,7 @@ export function AdminNav() {
     { href: `/${locale}/admin/verifications`, match: '/admin/verifications', label: 'Tasdiqlash', icon: ShieldCheck },
     { href: `/${locale}/admin/users`, match: '/admin/users', label: 'Foydalanuvchilar', icon: Users },
     { href: `/${locale}/admin/flags`, match: '/admin/flags', label: 'Shikoyatlar', icon: Flag },
+    { href: `/${locale}/admin/payouts`, match: '/admin/payouts', label: "To'lovlar", icon: Wallet },
   ];
 
   return (
