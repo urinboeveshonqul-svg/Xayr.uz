@@ -1,13 +1,15 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Heart, CheckCircle2, Bookmark, Users, UserPlus } from 'lucide-react';
+import { Heart, CheckCircle2, Bookmark, Users, UserPlus, HandHeart, Megaphone, TrendingUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
+import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
+import { formatMoney, timeAgo } from '@/lib/utils';
 import type { CampaignReport } from '@/types';
 
 export const metadata: Metadata = {
@@ -39,6 +41,29 @@ export default async function ProfilePage({
     supabase.from('creator_followers').select('*', { count: 'exact', head: true }).eq('creator_id', user.id),
     supabase.from('creator_followers').select('*', { count: 'exact', head: true }).eq('follower_id', user.id),
   ]);
+
+  // Donor statistics — aggregated from the donations table via the
+  // privacy-enforcing RPC (owner always sees their own real numbers). If the
+  // donor-profiles migration isn't applied yet, the RPC errors → stats = null
+  // and the section degrades to zeros.
+  const { data: statsRows } = await supabase.rpc('get_donor_stats', { p_user_id: user.id });
+  const stats = statsRows?.[0] ?? null;
+
+  // Recent donations (latest 5; full history lives at /profile/donations).
+  interface RecentDonation {
+    id: string;
+    amount: number;
+    status: string;
+    created_at: string;
+    campaigns: { title: string; slug: string } | null;
+  }
+  const { data: recentRows } = await supabase
+    .from('donations')
+    .select('id, amount, status, created_at, campaigns(title, slug)')
+    .eq('donor_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+  const recentDonations = (recentRows as unknown as RecentDonation[]) ?? [];
 
   // The creator's published completion reports (read-only). Public-read RLS;
   // if the migration isn't applied the query errors → [] and the section hides.
@@ -96,6 +121,74 @@ export default async function ProfilePage({
                 <div className="text-xs text-gray-400">Kuzatilmoqda</div>
               </div>
             </div>
+          </div>
+
+          {/* Donor statistics — derived from donations; visibility via privacy toggle */}
+          <div className="card p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Xayriya statistikasi
+              </h2>
+              <DonorPrivacyToggle userId={user.id} initial={profile.donor_stats_public ?? false} />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-center">
+                <HandHeart className="w-4 h-4 text-brand-600 mx-auto mb-1.5" />
+                <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
+                  {(stats?.donations_count ?? 0).toLocaleString('uz-UZ')}
+                </div>
+                <div className="text-xs text-gray-400 mt-1">Xayriyalar</div>
+              </div>
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-center">
+                <Megaphone className="w-4 h-4 text-brand-600 mx-auto mb-1.5" />
+                <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
+                  {(stats?.campaigns_count ?? 0).toLocaleString('uz-UZ')}
+                </div>
+                <div className="text-xs text-gray-400 mt-1">Kampaniyalar</div>
+              </div>
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-center">
+                <TrendingUp className="w-4 h-4 text-brand-600 mx-auto mb-1.5" />
+                <div className="text-lg font-black text-gray-900 dark:text-white leading-none break-words">
+                  {formatMoney(stats?.total_amount ?? 0)}
+                </div>
+                <div className="text-xs text-gray-400 mt-1">Jami so&apos;m</div>
+              </div>
+            </div>
+
+            {stats?.first_donation && (
+              <p className="text-xs text-gray-400 mt-3 text-center">
+                Birinchi xayriya: {new Date(stats.first_donation).toLocaleDateString('uz-UZ')}
+              </p>
+            )}
+
+            {recentDonations.length > 0 && (
+              <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-4 space-y-2">
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                  So&apos;nggi xayriyalar
+                </p>
+                {recentDonations.map((d) => (
+                  <div key={d.id} className="flex items-center justify-between gap-3 text-sm">
+                    <div className="min-w-0">
+                      {d.campaigns ? (
+                        <Link
+                          href={`/${locale}/campaigns/${d.campaigns.slug}`}
+                          className="font-semibold text-gray-900 dark:text-white hover:text-brand-600 truncate block"
+                        >
+                          {d.campaigns.title}
+                        </Link>
+                      ) : (
+                        <span className="font-semibold text-gray-400">—</span>
+                      )}
+                      <span className="text-xs text-gray-400">{timeAgo(d.created_at)}</span>
+                    </div>
+                    <span className="font-bold text-brand-600 flex-shrink-0">
+                      {formatMoney(d.amount)} so&apos;m
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="card p-8">

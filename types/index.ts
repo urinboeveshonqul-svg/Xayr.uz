@@ -46,6 +46,7 @@ export type Database = {
           rejection_reason: string | null;
           bio: string | null;
           phone: string | null;
+          donor_stats_public: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -61,6 +62,7 @@ export type Database = {
           rejection_reason?: string | null;
           bio?: string | null;
           phone?: string | null;
+          donor_stats_public?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -76,6 +78,7 @@ export type Database = {
           rejection_reason?: string | null;
           bio?: string | null;
           phone?: string | null;
+          donor_stats_public?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -624,6 +627,15 @@ export type Database = {
       record_campaign_view: {
         Args: { p_campaign_id: string };
         Returns: undefined;
+      };
+      get_donor_stats: {
+        Args: { p_user_id: string };
+        Returns: {
+          donations_count: number;
+          total_amount: number;
+          campaigns_count: number;
+          first_donation: string | null;
+        }[];
       };
       campaign_available_balance: {
         Args: { p_campaign_id: string };
