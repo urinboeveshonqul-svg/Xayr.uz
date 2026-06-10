@@ -29,6 +29,7 @@ export type PayoutStatus =
 export type PayoutEventAction =
   | 'created' | 'approved' | 'rejected' | 'info_requested' | 'paid' | 'cancelled';
 export type PayoutMethod = 'bank' | 'card';
+export type TeamRole = 'owner' | 'manager' | 'editor';
 
 export type Database = {
   public: {
@@ -385,6 +386,30 @@ export type Database = {
           id?: string;
           follower_id?: string;
           creator_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      campaign_team_members: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          user_id: string;
+          role: TeamRole;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          user_id: string;
+          role: TeamRole;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          campaign_id?: string;
+          user_id?: string;
+          role?: TeamRole;
           created_at?: string;
         };
         Relationships: [];

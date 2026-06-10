@@ -34,13 +34,27 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Validation failed' }, { status: 422 });
   const { campaignId, title, message, images, documents } = parsed.data;
 
-  // The campaign must belong to the user AND be completed.
+  // The user must be the campaign owner OR a team manager, and the campaign
+  // must be completed. (RLS enforces the same at the DB layer.)
   const { data: campaign } = await supabase
     .from('campaigns')
     .select('id, user_id, status')
     .eq('id', campaignId)
     .single();
-  if (!campaign || campaign.user_id !== user.id) {
+  if (!campaign) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  let allowed = campaign.user_id === user.id;
+  if (!allowed) {
+    const { data: member } = await supabase
+      .from('campaign_team_members')
+      .select('role')
+      .eq('campaign_id', campaignId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    allowed = member?.role === 'owner' || member?.role === 'manager';
+  }
+  if (!allowed) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   if (campaign.status !== 'completed') {

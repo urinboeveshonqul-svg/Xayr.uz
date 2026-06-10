@@ -12,6 +12,7 @@ import { ViewTracker } from '@/components/campaigns/ViewTracker';
 import { CompletionReportForm } from '@/components/campaigns/CompletionReportForm';
 import { CompletionReports } from '@/components/campaigns/CompletionReports';
 import { CampaignUpdates } from '@/components/campaigns/CampaignUpdates';
+import { CampaignTeam, type TeamMemberRow } from '@/components/campaigns/CampaignTeam';
 import { SimilarCampaigns } from '@/components/campaigns/SimilarCampaigns';
 import { Comments } from '@/components/campaigns/Comments';
 import type { Campaign, Donor, CampaignReport, CampaignUpdate } from '@/types';
@@ -62,6 +63,35 @@ async function getUpdates(campaignId: string): Promise<CampaignUpdate[]> {
       .eq('campaign_id', campaignId)
       .order('created_at', { ascending: false });
     return (data as unknown as CampaignUpdate[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// Team roster: split queries (members, then names) — no embed inference, no N+1.
+// If the campaign-teams migration isn't applied, both return [] and the section hides.
+async function getTeam(campaignId: string): Promise<TeamMemberRow[]> {
+  try {
+    const supabase = await createClient();
+    const { data: rows } = await supabase
+      .from('campaign_team_members')
+      .select('id, user_id, role, created_at')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: true });
+    if (!rows || rows.length === 0) return [];
+
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, full_name')
+      .in('id', rows.map((r) => r.user_id));
+    const nameById = new Map((users ?? []).map((u) => [u.id, u.full_name] as const));
+
+    return rows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      role: r.role,
+      full_name: nameById.get(r.user_id) ?? null,
+    }));
   } catch {
     return [];
   }
@@ -131,21 +161,36 @@ export default async function CampaignDetailPage({ params }: Props) {
 
   if (!campaign) notFound();
 
-  // Identify the viewer so the report form is shown only to the campaign owner.
+  // Identify the viewer + their team role to gate the management sections.
   let isOwner = false;
+  let viewerRole: TeamMemberRow['role'] | null = null;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     isOwner = !!user && user.id === campaign.user_id;
+    if (user && !isOwner) {
+      const { data: m } = await supabase
+        .from('campaign_team_members')
+        .select('role')
+        .eq('campaign_id', campaign.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      viewerRole = m?.role ?? null;
+    }
   } catch {
     isOwner = false;
   }
 
-  const [donors, similar, reports, updates] = await Promise.all([
+  // Permission matrix: owner = full; manager = updates + reports; editor = updates.
+  const canPostUpdates = isOwner || viewerRole !== null;
+  const canManageReports = isOwner || viewerRole === 'owner' || viewerRole === 'manager';
+
+  const [donors, similar, reports, updates, team] = await Promise.all([
     getDonors(campaign.id),
     getSimilar(campaign),
     getReports(campaign.id),
     getUpdates(campaign.id),
+    getTeam(campaign.id),
   ]);
 
   return (
@@ -171,25 +216,28 @@ export default async function CampaignDetailPage({ params }: Props) {
               </Link>
             )}
 
-            {/* Completion reports — gallery + document viewer; owner can edit/delete */}
+            {/* Team roster (public) + owner-only management */}
+            <CampaignTeam campaignId={campaign.id} members={team} isOwner={isOwner} />
+
+            {/* Completion reports — gallery + document viewer; owner/manager can edit/delete */}
             {campaign.status === 'completed' && (
               <CompletionReports
                 reports={reports}
-                isOwner={isOwner}
+                isOwner={canManageReports}
                 campaignId={campaign.id}
                 userId={campaign.user_id}
               />
             )}
 
-            {/* Creator-only publish form — owner of a completed campaign */}
-            {isOwner && campaign.status === 'completed' && (
+            {/* Publish form — owner/manager of a completed campaign */}
+            {canManageReports && campaign.status === 'completed' && (
               <CompletionReportForm campaignId={campaign.id} userId={campaign.user_id} />
             )}
 
             <CampaignUpdates
               campaignId={campaign.id}
               campaignUserId={campaign.user_id}
-              isOwner={isOwner}
+              isOwner={canPostUpdates}
               initialUpdates={updates}
             />
 

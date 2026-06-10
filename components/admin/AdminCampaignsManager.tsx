@@ -3,10 +3,21 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { ExternalLink, Trash2, Loader2, Siren } from 'lucide-react';
+import { ExternalLink, Trash2, Loader2, Siren, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney } from '@/lib/utils';
-import type { Campaign, CampaignStatus } from '@/types';
+import type { Campaign, CampaignStatus, TeamRole } from '@/types';
+
+export interface TeamInfo {
+  name: string | null;
+  role: TeamRole;
+}
+
+const ROLE_LABEL: Record<TeamRole, string> = {
+  owner: 'Egasi',
+  manager: 'Menejer',
+  editor: 'Muharrir',
+};
 
 const STATUSES: { value: CampaignStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Barchasi' },
@@ -28,9 +39,10 @@ const STATUS_BADGE: Record<string, string> = {
 interface Props {
   initialCampaigns: Campaign[];
   locale: string;
+  team?: Record<string, TeamInfo[]>;
 }
 
-export function AdminCampaignsManager({ initialCampaigns, locale }: Props) {
+export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props) {
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
   const [filter, setFilter] = useState<CampaignStatus | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -113,6 +125,14 @@ export function AdminCampaignsManager({ initialCampaigns, locale }: Props) {
                 <p className="text-xs text-gray-400">
                   {formatMoney(c.current_amount)} / {formatMoney(c.goal_amount)} so&apos;m · {c.donors_count} donor
                 </p>
+                {team?.[c.id] && team[c.id].length > 0 && (
+                  <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
+                    <Users className="w-3 h-3 flex-shrink-0" />
+                    {team[c.id]
+                      .map((m) => `${m.name ?? '—'} (${ROLE_LABEL[m.role]})`)
+                      .join(', ')}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <select
