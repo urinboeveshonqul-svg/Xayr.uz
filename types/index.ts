@@ -24,6 +24,11 @@ export type DonationStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type PaymentMethod = 'click' | 'payme' | 'uzcard' | 'humo' | 'cash';
 export type NotificationType =
   | 'general' | 'donation' | 'comment' | 'campaign_status' | 'update';
+export type PayoutStatus =
+  | 'pending_review' | 'approved' | 'info_requested' | 'rejected' | 'paid' | 'cancelled';
+export type PayoutEventAction =
+  | 'created' | 'approved' | 'rejected' | 'info_requested' | 'paid' | 'cancelled';
+export type PayoutMethod = 'bank' | 'card';
 
 export type Database = {
   public: {
@@ -414,6 +419,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      payout_requests: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          user_id: string;
+          amount: number;
+          method: PayoutMethod;
+          account_details: string;
+          notes: string | null;
+          status: PayoutStatus;
+          reviewed_by: string | null;
+          admin_note: string | null;
+          payout_reference: string | null;
+          created_at: string;
+          updated_at: string;
+          reviewed_at: string | null;
+          paid_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          user_id: string;
+          amount: number;
+          method: PayoutMethod;
+          account_details: string;
+          notes?: string | null;
+          status?: PayoutStatus;
+          reviewed_by?: string | null;
+          admin_note?: string | null;
+          payout_reference?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          reviewed_at?: string | null;
+          paid_at?: string | null;
+        };
+        Update: {
+          status?: PayoutStatus;
+          reviewed_by?: string | null;
+          admin_note?: string | null;
+          payout_reference?: string | null;
+          reviewed_at?: string | null;
+          paid_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      payout_request_events: {
+        Row: {
+          id: string;
+          request_id: string;
+          actor_id: string | null;
+          action: PayoutEventAction;
+          from_status: string | null;
+          to_status: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          request_id: string;
+          actor_id?: string | null;
+          action: PayoutEventAction;
+          from_status?: string | null;
+          to_status: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          note?: string | null;
+        };
+        Relationships: [];
+      };
       verification_requests: {
         Row: {
           id: string;
@@ -502,6 +579,36 @@ export type Database = {
         Args: { p_campaign_id: string };
         Returns: undefined;
       };
+      campaign_available_balance: {
+        Args: { p_campaign_id: string };
+        Returns: number;
+      };
+      create_payout_request: {
+        Args: {
+          p_campaign_id: string;
+          p_amount: number;
+          p_method: string;
+          p_account_details: string;
+          p_notes: string;
+        };
+        Returns: string;
+      };
+      approve_payout_request: {
+        Args: { p_request_id: string; p_note?: string };
+        Returns: undefined;
+      };
+      reject_payout_request: {
+        Args: { p_request_id: string; p_note: string };
+        Returns: undefined;
+      };
+      request_payout_info: {
+        Args: { p_request_id: string; p_note: string };
+        Returns: undefined;
+      };
+      mark_payout_paid: {
+        Args: { p_request_id: string; p_reference: string };
+        Returns: undefined;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -523,6 +630,8 @@ export type CampaignReport = Row<'campaign_reports'> & {
 export type Comment = Row<'comments'>;
 export type Notification = Row<'notifications'>;
 export type SavedCampaign = Row<'saved_campaigns'>;
+export type PayoutRequest = Row<'payout_requests'>;
+export type PayoutRequestEvent = Row<'payout_request_events'>;
 
 // Campaign as consumed by the UI: the row + optionally embedded relations.
 // Queries embed the organizer as `profiles:users(...)` and the category as
