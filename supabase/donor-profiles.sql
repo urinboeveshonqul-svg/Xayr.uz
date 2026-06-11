@@ -12,6 +12,12 @@
 alter table public.users
   add column if not exists donor_stats_public boolean not null default false;
 
+-- users updates are governed by COLUMN-LEVEL grants (verification.sql revokes
+-- blanket UPDATE and grants specific columns). Without this, the privacy toggle
+-- fails with "permission denied" even though the column exists. Grants are
+-- additive, so this simply extends the existing column list.
+grant update (donor_stats_public) on public.users to authenticated;
+
 create or replace function public.get_donor_stats(p_user_id uuid)
 returns table (
   donations_count integer,

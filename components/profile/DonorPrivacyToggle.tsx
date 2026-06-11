@@ -40,10 +40,14 @@ export function DonorPrivacyToggle({
 
       if (error || data?.donor_stats_public !== next) {
         setIsPublic(!next); // revert
-        const missingColumn =
-          error?.code === '42703' || (error?.message ?? '').includes('donor_stats_public');
+        // 42703 = column missing; 42501 = column-level UPDATE grant missing.
+        // Both mean the donor-profiles.sql migration (incl. its grant) wasn't applied.
+        const migrationMissing =
+          error?.code === '42703' ||
+          error?.code === '42501' ||
+          (error?.message ?? '').includes('donor_stats_public');
         toast.error(
-          missingColumn
+          migrationMissing
             ? "Ma'lumotlar bazasi yangilanmagan (donor-profiles.sql migratsiyasi kerak)"
             : error?.message ?? "Saqlanmadi — qayta urinib ko'ring"
         );
