@@ -489,6 +489,90 @@
       ]
     }
   },
+  "guidePage": {
+    "title": "How Xayr works",
+    "subtitle": "Five simple steps — from idea to impact.",
+    "steps": [
+      { "title": "Create an account", "text": "Sign up with your email and complete your profile." },
+      { "title": "Verify your identity", "text": "Upload your passport or ID card and a selfie — review usually takes 1-2 business days." },
+      { "title": "Create a campaign", "text": "Describe your goal, tell your story, add photos. Your campaign goes live after moderation." },
+      { "title": "Receive donations", "text": "Post updates as you go — transparency builds donor trust." },
+      { "title": "Withdraw funds", "text": "Request a withdrawal to your bank account or card. Every request is approved by an administrator." }
+    ],
+    "faqTitle": "Still have questions?",
+    "faqText": "See answers to the most common questions.",
+    "faqCta": "FAQ page",
+    "ctaTitle": "Ready to start?",
+    "ctaCreate": "Start a campaign",
+    "ctaBrowse": "Browse campaigns"
+  },
+  "faqPage": {
+    "title": "Frequently asked questions",
+    "subtitle": "The most important answers about Xayr.",
+    "searchPlaceholder": "Search questions...",
+    "noResults": "Nothing found",
+    "allLabel": "All",
+    "categories": {
+      "donations": "Donations",
+      "campaigns": "Campaigns",
+      "verification": "Verification",
+      "withdrawals": "Withdrawals",
+      "fees": "Fees",
+      "security": "Security"
+    },
+    "items": [
+      { "cat": "donations", "q": "How do I donate?", "a": "On a campaign page press \"Donate\", choose an amount and a payment method." },
+      { "cat": "donations", "q": "Can I donate anonymously?", "a": "Yes — tick \"Anonymous\" at checkout and your name will not be shown to anyone." },
+      { "cat": "donations", "q": "Can I get a refund?", "a": "Confirmed payments are not refunded automatically. If something went wrong, contact us — each case is reviewed individually." },
+      { "cat": "donations", "q": "What is the minimum donation?", "a": "The minimum depends on the payment provider, usually from 1,000 so'm." },
+      { "cat": "campaigns", "q": "What do I need to start a campaign?", "a": "An account, identity verification (KYC), and your campaign details." },
+      { "cat": "campaigns", "q": "When will my campaign go live?", "a": "After moderator review — usually within 1-2 business days." },
+      { "cat": "campaigns", "q": "Can I edit my campaign?", "a": "Yes — title, description and photos. Raised totals and status are changed only by administrators." },
+      { "cat": "campaigns", "q": "Can I work with a team?", "a": "Yes — the campaign owner can invite managers and editors by email." },
+      { "cat": "verification", "q": "Why is identity verification required?", "a": "For donor trust — only verified users can open campaigns." },
+      { "cat": "verification", "q": "How long does verification take?", "a": "Usually 1-2 business days after documents are submitted." },
+      { "cat": "verification", "q": "Which documents are required?", "a": "A passport or ID card (front, optionally back) and a selfie." },
+      { "cat": "withdrawals", "q": "How do I withdraw funds?", "a": "Send a \"Withdraw funds\" request on your campaign analytics page — once approved by an administrator, funds are transferred to your bank or card." },
+      { "cat": "withdrawals", "q": "How long do withdrawals take?", "a": "Requests are reviewed within 1-3 business days; a bank transfer may take another 1-2 days." },
+      { "cat": "withdrawals", "q": "Why was my request rejected?", "a": "The reason is shown in your notification — usually incorrect account details or insufficient available balance." },
+      { "cat": "fees", "q": "Does the platform charge a commission?", "a": "No — using the platform is free. Any fees are disclosed in advance." },
+      { "cat": "fees", "q": "What do payment providers charge?", "a": "Click, Payme and others may charge their own transaction fees — that is not a platform fee." },
+      { "cat": "fees", "q": "Is there a withdrawal fee?", "a": "The platform charges nothing for withdrawals; bank transfer costs may apply." },
+      { "cat": "security", "q": "Are my payments secure?", "a": "Yes — payments run through licensed providers; we never store card details." },
+      { "cat": "security", "q": "How do I report a suspicious campaign?", "a": "Use the \"Report\" button on the campaign page — moderators will review it." },
+      { "cat": "security", "q": "Is my personal data protected?", "a": "Yes — data is transmitted over encrypted channels and stored with strict access control." }
+    ]
+  },
+  "securityPage": {
+    "title": "Security",
+    "subtitle": "Xayr provides trust and protection at every step.",
+    "sections": [
+      { "title": "Identity verification", "text": "Every campaign author passes KYC with documents and a selfie. Unverified users cannot open campaigns." },
+      { "title": "Campaign review", "text": "Every campaign is reviewed by moderators and goes live only after approval." },
+      { "title": "Donation security", "text": "Payments run through licensed providers. Raised totals are protected — nobody can edit them manually." },
+      { "title": "Data protection", "text": "All data travels over encrypted channels. Access is strictly controlled — everyone sees only their own data." },
+      { "title": "Fraud prevention", "text": "Any user can report a suspicious campaign. Moderators review every report." },
+      { "title": "Account protection", "text": "Mandatory email verification, secure sessions and rate-limited login attempts." }
+    ],
+    "badges": ["100% secure payments", "Verified campaigns", "24/7 support"]
+  },
+  "feesPage": {
+    "title": "Fees",
+    "subtitle": "Full transparency — no hidden charges.",
+    "cards": [
+      { "title": "Platform commission", "value": "0 so'm", "text": "Using the platform is completely free — both creating campaigns and donating." },
+      { "title": "Payment provider", "value": "Provider tariff", "text": "Click, Payme and other providers may charge their own transaction fees." },
+      { "title": "Withdrawals", "value": "0 so'm", "text": "The platform charges nothing for withdrawals. Bank transfer costs may apply." }
+    ],
+    "exampleTitle": "Example",
+    "exampleDonation": "Donation",
+    "exampleDonationValue": "1,000,000 so'm",
+    "exampleFee": "Platform fee",
+    "exampleFeeValue": "0 so'm",
+    "exampleReceives": "Creator receives",
+    "exampleReceivesValue": "1,000,000 so'm",
+    "exampleNote": "The payment provider may withhold a transaction fee per its own tariff — this is not a platform fee and is shown before payment."
+  },
   "contactPage": {
     "title": "Contact Us",
     "subtitle": "Have a question or need help? Reach out to us anytime.",
@@ -513,7 +597,8 @@
       "messagePlaceholder": "Write your message here...",
       "submit": "Send message",
       "sending": "Sending...",
-      "success": "Thank you! Your email app has opened with the message.",
+      "success": "Thank you! Your message has been sent — we'll reply soon.",
+      "errSend": "Could not send — please try again.",
       "errName": "Please enter your name (at least 2 characters).",
       "errEmail": "Please enter a valid email address.",
       "errMessage": "The message must be at least 10 characters."

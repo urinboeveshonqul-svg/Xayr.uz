@@ -5,9 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Send } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
-
-const CONTACT_EMAIL = 'info@xayr.uz';
 
 export function ContactForm() {
   const { t } = useI18n();
@@ -29,24 +28,19 @@ export function ContactForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  const onSubmit = (data: FormData) => {
-    // No mail backend is provisioned, so we hand off to the visitor's mail
-    // client with a fully pre-filled message — a reliable, privacy-friendly
-    // contact path that works without server infrastructure.
-    const subject = data.subject?.trim() || `${t('contactPage.form.title')} — ${data.name}`;
-    const body =
-      `${t('contactPage.form.name')}: ${data.name}\n` +
-      `${t('contactPage.form.email')}: ${data.email}\n\n` +
-      `${data.message}`;
-
-    const href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
-
-    if (typeof window !== 'undefined') {
-      window.location.href = href;
+  const onSubmit = async (data: FormData) => {
+    // Stored in contact_messages (insert allowed for everyone via RLS;
+    // reading is admin-only). Admins review at /admin/messages.
+    const { error } = await createClient().from('contact_messages').insert({
+      name: data.name.trim(),
+      email: data.email.trim(),
+      subject: data.subject?.trim() || null,
+      message: data.message.trim(),
+    });
+    if (error) {
+      toast.error(t('contactPage.form.errSend'));
+      return;
     }
-
     toast.success(t('contactPage.form.success'));
     reset();
   };

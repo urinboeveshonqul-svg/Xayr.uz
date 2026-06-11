@@ -489,6 +489,90 @@
       ]
     }
   },
+  "guidePage": {
+    "title": "Xayr qanday ishlaydi",
+    "subtitle": "Besh oddiy qadam — g'oyadan natijagacha.",
+    "steps": [
+      { "title": "Hisob yarating", "text": "Email orqali ro'yxatdan o'ting va profilingizni to'ldiring." },
+      { "title": "Shaxsingizni tasdiqlang", "text": "Pasport yoki ID karta va selfi yuklang — odatda 1-2 ish kunida tasdiqlanadi." },
+      { "title": "Kampaniya yarating", "text": "Maqsad, hikoya va rasmlar bilan kampaniya oching. Moderatsiyadan o'tgach faollashadi." },
+      { "title": "Xayriyalar qabul qiling", "text": "Yangiliklar e'lon qilib boring — shaffoflik donorlar ishonchini oshiradi." },
+      { "title": "Mablag'ni yeching", "text": "Yig'ilgan mablag'ni bank yoki kartaga yechish so'rovini yuboring. Har bir so'rov administrator tomonidan tasdiqlanadi." }
+    ],
+    "faqTitle": "Savollaringiz bormi?",
+    "faqText": "Eng ko'p so'raladigan savollarga javoblarni ko'ring.",
+    "faqCta": "FAQ sahifasi",
+    "ctaTitle": "Boshlashga tayyormisiz?",
+    "ctaCreate": "Kampaniya yaratish",
+    "ctaBrowse": "Kampaniyalarni ko'rish"
+  },
+  "faqPage": {
+    "title": "Ko'p so'raladigan savollar",
+    "subtitle": "Xayr platformasi haqida eng muhim javoblar.",
+    "searchPlaceholder": "Savol qidirish...",
+    "noResults": "Hech narsa topilmadi",
+    "allLabel": "Barchasi",
+    "categories": {
+      "donations": "Xayriyalar",
+      "campaigns": "Kampaniyalar",
+      "verification": "Tasdiqlash",
+      "withdrawals": "Mablag' yechish",
+      "fees": "Komissiyalar",
+      "security": "Xavfsizlik"
+    },
+    "items": [
+      { "cat": "donations", "q": "Qanday xayriya qilsam bo'ladi?", "a": "Kampaniya sahifasida \"Xayriya qilish\" tugmasini bosing, summa va to'lov usulini tanlang." },
+      { "cat": "donations", "q": "Anonim xayriya qila olamanmi?", "a": "Ha — to'lov paytida \"Anonim\" belgisini tanlasangiz, ismingiz hech kimga ko'rinmaydi." },
+      { "cat": "donations", "q": "Xayriyamni qaytarib olsam bo'ladimi?", "a": "To'lov tasdiqlangach avtomatik qaytarilmaydi. Xatolik bo'lsa biz bilan bog'laning — har bir holat alohida ko'rib chiqiladi." },
+      { "cat": "donations", "q": "Minimal xayriya miqdori qancha?", "a": "Minimal miqdor to'lov provayderiga bog'liq, odatda 1 000 so'mdan boshlanadi." },
+      { "cat": "campaigns", "q": "Kampaniya yaratish uchun nima kerak?", "a": "Ro'yxatdan o'tish, shaxsni tasdiqlash (KYC) va kampaniya ma'lumotlarini to'ldirish kifoya." },
+      { "cat": "campaigns", "q": "Kampaniyam qachon e'lon qilinadi?", "a": "Moderatorlar tekshiruvidan so'ng — odatda 1-2 ish kuni ichida faollashadi." },
+      { "cat": "campaigns", "q": "Kampaniyani tahrirlay olamanmi?", "a": "Ha — sarlavha, tavsif va rasmlarni yangilash mumkin. Yig'ilgan summa va holatni faqat administratorlar o'zgartiradi." },
+      { "cat": "campaigns", "q": "Jamoa bilan ishlasam bo'ladimi?", "a": "Ha — kampaniya egasi menejer va muharrirlarni email orqali jamoaga taklif qilishi mumkin." },
+      { "cat": "verification", "q": "Nega shaxsni tasdiqlash kerak?", "a": "Donorlar ishonchi uchun — faqat tasdiqlangan foydalanuvchilar kampaniya ochishi mumkin." },
+      { "cat": "verification", "q": "Tasdiqlash qancha vaqt oladi?", "a": "Hujjatlar yuborilgach odatda 1-2 ish kuni ichida ko'rib chiqiladi." },
+      { "cat": "verification", "q": "Qanday hujjatlar kerak?", "a": "Pasport yoki ID karta (old tomoni, ixtiyoriy orqa tomoni) hamda selfi rasm." },
+      { "cat": "withdrawals", "q": "Mablag'ni qanday yechib olaman?", "a": "Kampaniya analitika sahifasida \"Mablag'ni yechish\" so'rovini yuboring — administrator tasdiqlagach bank yoki kartaga o'tkaziladi." },
+      { "cat": "withdrawals", "q": "Yechish qancha vaqt oladi?", "a": "So'rov 1-3 ish kunida ko'rib chiqiladi; bank o'tkazmasi yana 1-2 kun olishi mumkin." },
+      { "cat": "withdrawals", "q": "Nega yechish so'rovim rad etildi?", "a": "Sabab bildirishnomada ko'rsatiladi — ko'pincha hisob ma'lumotlaridagi xatolik yoki mavjud mablag' yetishmasligi." },
+      { "cat": "fees", "q": "Platforma komissiya oladimi?", "a": "Yo'q — platformadan foydalanish bepul. Har qanday to'lov oldindan oshkor qilinadi." },
+      { "cat": "fees", "q": "To'lov provayderlari komissiyasi qancha?", "a": "Click, Payme va boshqa provayderlar o'z tariflari bo'yicha ushlab qolishi mumkin — bu platforma komissiyasi emas." },
+      { "cat": "fees", "q": "Mablag' yechishda komissiya bormi?", "a": "Platforma yechish uchun haq olmaydi; bank o'tkazma xarajatlari bo'lishi mumkin." },
+      { "cat": "security", "q": "To'lovlarim xavfsizmi?", "a": "Ha — to'lovlar litsenziyalangan provayderlar orqali amalga oshiriladi; karta ma'lumotlari bizda saqlanmaydi." },
+      { "cat": "security", "q": "Shubhali kampaniyani qanday xabar qilaman?", "a": "Kampaniya sahifasidagi \"Shikoyat qilish\" tugmasidan foydalaning — moderatorlar tekshiradi." },
+      { "cat": "security", "q": "Shaxsiy ma'lumotlarim himoyalanganmi?", "a": "Ha — ma'lumotlar shifrlangan kanal orqali uzatiladi va qatiy kirish nazorati bilan saqlanadi." }
+    ]
+  },
+  "securityPage": {
+    "title": "Xavfsizlik",
+    "subtitle": "Xayr har bir bosqichda ishonch va himoyani ta'minlaydi.",
+    "sections": [
+      { "title": "Shaxsni tasdiqlash", "text": "Har bir kampaniya muallifi hujjat va selfi orqali KYC tekshiruvidan o'tadi. Tasdiqlanmagan foydalanuvchilar kampaniya ocha olmaydi." },
+      { "title": "Kampaniya moderatsiyasi", "text": "Har bir kampaniya e'lon qilinishidan oldin moderatorlar tomonidan ko'rib chiqiladi va faqat tasdiqlangach faollashadi." },
+      { "title": "To'lov xavfsizligi", "text": "To'lovlar litsenziyalangan provayderlar orqali amalga oshiriladi. Yig'ilgan summalar himoyalangan — ularni hech kim qo'lda o'zgartira olmaydi." },
+      { "title": "Ma'lumotlar himoyasi", "text": "Barcha ma'lumotlar shifrlangan kanal orqali uzatiladi. Kirish qatiy nazorat qilinadi — har bir foydalanuvchi faqat o'z ma'lumotini ko'radi." },
+      { "title": "Firibgarlikning oldini olish", "text": "Har qanday foydalanuvchi shubhali kampaniya haqida shikoyat yuborishi mumkin. Moderatorlar har bir shikoyatni tekshiradi." },
+      { "title": "Hisob himoyasi", "text": "Email tasdiqlash majburiy, sessiyalar xavfsiz saqlanadi va kirish urinishlari cheklangan." }
+    ],
+    "badges": ["100% xavfsiz to'lovlar", "Tasdiqlangan kampaniyalar", "24/7 yordam"]
+  },
+  "feesPage": {
+    "title": "Komissiyalar",
+    "subtitle": "To'liq shaffoflik — yashirin to'lovlar yo'q.",
+    "cards": [
+      { "title": "Platforma komissiyasi", "value": "0 so'm", "text": "Platformadan foydalanish butunlay bepul — kampaniya ochish ham, xayriya qilish ham." },
+      { "title": "To'lov provayderi", "value": "Provayder tarifi", "text": "Click, Payme va boshqa provayderlar tranzaksiya uchun o'z tariflari bo'yicha ushlab qolishi mumkin." },
+      { "title": "Mablag' yechish", "value": "0 so'm", "text": "Platforma yechish uchun haq olmaydi. Bank o'tkazma xarajatlari bo'lishi mumkin." }
+    ],
+    "exampleTitle": "Misol",
+    "exampleDonation": "Xayriya",
+    "exampleDonationValue": "1 000 000 so'm",
+    "exampleFee": "Platforma komissiyasi",
+    "exampleFeeValue": "0 so'm",
+    "exampleReceives": "Kampaniya egasiga",
+    "exampleReceivesValue": "1 000 000 so'm",
+    "exampleNote": "To'lov provayderi o'z tarifiga ko'ra tranzaksiya haqi ushlab qolishi mumkin — bu platformaga tegishli emas va to'lov oldidan ko'rsatiladi."
+  },
   "contactPage": {
     "title": "Biz bilan bog'lanish",
     "subtitle": "Savollaringiz bormi yoki yordam kerakmi? Biz bilan bemalol bog'laning.",
@@ -513,7 +597,8 @@
       "messagePlaceholder": "Xabaringizni shu yerga yozing...",
       "submit": "Xabar yuborish",
       "sending": "Yuborilmoqda...",
-      "success": "Rahmat! Pochta ilovangiz xabar bilan ochildi.",
+      "success": "Rahmat! Xabaringiz yuborildi — tez orada javob beramiz.",
+      "errSend": "Xabar yuborilmadi — qayta urinib ko'ring.",
       "errName": "Iltimos, ismingizni kiriting (kamida 2 ta belgi).",
       "errEmail": "Iltimos, to'g'ri email manzil kiriting.",
       "errMessage": "Xabar kamida 10 ta belgidan iborat bo'lishi kerak."

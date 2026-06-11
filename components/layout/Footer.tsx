@@ -18,9 +18,9 @@ export function Footer() {
   ];
 
   const supportLinks = [
-    { href: L('/help'), label: t('footer.guide') },
+    { href: L('/guide'), label: t('footer.guide') },
     { href: L('/faq'), label: t('footer.faq') },
-    { href: L('/safety'), label: t('footer.safety') },
+    { href: L('/security'), label: t('footer.safety') },
     { href: L('/fees'), label: t('footer.fees') },
     { href: L('/contact'), label: t('footer.contact') },
   ];
