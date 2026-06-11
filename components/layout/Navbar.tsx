@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User, HeartPulse, GraduationCap, Siren } from 'lucide-react';
+import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User, HeartPulse, GraduationCap, Siren, ClipboardList } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
@@ -154,6 +154,9 @@ export function Navbar() {
                   {t('nav.createProject')}
                 </Link>
                 <NotificationBell />
+                <Link href={L('/profile/campaigns')} className="p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all" title={t('nav.myCampaigns')}>
+                  <ClipboardList className="w-5 h-5" />
+                </Link>
                 <Link href={L('/profile')} className="p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all" title={t('nav.profile')}>
                   {profile?.avatar_url ? (
                     <Avatar src={profile.avatar_url} name={profile.full_name} className="w-7 h-7 text-[10px]" />
@@ -247,6 +250,9 @@ export function Navbar() {
               )}
               <Link href={L('/profile')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
                 {t('nav.profile')}
+              </Link>
+              <Link href={L('/profile/campaigns')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
+                {t('nav.myCampaigns')}
               </Link>
               <Link href={L('/campaigns/create')} className="block px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-black text-center" onClick={() => setMenuOpen(false)}>
                 {t('nav.createProject')}

@@ -677,6 +677,10 @@ export type Database = {
         Args: { p_campaign_id: string };
         Returns: undefined;
       };
+      resubmit_campaign: {
+        Args: { p_campaign_id: string };
+        Returns: undefined;
+      };
       get_donor_stats: {
         Args: { p_user_id: string };
         Returns: {

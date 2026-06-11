@@ -13,6 +13,7 @@
     "register": "Sign Up",
     "admin": "Admin",
     "profile": "My Profile",
+    "myCampaigns": "My Campaigns",
     "logout": "Log Out",
     "searchPlaceholder": "Search campaigns..."
   },

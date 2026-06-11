@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Heart, CheckCircle2, Bookmark, Users, UserPlus, HandHeart, Megaphone, TrendingUp } from 'lucide-react';
+import { Heart, CheckCircle2, Bookmark, Users, UserPlus, HandHeart, Megaphone, TrendingUp, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -201,6 +201,19 @@ export default async function ProfilePage({
           <div className="card p-8">
             <ProfileForm profile={profile} email={user.email ?? ''} />
           </div>
+
+          <Link
+            href={`/${locale}/profile/campaigns`}
+            className="mt-4 card p-4 flex items-center gap-3 hover:shadow-md transition-all border-l-4 border-l-brand-500"
+          >
+            <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
+              <Megaphone className="w-5 h-5 text-brand-600" />
+            </div>
+            <span className="font-semibold text-gray-900 dark:text-white">
+              Mening kampaniyalarim
+            </span>
+            <ArrowRight className="w-4 h-4 ml-auto text-gray-400" />
+          </Link>
 
           <Link
             href={`/${locale}/profile/donations`}

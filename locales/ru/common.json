@@ -13,6 +13,7 @@
     "register": "Регистрация",
     "admin": "Админ",
     "profile": "Мой профиль",
+    "myCampaigns": "Мои кампании",
     "logout": "Выйти",
     "searchPlaceholder": "Поиск кампаний..."
   },
