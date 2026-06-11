@@ -536,9 +536,9 @@
       { "cat": "withdrawals", "q": "Mablag'ni qanday yechib olaman?", "a": "Kampaniya analitika sahifasida \"Mablag'ni yechish\" so'rovini yuboring — administrator tasdiqlagach bank yoki kartaga o'tkaziladi." },
       { "cat": "withdrawals", "q": "Yechish qancha vaqt oladi?", "a": "So'rov 1-3 ish kunida ko'rib chiqiladi; bank o'tkazmasi yana 1-2 kun olishi mumkin." },
       { "cat": "withdrawals", "q": "Nega yechish so'rovim rad etildi?", "a": "Sabab bildirishnomada ko'rsatiladi — ko'pincha hisob ma'lumotlaridagi xatolik yoki mavjud mablag' yetishmasligi." },
-      { "cat": "fees", "q": "Platforma komissiya oladimi?", "a": "Yo'q — platformadan foydalanish bepul. Har qanday to'lov oldindan oshkor qilinadi." },
+      { "cat": "fees", "q": "Platforma komissiya oladimi?", "a": "Xayriya qilish va kampaniya ochish bepul. Faqat mablag' yechishda 3% platforma komissiyasi olinadi." },
       { "cat": "fees", "q": "To'lov provayderlari komissiyasi qancha?", "a": "Click, Payme va boshqa provayderlar o'z tariflari bo'yicha ushlab qolishi mumkin — bu platforma komissiyasi emas." },
-      { "cat": "fees", "q": "Mablag' yechishda komissiya bormi?", "a": "Platforma yechish uchun haq olmaydi; bank o'tkazma xarajatlari bo'lishi mumkin." },
+      { "cat": "fees", "q": "Mablag' yechishda komissiya bormi?", "a": "Ha — yechiladigan summadan 3% platforma komissiyasi ushlab qolinadi. Bank o'tkazma xarajatlari alohida bo'lishi mumkin." },
       { "cat": "security", "q": "To'lovlarim xavfsizmi?", "a": "Ha — to'lovlar litsenziyalangan provayderlar orqali amalga oshiriladi; karta ma'lumotlari bizda saqlanmaydi." },
       { "cat": "security", "q": "Shubhali kampaniyani qanday xabar qilaman?", "a": "Kampaniya sahifasidagi \"Shikoyat qilish\" tugmasidan foydalaning — moderatorlar tekshiradi." },
       { "cat": "security", "q": "Shaxsiy ma'lumotlarim himoyalanganmi?", "a": "Ha — ma'lumotlar shifrlangan kanal orqali uzatiladi va qatiy kirish nazorati bilan saqlanadi." }
@@ -563,16 +563,16 @@
     "cards": [
       { "title": "Platforma komissiyasi", "value": "0 so'm", "text": "Platformadan foydalanish butunlay bepul — kampaniya ochish ham, xayriya qilish ham." },
       { "title": "To'lov provayderi", "value": "Provayder tarifi", "text": "Click, Payme va boshqa provayderlar tranzaksiya uchun o'z tariflari bo'yicha ushlab qolishi mumkin." },
-      { "title": "Mablag' yechish", "value": "0 so'm", "text": "Platforma yechish uchun haq olmaydi. Bank o'tkazma xarajatlari bo'lishi mumkin." }
+      { "title": "Mablag' yechish", "value": "3%", "text": "Yechishda 3% platforma komissiyasi ushlab qolinadi — u hosting, xavfsizlik, tasdiqlash, to'lov tizimlari va platforma rivojini qoplaydi." }
     ],
     "exampleTitle": "Misol",
     "exampleDonation": "Xayriya",
     "exampleDonationValue": "1 000 000 so'm",
-    "exampleFee": "Platforma komissiyasi",
-    "exampleFeeValue": "0 so'm",
+    "exampleFee": "Platforma komissiyasi (3%, yechishda)",
+    "exampleFeeValue": "30 000 so'm",
     "exampleReceives": "Kampaniya egasiga",
-    "exampleReceivesValue": "1 000 000 so'm",
-    "exampleNote": "To'lov provayderi o'z tarifiga ko'ra tranzaksiya haqi ushlab qolishi mumkin — bu platformaga tegishli emas va to'lov oldidan ko'rsatiladi."
+    "exampleReceivesValue": "970 000 so'm",
+    "exampleNote": "Komissiya faqat mablag' yechishda olinadi — donorlar uchun hech qanday to'lov yo'q. To'lov provayderi o'z tarifiga ko'ra tranzaksiya haqi ushlab qolishi mumkin."
   },
   "contactPage": {
     "title": "Biz bilan bog'lanish",

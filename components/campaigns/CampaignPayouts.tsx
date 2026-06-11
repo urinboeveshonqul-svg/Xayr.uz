@@ -66,6 +66,7 @@ export function CampaignPayouts({
   const [method, setMethod] = useState<PayoutMethod>('bank');
   const [account, setAccount] = useState('');
   const [notes, setNotes] = useState('');
+  const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -89,8 +90,14 @@ export function CampaignPayouts({
     setMethod('bank');
     setAccount('');
     setNotes('');
+    setAgree(false);
     setShowForm(false);
   };
+
+  // Display-only preview; the authoritative fee is computed in the DB function.
+  const previewAmt = Math.floor(Number(amount)) || 0;
+  const previewFee = Math.round(previewAmt * 0.03);
+  const previewNet = previewAmt - previewFee;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +105,7 @@ export function CampaignPayouts({
     if (!amt || amt <= 0) { toast.error("Noto'g'ri miqdor"); return; }
     if (amt > available) { toast.error("Mablag' yetarli emas"); return; }
     if (!account.trim()) { toast.error("Hisob ma'lumotlari kiritilishi shart"); return; }
+    if (!agree) { toast.error("Komissiya shartlarini tasdiqlang"); return; }
 
     setSubmitting(true);
     try {
@@ -222,6 +230,37 @@ export function CampaignPayouts({
               />
             </div>
 
+            {/* Fee breakdown — display preview; the DB computes the authoritative fee */}
+            {previewAmt > 0 && (
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Yechish miqdori</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{formatMoney(previewAmt)} so&apos;m</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Platforma komissiyasi (3%)</span>
+                  <span className="font-bold text-red-600">−{formatMoney(previewFee)} so&apos;m</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
+                  <span className="font-bold text-gray-900 dark:text-white">Sizga to&apos;lanadi</span>
+                  <span className="font-black text-brand-600">{formatMoney(previewNet)} so&apos;m</span>
+                </div>
+              </div>
+            )}
+
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agree}
+                onChange={(e) => setAgree(e.target.checked)}
+                className="w-4 h-4 accent-brand-600 mt-0.5"
+              />
+              <span className="text-xs text-gray-500 leading-relaxed">
+                3% platforma komissiyasiga roziman. Bu komissiya hosting, xavfsizlik,
+                tasdiqlash, to&apos;lov tizimlari va platforma rivojini qoplaydi.
+              </span>
+            </label>
+
             <div className="flex justify-end gap-2">
               <button type="button" onClick={resetForm} className="btn-ghost px-4 py-2 text-sm">Bekor qilish</button>
               <button type="submit" disabled={submitting} className="btn-primary px-5 py-2 text-sm">
@@ -253,6 +292,8 @@ export function CampaignPayouts({
 
             <div className="text-sm space-y-1.5">
               <p className="text-gray-500">Usul: <span className="font-semibold text-gray-800 dark:text-gray-200">{selected.method === 'bank' ? 'Bank' : 'Karta'}</span></p>
+              <p className="text-gray-500">Komissiya (3%): <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
+              <p className="text-gray-500">Sizga to&apos;lanadi: <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">Hisob ma&apos;lumotlari</p>
                 <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words rounded-xl bg-gray-50 dark:bg-gray-800 p-3">{selected.account_details}</p>

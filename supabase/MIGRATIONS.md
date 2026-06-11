@@ -33,6 +33,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 23 | `campaign-teams.sql` | Team campaigns (roles, team-aware RLS) | `campaign_team_members` exists |
 | 24 | `contact-messages.sql` | Contact form storage + admin inbox | `contact_messages` exists |
 | 25 | `campaign-resubmit.sql` | Resubmit rejected campaigns | `resubmit_campaign` exists |
+| 26 | `payout-commission.sql` | 3% platform commission on withdrawals | `payout_requests.commission_amount` exists |
 
 ## Critical notes
 

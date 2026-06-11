@@ -70,6 +70,22 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
   const selected = initialRows.find((r) => r.id === selectedId) ?? null;
   const pendingCount = initialRows.filter((r) => r.status === 'pending_review').length;
 
+  // Platform revenue from collected commissions (paid payouts only).
+  const revenue = useMemo(() => {
+    const now = new Date();
+    const paid = initialRows.filter((r) => r.status === 'paid');
+    const sum = (rows: typeof paid) => rows.reduce((s, r) => s + (r.commission_amount ?? 0), 0);
+    return {
+      total: sum(paid),
+      month: sum(paid.filter((r) => {
+        if (!r.paid_at) return false;
+        const d = new Date(r.paid_at);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      })),
+      year: sum(paid.filter((r) => r.paid_at && new Date(r.paid_at).getFullYear() === now.getFullYear())),
+    };
+  }, [initialRows]);
+
   const closeDetail = () => { setSelectedId(null); setNote(''); };
 
   const finish = (error: PostgrestError | null, okMsg: string) => {
@@ -113,6 +129,22 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
 
   return (
     <div>
+      {/* Platform revenue (3% commissions, collected at payout) */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {[
+          { label: 'Jami komissiya', value: revenue.total },
+          { label: 'Shu oy', value: revenue.month },
+          { label: 'Shu yil', value: revenue.year },
+        ].map((s) => (
+          <div key={s.label} className="card p-4 text-center">
+            <div className="text-base sm:text-lg font-black text-brand-600 break-words leading-tight">
+              {formatMoney(s.value)} so&apos;m
+            </div>
+            <div className="text-xs text-gray-400 mt-1">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {FILTERS.map((f) => (
@@ -212,6 +244,22 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
                 <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
                   <div className="text-sm font-black text-gray-900 dark:text-white">{formatMoney(selected.raised)}</div>
                   <div className="text-[11px] text-gray-400">Yig&apos;ilgan</div>
+                </div>
+              </div>
+
+              {/* Commission breakdown (3% platform fee, charged to the creator) */}
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">So&apos;ralgan miqdor</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{formatMoney(selected.amount)} so&apos;m</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Platforma komissiyasi (3%)</span>
+                  <span className="font-bold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
+                  <span className="font-bold text-gray-900 dark:text-white">Egaga to&apos;lanadi</span>
+                  <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span>
                 </div>
               </div>
 

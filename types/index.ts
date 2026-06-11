@@ -519,6 +519,8 @@ export type Database = {
           campaign_id: string;
           user_id: string;
           amount: number;
+          commission_amount: number;
+          payout_amount: number;
           method: PayoutMethod;
           account_details: string;
           notes: string | null;
@@ -536,6 +538,8 @@ export type Database = {
           campaign_id: string;
           user_id: string;
           amount: number;
+          commission_amount?: number;
+          payout_amount?: number;
           method: PayoutMethod;
           account_details: string;
           notes?: string | null;
