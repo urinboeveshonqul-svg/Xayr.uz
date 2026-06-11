@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Camera, Trash2, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Avatar } from '@/components/ui/Avatar';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -47,16 +48,17 @@ export function AvatarUpload({
   name: string | null;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [url, setUrl] = useState(initialUrl);
   const [busy, setBusy] = useState(false);
 
   const onPick = async (file: File) => {
     if (!TYPES.includes(file.type)) {
-      toast.error('Faqat JPG, PNG yoki WEBP rasm yuklang');
+      toast.error(t('dash.photoTypeErr'));
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error('Rasm hajmi 5MB dan oshmasligi kerak');
+      toast.error(t('dash.photoSizeErr'));
       return;
     }
 
@@ -90,7 +92,7 @@ export function AvatarUpload({
       }
 
       setUrl(publicUrl);
-      toast.success('Profil rasmi yangilandi');
+      toast.success(t('dash.photoUpdated'));
       router.refresh();
     } finally {
       setBusy(false);
@@ -98,7 +100,7 @@ export function AvatarUpload({
   };
 
   const remove = async () => {
-    if (!window.confirm("Profil rasmini o'chirmoqchimisiz?")) return;
+    if (!window.confirm(t('dash.photoConfirmRemove'))) return;
     setBusy(true);
     try {
       const supabase = createClient();
@@ -112,7 +114,7 @@ export function AvatarUpload({
         return;
       }
       setUrl(null);
-      toast.success("Profil rasmi o'chirildi");
+      toast.success(t('dash.photoRemoved'));
       router.refresh();
     } finally {
       setBusy(false);
@@ -126,7 +128,7 @@ export function AvatarUpload({
       <div className="flex flex-col gap-2 min-w-0">
         <label className="btn-primary px-4 py-2.5 text-sm cursor-pointer inline-flex w-fit min-h-[44px] items-center">
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-          {url ? "Rasmni o'zgartirish" : 'Rasm yuklash'}
+          {url ? t('dash.changePhoto') : t('dash.uploadPhoto')}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -146,11 +148,11 @@ export function AvatarUpload({
             disabled={busy}
             className="inline-flex w-fit items-center gap-1.5 text-sm text-red-600 hover:text-red-700 font-semibold disabled:opacity-50"
           >
-            <Trash2 className="w-4 h-4" /> Rasmni o&apos;chirish
+            <Trash2 className="w-4 h-4" /> {t('dash.removePhoto')}
           </button>
         )}
 
-        <p className="text-xs text-gray-400">JPG, PNG yoki WEBP · maks. 5MB</p>
+        <p className="text-xs text-gray-400">{t('dash.photoHint')}</p>
       </div>
     </div>
   );

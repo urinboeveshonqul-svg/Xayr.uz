@@ -11,6 +11,8 @@ import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { formatMoney, timeAgo } from '@/lib/utils';
+import { getDictionary } from '@/i18n/dictionaries';
+import { isLocale } from '@/i18n/config';
 import type { CampaignReport } from '@/types';
 
 export const metadata: Metadata = {
@@ -23,6 +25,8 @@ export default async function ProfilePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const dict = await getDictionary(isLocale(locale) ? locale : 'uz');
+  const d = dict.dash;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -87,8 +91,8 @@ export default async function ProfilePage({
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <div className="mb-8">
-            <h1 className="section-title">Mening profilim</h1>
-            <p className="section-sub">Shaxsiy ma'lumotlaringizni boshqaring</p>
+            <h1 className="section-title">{dict.nav.profile}</h1>
+            <p className="section-sub">{d.manageInfo}</p>
           </div>
 
           <AvatarUpload
@@ -113,7 +117,7 @@ export default async function ProfilePage({
                 <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
                   {(followersCount ?? 0).toLocaleString('uz-UZ')}
                 </div>
-                <div className="text-xs text-gray-400">Obunachilar</div>
+                <div className="text-xs text-gray-400">{d.followersLbl}</div>
               </div>
             </div>
             <div className="w-px h-8 bg-gray-100 dark:bg-gray-800" />
@@ -125,7 +129,7 @@ export default async function ProfilePage({
                 <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
                   {(followingCount ?? 0).toLocaleString('uz-UZ')}
                 </div>
-                <div className="text-xs text-gray-400">Kuzatilmoqda</div>
+                <div className="text-xs text-gray-400">{d.followingLbl}</div>
               </div>
             </div>
           </div>
@@ -134,7 +138,7 @@ export default async function ProfilePage({
           <div className="card p-5 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Xayriya statistikasi
+                {d.donorStats}
               </h2>
               <DonorPrivacyToggle userId={user.id} initial={profile.donor_stats_public ?? false} />
             </div>
@@ -145,34 +149,34 @@ export default async function ProfilePage({
                 <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
                   {(stats?.donations_count ?? 0).toLocaleString('uz-UZ')}
                 </div>
-                <div className="text-xs text-gray-400 mt-1">Xayriyalar</div>
+                <div className="text-xs text-gray-400 mt-1">{d.donationsLbl}</div>
               </div>
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-center">
                 <Megaphone className="w-4 h-4 text-brand-600 mx-auto mb-1.5" />
                 <div className="text-lg font-black text-gray-900 dark:text-white leading-none">
                   {(stats?.campaigns_count ?? 0).toLocaleString('uz-UZ')}
                 </div>
-                <div className="text-xs text-gray-400 mt-1">Kampaniyalar</div>
+                <div className="text-xs text-gray-400 mt-1">{d.campaignsLbl}</div>
               </div>
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-center">
                 <TrendingUp className="w-4 h-4 text-brand-600 mx-auto mb-1.5" />
                 <div className="text-lg font-black text-gray-900 dark:text-white leading-none break-words">
                   {formatMoney(stats?.total_amount ?? 0)}
                 </div>
-                <div className="text-xs text-gray-400 mt-1">Jami so&apos;m</div>
+                <div className="text-xs text-gray-400 mt-1">{d.totalSum}</div>
               </div>
             </div>
 
             {stats?.first_donation && (
               <p className="text-xs text-gray-400 mt-3 text-center">
-                Birinchi xayriya: {new Date(stats.first_donation).toLocaleDateString('uz-UZ')}
+                {d.firstDonation} {new Date(stats.first_donation).toLocaleDateString('uz-UZ')}
               </p>
             )}
 
             {recentDonations.length > 0 && (
               <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-4 space-y-2">
                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                  So&apos;nggi xayriyalar
+                  {d.recentDonations}
                 </p>
                 {recentDonations.map((d) => (
                   <div key={d.id} className="flex items-center justify-between gap-3 text-sm">
@@ -210,7 +214,7 @@ export default async function ProfilePage({
               <Megaphone className="w-5 h-5 text-brand-600" />
             </div>
             <span className="font-semibold text-gray-900 dark:text-white">
-              Mening kampaniyalarim
+              {dict.nav.myCampaigns}
             </span>
             <ArrowRight className="w-4 h-4 ml-auto text-gray-400" />
           </Link>
@@ -223,7 +227,7 @@ export default async function ProfilePage({
               <Heart className="w-5 h-5 text-brand-600" />
             </div>
             <span className="font-semibold text-gray-900 dark:text-white">
-              Mening xayriyalarim
+              {d.myDonations}
             </span>
             <span className="ml-auto text-gray-400">→</span>
           </Link>
@@ -236,7 +240,7 @@ export default async function ProfilePage({
               <Bookmark className="w-5 h-5 text-brand-600" />
             </div>
             <span className="font-semibold text-gray-900 dark:text-white">
-              Saqlangan kampaniyalar
+              {d.savedCampaigns}
             </span>
             <span className="ml-auto text-gray-400">→</span>
           </Link>
@@ -248,7 +252,7 @@ export default async function ProfilePage({
           {reports.length > 0 && (
             <div className="mt-6">
               <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">
-                Yakuniy hisobotlar
+                {d.finalReports}
               </h2>
               <div className="space-y-3">
                 {reports.map((r) => (

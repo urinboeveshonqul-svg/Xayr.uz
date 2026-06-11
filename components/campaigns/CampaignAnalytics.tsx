@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import { formatMoney, getProgress, daysLeft, timeAgo } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { getDictionary } from '@/i18n/dictionaries';
+import { isLocale } from '@/i18n/config';
 
 interface CampaignInfo {
   title: string;
@@ -33,16 +35,16 @@ interface ChartBucket {
   total: number;
 }
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  draft:     { label: 'Qoralama',     cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
-  pending:   { label: 'Kutilmoqda',   cls: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' },
-  active:    { label: 'Faol',         cls: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
-  paused:    { label: "To'xtatilgan", cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
-  rejected:  { label: 'Rad etilgan',  cls: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
-  completed: { label: 'Yakunlangan',  cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
+const STATUS_CLS: Record<string, string> = {
+  draft:     'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+  pending:   'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+  active:    'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+  paused:    'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+  rejected:  'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  completed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
 };
 
-export function CampaignAnalytics({
+export async function CampaignAnalytics({
   campaign,
   recentDonations,
   recentUpdates,
@@ -55,20 +57,27 @@ export function CampaignAnalytics({
   chart: ChartBucket[];
   locale: string;
 }) {
+  const dict = await getDictionary(isLocale(locale) ? locale : 'uz');
+  const d = dict.dash;
+  const statusLabel: Record<string, string> = {
+    draft: d.stDraft, pending: d.stPending, active: d.stActive,
+    paused: d.stPaused, rejected: d.stRejected, completed: d.stCompleted,
+  };
+
   const pct = getProgress(campaign.current_amount, campaign.goal_amount);
   const days = daysLeft(campaign.deadline);
   const avg = campaign.donors_count > 0 ? Math.round(campaign.current_amount / campaign.donors_count) : 0;
-  const status = STATUS[campaign.status] ?? STATUS.active;
+  const statusCls = STATUS_CLS[campaign.status] ?? STATUS_CLS.active;
   const maxBar = Math.max(...chart.map((c) => c.total), 1);
   const hasChartData = chart.some((c) => c.total > 0);
 
   const cards = [
-    { icon: TrendingUp, label: "Yig'ilgan mablag'", value: `${formatMoney(campaign.current_amount)} so'm`, color: 'text-green-600',   bg: 'bg-green-50 dark:bg-green-900/20' },
-    { icon: Target,     label: 'Bajarildi',         value: `${pct}%`,                                       color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { icon: Users,      label: 'Xayriyachilar',     value: campaign.donors_count.toLocaleString('uz-UZ'),   color: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-900/20' },
-    { icon: Coins,      label: "O'rtacha xayriya",  value: `${formatMoney(avg)} so'm`,                      color: 'text-amber-600',   bg: 'bg-amber-50 dark:bg-amber-900/20' },
-    { icon: Eye,        label: "Ko'rishlar",        value: campaign.views.toLocaleString('uz-UZ'),          color: 'text-purple-600',  bg: 'bg-purple-50 dark:bg-purple-900/20' },
-    { icon: Clock,      label: 'Kun qoldi',         value: days !== null ? String(days > 0 ? days : 0) : '∞', color: 'text-orange-600',  bg: 'bg-orange-50 dark:bg-orange-900/20' },
+    { icon: TrendingUp, label: d.raisedLbl,         value: `${formatMoney(campaign.current_amount)} so'm`, color: 'text-green-600',   bg: 'bg-green-50 dark:bg-green-900/20' },
+    { icon: Target,     label: d.completionLbl,     value: `${pct}%`,                                       color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+    { icon: Users,      label: dict.ux.donors,      value: campaign.donors_count.toLocaleString('uz-UZ'),   color: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { icon: Coins,      label: d.avgDonation,       value: `${formatMoney(avg)} so'm`,                      color: 'text-amber-600',   bg: 'bg-amber-50 dark:bg-amber-900/20' },
+    { icon: Eye,        label: d.viewsLbl,          value: campaign.views.toLocaleString('uz-UZ'),          color: 'text-purple-600',  bg: 'bg-purple-50 dark:bg-purple-900/20' },
+    { icon: Clock,      label: dict.ux.daysLeft,    value: days !== null ? String(days > 0 ? days : 0) : '∞', color: 'text-orange-600',  bg: 'bg-orange-50 dark:bg-orange-900/20' },
   ];
 
   return (
@@ -77,14 +86,14 @@ export function CampaignAnalytics({
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="min-w-0">
           <Link href={`/${locale}/campaigns/${campaign.slug}`} className="btn-ghost inline-flex mb-2 text-sm">
-            <ArrowLeft className="w-4 h-4" /> Kampaniyaga qaytish
+            <ArrowLeft className="w-4 h-4" /> {d.backToCampaign}
           </Link>
           <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-brand-600" /> Analitika
+            <BarChart3 className="w-6 h-6 text-brand-600" /> {d.analyticsTitle}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5 truncate">{campaign.title}</p>
         </div>
-        <span className={`badge self-start ${status.cls}`}>{status.label}</span>
+        <span className={`badge self-start ${statusCls}`}>{statusLabel[campaign.status] ?? campaign.status}</span>
       </div>
 
       {/* Stat cards */}
@@ -103,7 +112,7 @@ export function CampaignAnalytics({
       {/* Progress toward goal */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-3 gap-3">
-          <h2 className="font-bold text-gray-900 dark:text-white">Maqsad sari</h2>
+          <h2 className="font-bold text-gray-900 dark:text-white">{d.towardGoal}</h2>
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {formatMoney(campaign.current_amount)} / {formatMoney(campaign.goal_amount)} so&apos;m
           </span>
@@ -115,7 +124,7 @@ export function CampaignAnalytics({
       {hasChartData && (
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-brand-600" /> Xayriyalar (so&apos;nggi 14 kun)
+            <TrendingUp className="w-5 h-5 text-brand-600" /> {d.chart14}
           </h2>
           <div className="flex items-end gap-1 h-40">
             {chart.map((c, i) => (
@@ -141,25 +150,25 @@ export function CampaignAnalytics({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Heart className="w-5 h-5 text-red-500" /> So&apos;nggi xayriyalar
+            <Heart className="w-5 h-5 text-red-500" /> {d.recentDonations}
           </h2>
           {recentDonations.length === 0 ? (
-            <p className="text-sm text-gray-400">Hozircha xayriyalar yo&apos;q</p>
+            <p className="text-sm text-gray-400">{d.noDonationsYet}</p>
           ) : (
             <ul className="space-y-3">
-              {recentDonations.map((d) => {
-                const name = d.donor_name ?? 'Anonim';
+              {recentDonations.map((d2) => {
+                const name = d2.donor_name ?? dict.detail.anonymous;
                 return (
-                  <li key={d.id} className="flex items-center gap-3">
+                  <li key={d2.id} className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                       {name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
-                      <p className="text-xs text-gray-400">{timeAgo(d.created_at)}</p>
+                      <p className="text-xs text-gray-400">{timeAgo(d2.created_at)}</p>
                     </div>
                     <span className="text-sm font-bold text-brand-600 flex-shrink-0">
-                      {formatMoney(d.amount)} so&apos;m
+                      {formatMoney(d2.amount)} so&apos;m
                     </span>
                   </li>
                 );
@@ -170,10 +179,10 @@ export function CampaignAnalytics({
 
         <div className="card p-6">
           <h2 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-brand-600" /> So&apos;nggi yangiliklar
+            <Megaphone className="w-5 h-5 text-brand-600" /> {d.recentUpdatesLbl}
           </h2>
           {recentUpdates.length === 0 ? (
-            <p className="text-sm text-gray-400">Hozircha yangiliklar yo&apos;q</p>
+            <p className="text-sm text-gray-400">{d.noUpdatesYet}</p>
           ) : (
             <ul className="space-y-3">
               {recentUpdates.map((u) => (

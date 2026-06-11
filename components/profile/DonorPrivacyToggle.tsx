@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Globe, Lock, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 /**
  * Toggles users.donor_stats_public for the signed-in user (users_update_self
@@ -19,6 +20,7 @@ export function DonorPrivacyToggle({
   initial: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [isPublic, setIsPublic] = useState(initial);
   const [busy, setBusy] = useState(false);
 
@@ -54,7 +56,7 @@ export function DonorPrivacyToggle({
         return;
       }
 
-      toast.success(next ? 'Statistika ommaviy qilindi' : 'Statistika maxfiy qilindi');
+      toast.success(next ? t('dash.statsPublicToast') : t('dash.statsPrivateToast'));
       router.refresh(); // keep the server-rendered profile state in sync
     } finally {
       setBusy(false);
@@ -80,7 +82,7 @@ export function DonorPrivacyToggle({
       ) : (
         <Lock className="w-3.5 h-3.5" />
       )}
-      {isPublic ? 'Ommaviy' : 'Maxfiy'}
+      {isPublic ? t('dash.publicLbl') : t('dash.privateLbl')}
     </button>
   );
 }

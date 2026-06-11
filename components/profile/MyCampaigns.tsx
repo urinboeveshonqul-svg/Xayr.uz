@@ -9,6 +9,7 @@ import {
   PlusCircle, Users, TrendingUp, CheckCircle2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney, getProgress } from '@/lib/utils';
 import type { CampaignStatus } from '@/types';
 
@@ -24,36 +25,47 @@ export interface MyCampaignRow {
   created_at: string;
 }
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  draft:     { label: 'Qoralama',      cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
-  pending:   { label: 'Moderatsiyada', cls: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' },
-  active:    { label: 'Faol',          cls: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
-  paused:    { label: "To'xtatilgan",  cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
-  rejected:  { label: 'Rad etilgan',   cls: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
-  completed: { label: 'Yakunlangan',   cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
+const STATUS_CLS: Record<string, string> = {
+  draft:     'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+  pending:   'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+  active:    'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+  paused:    'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+  rejected:  'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  completed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
 };
 
-const FILTERS: { value: CampaignStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'Barchasi' },
-  { value: 'active', label: 'Faol' },
-  { value: 'pending', label: 'Moderatsiyada' },
-  { value: 'completed', label: 'Yakunlangan' },
-  { value: 'rejected', label: 'Rad etilgan' },
-];
+const FILTER_VALUES: (CampaignStatus | 'all')[] = ['all', 'active', 'pending', 'completed', 'rejected'];
 
 export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[]; locale: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [filter, setFilter] = useState<CampaignStatus | 'all'>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const visible = campaigns.filter((c) => filter === 'all' || c.status === filter);
 
+  const statusLabel: Record<string, string> = {
+    draft: t('dash.stDraft'),
+    pending: t('dash.stPending'),
+    active: t('dash.stActive'),
+    paused: t('dash.stPaused'),
+    rejected: t('dash.stRejected'),
+    completed: t('dash.stCompleted'),
+  };
+  const filterLabel: Record<string, string> = {
+    all: t('dash.filterAll'),
+    active: t('dash.stActive'),
+    pending: t('dash.stPending'),
+    completed: t('dash.stCompleted'),
+    rejected: t('dash.stRejected'),
+  };
+
   // Dashboard cards — real values aggregated from the user's own campaigns.
   const stats = [
-    { Icon: Megaphone, label: 'Jami kampaniyalar', value: campaigns.length.toLocaleString('uz-UZ') },
-    { Icon: CheckCircle2, label: 'Faol', value: campaigns.filter((c) => c.status === 'active').length.toLocaleString('uz-UZ') },
-    { Icon: TrendingUp, label: "Jami yig'ilgan", value: `${formatMoney(campaigns.reduce((s, c) => s + c.current_amount, 0))} so'm` },
-    { Icon: Users, label: 'Jami donorlar', value: campaigns.reduce((s, c) => s + c.donors_count, 0).toLocaleString('uz-UZ') },
+    { Icon: Megaphone, label: t('dash.totalCampaigns'), value: campaigns.length.toLocaleString('uz-UZ') },
+    { Icon: CheckCircle2, label: t('dash.activeLbl'), value: campaigns.filter((c) => c.status === 'active').length.toLocaleString('uz-UZ') },
+    { Icon: TrendingUp, label: t('dash.totalRaised'), value: `${formatMoney(campaigns.reduce((s, c) => s + c.current_amount, 0))} so'm` },
+    { Icon: Users, label: t('dash.totalDonors'), value: campaigns.reduce((s, c) => s + c.donors_count, 0).toLocaleString('uz-UZ') },
   ];
 
   // rejected -> pending via the owner-only SECURITY DEFINER function.
@@ -62,10 +74,10 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
     try {
       const { error } = await createClient().rpc('resubmit_campaign', { p_campaign_id: id });
       if (error) {
-        toast.error(error.message === 'invalid_status' ? "Faqat rad etilgan kampaniyalarni qayta yuborish mumkin" : error.message);
+        toast.error(error.message);
         return;
       }
-      toast.success('Qayta moderatsiyaga yuborildi');
+      toast.success(t('dash.resubmitOk'));
       router.refresh();
     } finally {
       setBusyId(null);
@@ -78,13 +90,13 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
       <div className="card p-12 text-center">
         <Megaphone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-          Birinchi kampaniyangizni yarating
+          {t('dash.emptyTitle')}
         </h2>
         <p className="text-gray-500 dark:text-gray-400 mb-6">
-          G&apos;oyangizni jamiyat bilan bo&apos;lishing va yordam to&apos;plang.
+          {t('dash.emptyHint')}
         </p>
         <Link href={`/${locale}/campaigns/create`} className="btn-primary px-6 py-3 inline-flex">
-          <PlusCircle className="w-5 h-5" /> Kampaniya yaratish
+          <PlusCircle className="w-5 h-5" /> {t('dash.createCampaign')}
         </Link>
       </div>
     );
@@ -115,28 +127,29 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
 
       {/* Status filters */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {FILTERS.map((f) => (
+        {FILTER_VALUES.map((value) => (
           <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
+            key={value}
+            onClick={() => setFilter(value)}
             className={`badge cursor-pointer transition-all ${
-              filter === f.value
+              filter === value
                 ? 'bg-brand-600 text-white'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            {f.label}
+            {filterLabel[value]}
           </button>
         ))}
       </div>
 
       {/* Campaign rows */}
       {visible.length === 0 ? (
-        <div className="card p-10 text-center text-gray-400">Bu holatda kampaniyalar yo&apos;q</div>
+        <div className="card p-10 text-center text-gray-400">{t('dash.noInStatus')}</div>
       ) : (
         <div className="space-y-3">
           {visible.map((c) => {
-            const st = STATUS_BADGE[c.status] ?? STATUS_BADGE.pending;
+            const stCls = STATUS_CLS[c.status] ?? STATUS_CLS.pending;
+            const stLabel = statusLabel[c.status] ?? statusLabel.pending;
             const pct = getProgress(c.current_amount, c.goal_amount);
             const view = `/${locale}/campaigns/${c.slug}`;
             return (
@@ -158,7 +171,7 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-bold text-gray-900 dark:text-white truncate">{c.title}</p>
-                      <span className={`badge flex-shrink-0 ${st.cls}`}>{st.label}</span>
+                      <span className={`badge flex-shrink-0 ${stCls}`}>{stLabel}</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {formatMoney(c.current_amount)} / {formatMoney(c.goal_amount)} so&apos;m · {pct}% · {c.donors_count} donor · {new Date(c.created_at).toLocaleDateString('uz-UZ')}
@@ -171,14 +184,14 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
 
                 {/* Status-specific actions */}
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {action(view, Eye, "Ko'rish")}
+                  {action(view, Eye, t('dash.view'))}
                   {(c.status === 'active' || c.status === 'pending' || c.status === 'rejected' || c.status === 'draft') &&
-                    action(`${view}/edit`, Pencil, 'Tahrirlash')}
-                  {c.status === 'active' && action(view, MessagesSquare, 'Yangilik')}
+                    action(`${view}/edit`, Pencil, t('dash.edit'))}
+                  {c.status === 'active' && action(view, MessagesSquare, t('dash.updateLbl'))}
                   {(c.status === 'active' || c.status === 'completed') &&
-                    action(`${view}/analytics`, BarChart3, 'Analitika')}
-                  {c.status === 'active' && action(`${view}/analytics`, Wallet, 'Yechish')}
-                  {c.status === 'completed' && action(view, CheckCircle2, 'Hisobot')}
+                    action(`${view}/analytics`, BarChart3, t('dash.analyticsLbl'))}
+                  {c.status === 'active' && action(`${view}/analytics`, Wallet, t('dash.withdrawLbl'))}
+                  {c.status === 'completed' && action(view, CheckCircle2, t('dash.reportLbl'))}
                   {c.status === 'rejected' && (
                     <button
                       onClick={() => resubmit(c.id)}
@@ -186,14 +199,14 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors disabled:opacity-60"
                     >
                       {busyId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                      Qayta yuborish
+                      {t('dash.resubmit')}
                     </button>
                   )}
                 </div>
 
                 {c.status === 'rejected' && (
                   <p className="text-xs text-red-500 mt-2">
-                    Kampaniya moderatsiyadan o&apos;tmadi. Ma&apos;lumotlarni tahrirlab, qayta yuborishingiz mumkin.
+                    {t('dash.rejectedHint')}
                   </p>
                 )}
               </article>

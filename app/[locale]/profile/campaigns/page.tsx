@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { MyCampaigns, type MyCampaignRow } from '@/components/profile/MyCampaigns';
 import { isLocale } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
 
 export const metadata: Metadata = { title: 'Mening kampaniyalarim — Xayr' };
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ export default async function MyCampaignsPage({
 }) {
   const { locale } = await params;
   const lng = isLocale(locale) ? locale : 'uz';
+  const dict = await getDictionary(lng);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -43,8 +45,8 @@ export default async function MyCampaignsPage({
               <Megaphone className="w-5 h-5 text-brand-600" />
             </div>
             <div>
-              <h1 className="section-title">Mening kampaniyalarim</h1>
-              <p className="section-sub">{campaigns.length} ta kampaniya</p>
+              <h1 className="section-title">{dict.nav.myCampaigns}</h1>
+              <p className="section-sub">{dict.dash.nCampaigns.replace('{count}', String(campaigns.length))}</p>
             </div>
           </div>
 

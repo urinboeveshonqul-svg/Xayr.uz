@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import { isLocale } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
 import type { Campaign } from '@/types';
 
 export const metadata: Metadata = { title: 'Saqlangan kampaniyalar — Xayr' };
@@ -24,6 +25,7 @@ export default async function SavedCampaignsPage({
 }) {
   const { locale } = await params;
   const lng = isLocale(locale) ? locale : 'uz';
+  const d = (await getDictionary(lng)).dash;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -51,8 +53,8 @@ export default async function SavedCampaignsPage({
               <Bookmark className="w-5 h-5 text-brand-600" />
             </div>
             <div>
-              <h1 className="section-title">Saqlangan kampaniyalar</h1>
-              <p className="section-sub">{campaigns.length} ta kampaniya</p>
+              <h1 className="section-title">{d.savedCampaigns}</h1>
+              <p className="section-sub">{d.nCampaigns.replace('{count}', String(campaigns.length))}</p>
             </div>
           </div>
 
@@ -60,10 +62,10 @@ export default async function SavedCampaignsPage({
             <div className="card p-12 text-center">
               <Bookmark className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                Hozircha saqlangan kampaniyalar yo&apos;q
+                {d.savedEmpty}
               </h3>
               <p className="text-gray-500 dark:text-gray-400">
-                Yoqtirgan kampaniyangizni saqlab, keyinroq qaytib ko&apos;ring.
+                {d.savedEmptyHint}
               </p>
             </div>
           ) : (

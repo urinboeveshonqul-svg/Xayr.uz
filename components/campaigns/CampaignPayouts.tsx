@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Wallet, Plus, X, Loader2, Clock, Send } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { PayoutRequest, PayoutRequestEvent, PayoutMethod } from '@/types';
@@ -15,13 +16,13 @@ export interface CampaignPayoutRow extends PayoutRequest {
 
 const ACTIVE = ['pending_review', 'approved', 'info_requested'];
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  pending_review: { label: "Ko'rib chiqilmoqda", cls: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' },
-  approved:       { label: 'Tasdiqlangan',        cls: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
-  info_requested: { label: "Ma'lumot so'ralgan",  cls: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400' },
-  rejected:       { label: 'Rad etilgan',          cls: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
-  paid:           { label: "To'langan",            cls: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' },
-  cancelled:      { label: 'Bekor qilingan',       cls: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
+const STATUS_CLS: Record<string, string> = {
+  pending_review: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+  approved:       'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  info_requested: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400',
+  rejected:       'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  paid:           'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300',
+  cancelled:      'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
 };
 
 const ACTION: Record<string, string> = {
@@ -61,6 +62,15 @@ export function CampaignPayouts({
   locale: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const psLabel: Record<string, string> = {
+    pending_review: t('dash.psPending'),
+    approved: t('dash.psApproved'),
+    info_requested: t('dash.psInfo'),
+    rejected: t('dash.psRejected'),
+    paid: t('dash.psPaid'),
+    cancelled: t('dash.psCancelled'),
+  };
   const [showForm, setShowForm] = useState(false);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PayoutMethod>('bank');
@@ -135,14 +145,14 @@ export function CampaignPayouts({
               <Wallet className="w-5 h-5 text-brand-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-400">Yechish uchun mavjud mablag&apos;</p>
+              <p className="text-xs text-gray-400">{t('dash.availableBalance')}</p>
               <p className="text-2xl font-black text-gray-900 dark:text-white">{formatMoney(available)} so&apos;m</p>
             </div>
           </div>
 
           {canRequest ? (
             <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
-              <Plus className="w-4 h-4" /> Mablag&apos;ni yechish
+              <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
             </button>
           ) : (
             blockedReason && <p className="text-sm text-gray-400 max-w-xs">{blockedReason}</p>
@@ -152,9 +162,10 @@ export function CampaignPayouts({
         {/* Requests list */}
         {requests.length > 0 && (
           <div className="mt-6 border-t border-gray-100 dark:border-gray-800 pt-5 space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">So&apos;rovlar tarixi</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t('dash.requestHistory')}</p>
             {requests.map((r) => {
-              const st = STATUS[r.status] ?? STATUS.pending_review;
+              const stCls = STATUS_CLS[r.status] ?? STATUS_CLS.pending_review;
+              const stLabel = psLabel[r.status] ?? psLabel.pending_review;
               return (
                 <button
                   key={r.id}
@@ -165,7 +176,7 @@ export function CampaignPayouts({
                     <p className="text-sm font-bold text-gray-900 dark:text-white">{formatMoney(r.amount)} so&apos;m</p>
                     <p className="text-[11px] text-gray-400">{timeAgo(r.created_at)}</p>
                   </div>
-                  <span className={`badge ${st.cls}`}>{st.label}</span>
+                  <span className={`badge ${stCls}`}>{stLabel}</span>
                 </button>
               );
             })}
@@ -234,15 +245,15 @@ export function CampaignPayouts({
             {previewAmt > 0 && (
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Yechish miqdori</span>
+                  <span className="text-gray-500">{t('dash.withdrawAmount')}</span>
                   <span className="font-bold text-gray-900 dark:text-white">{formatMoney(previewAmt)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Platforma komissiyasi (3%)</span>
+                  <span className="text-gray-500">{t('dash.feeRow')}</span>
                   <span className="font-bold text-red-600">−{formatMoney(previewFee)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
-                  <span className="font-bold text-gray-900 dark:text-white">Sizga to&apos;lanadi</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{t('dash.youReceive')}</span>
                   <span className="font-black text-brand-600">{formatMoney(previewNet)} so&apos;m</span>
                 </div>
               </div>
@@ -280,8 +291,8 @@ export function CampaignPayouts({
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-5 animate-pop">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className={`badge ${(STATUS[selected.status] ?? STATUS.pending_review).cls}`}>
-                  {(STATUS[selected.status] ?? STATUS.pending_review).label}
+                <span className={`badge ${STATUS_CLS[selected.status] ?? STATUS_CLS.pending_review}`}>
+                  {psLabel[selected.status] ?? psLabel.pending_review}
                 </span>
                 <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatMoney(selected.amount)} so&apos;m</p>
               </div>
