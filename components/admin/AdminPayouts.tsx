@@ -205,7 +205,7 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           onClick={(e) => { if (e.target === e.currentTarget) closeDetail(); }}
         >
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg my-8">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg my-8 animate-pop">
             {/* Header */}
             <div className="flex items-start justify-between gap-3 p-6 border-b border-gray-100 dark:border-gray-800">
               <div className="min-w-0">

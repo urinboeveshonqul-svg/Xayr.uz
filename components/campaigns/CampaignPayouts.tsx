@@ -179,7 +179,7 @@ export function CampaignPayouts({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           onClick={(e) => { if (e.target === e.currentTarget) resetForm(); }}
         >
-          <form onSubmit={submit} className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-4">
+          <form onSubmit={submit} className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-4 animate-pop">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-900 dark:text-white">Mablag&apos;ni yechish</h3>
               <button type="button" onClick={resetForm} className="text-gray-400 hover:text-gray-600" aria-label="Yopish">
@@ -277,7 +277,7 @@ export function CampaignPayouts({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           onClick={(e) => { if (e.target === e.currentTarget) setSelectedId(null); }}
         >
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-5">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-5 animate-pop">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <span className={`badge ${(STATUS[selected.status] ?? STATUS.pending_review).cls}`}>

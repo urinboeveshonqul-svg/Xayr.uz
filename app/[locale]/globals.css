@@ -11,6 +11,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
   html { scroll-behavior: smooth; }
+
+  /* Mobile snappiness: kill the gray tap flash and the legacy tap delay. */
+  a, button, [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
 }
 
 /* ============================================================
@@ -57,7 +63,21 @@
   /* ---------- Cards ---------- */
   .card {
     @apply bg-white rounded-2xl border border-gray-100 shadow-sm
+           transition-shadow duration-200
            dark:bg-gray-900 dark:border-gray-800;
+  }
+
+  /* ---------- Progress bars ----------
+     Used by components/ui/ProgressBar.tsx (these classes were previously
+     undefined — the bar rendered invisible). Width transitions give the
+     animated fill. */
+  .progress-bar {
+    @apply h-2.5 w-full rounded-full bg-gray-100 overflow-hidden
+           dark:bg-gray-800;
+  }
+  .progress-fill {
+    @apply h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500;
+    transition: width 0.5s ease-out;
   }
 
   /* ---------- Forms ---------- */
@@ -98,6 +118,10 @@
 }
 
 @layer utilities {
+  /* Modal / dropdown entrance: subtle fade + scale, 180ms, non-blocking. */
+  .animate-pop {
+    animation: pop 0.18s ease-out;
+  }
   .animate-blob {
     animation: blob 7s infinite;
   }
@@ -130,5 +154,28 @@
   }
   50% {
     transform: translateY(-20px);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Accessibility: users who prefer reduced motion get none — site-wide. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

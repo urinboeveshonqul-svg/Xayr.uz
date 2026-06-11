@@ -25,36 +25,47 @@ export function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
 
-  const load = useCallback(async () => {
+  // Full list — fetched lazily, only when the dropdown opens.
+  const load = useCallback(async (uid: string) => {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setUserId(null);
-      return;
-    }
-    setUserId(user.id);
-
     const [{ data }, { count }] = await Promise.all([
       supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', uid)
         .order('created_at', { ascending: false })
         .limit(8),
       supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+        .eq('user_id', uid)
         .eq('is_read', false),
     ]);
-
     setItems(data ?? []);
     setUnread(count ?? 0);
   }, []);
 
+  // Mount: resolve auth locally (getSession — no network round-trip) and fetch
+  // ONLY the unread count. This component mounts twice (desktop + mobile bars)
+  // on every navigation, so the per-mount cost must stay minimal.
   useEffect(() => {
-    load();
-  }, [load]);
+    let active = true;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id ?? null;
+      if (!active) return;
+      setUserId(uid);
+      if (!uid) return;
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', uid)
+        .eq('is_read', false);
+      if (active) setUnread(count ?? 0);
+    })();
+    return () => { active = false; };
+  }, []);
 
   // Close the dropdown on an outside click.
   useEffect(() => {
@@ -70,7 +81,7 @@ export function NotificationBell() {
 
   const toggle = () => {
     setOpen((o) => {
-      if (!o) load(); // refresh when opening
+      if (!o && userId) load(userId); // fetch the list only when opening
       return !o;
     });
   };
@@ -117,7 +128,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-pop origin-top-right">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="font-bold text-gray-900 text-sm">{t('ux.notifTitle')}</span>
             {unread > 0 && (
