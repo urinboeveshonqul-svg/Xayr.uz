@@ -15,7 +15,7 @@ import { useI18n } from '@/components/i18n/I18nProvider';
  */
 export function FollowButton({ creatorId }: { creatorId: string }) {
   const router = useRouter();
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const [userId, setUserId] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
   const [count, setCount] = useState(0);
@@ -79,7 +79,7 @@ export function FollowButton({ creatorId }: { creatorId: string }) {
     } catch {
       setFollowing(!next); // revert
       setCount((c) => Math.max(0, c + (next ? -1 : 1)));
-      toast.error('Xatolik yuz berdi');
+      toast.error(t('ux.errGeneric'));
     } finally {
       setBusy(false);
     }
@@ -89,7 +89,7 @@ export function FollowButton({ creatorId }: { creatorId: string }) {
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs text-gray-400 flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5" />
-        {count} obunachi
+        {count} {t('ux.followers')}
       </span>
 
       {/* Hidden on your own profile card (self-follow also blocked in DB) */}
@@ -111,7 +111,7 @@ export function FollowButton({ creatorId }: { creatorId: string }) {
           ) : (
             <UserPlus className="w-4 h-4" />
           )}
-          {following ? 'Kuzatilmoqda' : 'Kuzatish'}
+          {following ? t('ux.following') : t('ux.follow')}
         </button>
       )}
     </div>

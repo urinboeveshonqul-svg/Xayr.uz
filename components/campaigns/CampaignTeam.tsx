@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Users, UserPlus, Trash2, Loader2, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Avatar } from '@/components/ui/Avatar';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import type { TeamRole } from '@/types';
 
 export interface TeamMemberRow {
@@ -15,12 +16,6 @@ export interface TeamMemberRow {
   full_name: string | null;
   avatar_url: string | null;
 }
-
-const ROLE_LABEL: Record<TeamRole, string> = {
-  owner: 'Egasi',
-  manager: 'Menejer',
-  editor: 'Muharrir',
-};
 
 const ROLE_BADGE: Record<TeamRole, string> = {
   owner: 'bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400',
@@ -44,6 +39,12 @@ export function CampaignTeam({
   isOwner: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const roleLabel: Record<TeamRole, string> = {
+    owner: t('ux.roleOwner'),
+    manager: t('ux.roleManager'),
+    editor: t('ux.roleEditor'),
+  };
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Exclude<TeamRole, 'owner'>>('editor');
   const [busy, setBusy] = useState(false);
@@ -123,7 +124,7 @@ export function CampaignTeam({
     <section className="card p-6 mb-6">
       <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         <Users className="w-5 h-5 text-brand-600" />
-        Jamoa
+        {t('ux.teamTitle')}
         {members.length > 0 && (
           <span className="text-sm font-semibold text-gray-400">({members.length})</span>
         )}
@@ -143,7 +144,7 @@ export function CampaignTeam({
                 </p>
               </div>
 
-              <span className={`badge ${ROLE_BADGE[m.role]}`}>{ROLE_LABEL[m.role]}</span>
+              <span className={`badge ${ROLE_BADGE[m.role]}`}>{roleLabel[m.role]}</span>
 
               {/* Owner-only controls; owner row is immutable (RLS-enforced too) */}
               {isOwner && m.role !== 'owner' && (

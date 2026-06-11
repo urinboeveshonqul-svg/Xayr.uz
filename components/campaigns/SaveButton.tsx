@@ -20,7 +20,7 @@ export function SaveButton({
   initialSaved?: boolean;
 }) {
   const router = useRouter();
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const [saved, setSaved] = useState(initialSaved ?? false);
   const [busy, setBusy] = useState(false);
 
@@ -56,7 +56,7 @@ export function SaveButton({
           .insert({ user_id: user.id, campaign_id: campaignId });
         // 23505 = unique violation → already saved, treat as success.
         if (error && error.code !== '23505') throw error;
-        toast.success('Saqlanganlarga qo\'shildi');
+        toast.success(t('ux.savedToast'));
       } else {
         const { error } = await supabase
           .from('saved_campaigns')
@@ -64,12 +64,12 @@ export function SaveButton({
           .eq('user_id', user.id)
           .eq('campaign_id', campaignId);
         if (error) throw error;
-        toast.success('Saqlanganlardan olib tashlandi');
+        toast.success(t('ux.unsavedToast'));
       }
       await markSaved(campaignId, next);
     } catch {
       setSaved(!next); // revert
-      toast.error('Xatolik yuz berdi');
+      toast.error(t('ux.errGeneric'));
     } finally {
       setBusy(false);
     }

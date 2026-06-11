@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import { getRecentIds } from '@/lib/recently-viewed';
 import type { Campaign } from '@/types';
 
@@ -17,10 +18,13 @@ export function RecentlyViewed({
   limit = 8,
   compact = false,
 }: {
-  title: string;
+  /** Optional override; defaults to the localized section title. */
+  title?: string;
   limit?: number;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
+  const heading = title ?? t('ux.recentTitle');
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
 
   useEffect(() => {
@@ -67,7 +71,7 @@ export function RecentlyViewed({
     return (
       <div className="mt-6">
         <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">
-          {title}
+          {heading}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} />)}
@@ -79,7 +83,7 @@ export function RecentlyViewed({
   return (
     <section className="py-12 lg:py-16 bg-gray-50 dark:bg-gray-950">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-6">{title}</h2>
+        <h2 className="text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-6">{heading}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} />)}
         </div>

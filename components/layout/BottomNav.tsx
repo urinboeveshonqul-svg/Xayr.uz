@@ -12,32 +12,32 @@ import { useI18n } from '@/components/i18n/I18nProvider';
  * padding handles notched iPhones (viewportFit: 'cover' is set in the layout).
  */
 export function BottomNav() {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const pathname = usePathname();
   // Path without the locale prefix, e.g. /uz/campaigns -> /campaigns
   const bare = '/' + pathname.split('/').slice(2).join('/');
 
   const items = [
-    { href: `/${locale}`, label: 'Asosiy', Icon: Home, active: bare === '/' },
+    { href: `/${locale}`, label: t('ux.navHome'), Icon: Home, active: bare === '/' },
     {
       href: `/${locale}/campaigns`,
-      label: 'Kampaniyalar',
+      label: t('ux.navCampaigns'),
       Icon: Megaphone,
       active: bare.startsWith('/campaigns') && !bare.startsWith('/campaigns/create'),
     },
     {
       href: `/${locale}/campaigns/create`,
-      label: 'Yaratish',
+      label: t('ux.navCreate'),
       Icon: PlusCircle,
       active: bare.startsWith('/campaigns/create'),
     },
     {
       href: `/${locale}/notifications`,
-      label: 'Xabarlar',
+      label: t('ux.navAlerts'),
       Icon: Bell,
       active: bare.startsWith('/notifications'),
     },
-    { href: `/${locale}/profile`, label: 'Profil', Icon: User, active: bare.startsWith('/profile') },
+    { href: `/${locale}/profile`, label: t('ux.navProfile'), Icon: User, active: bare.startsWith('/profile') },
   ];
 
   return (

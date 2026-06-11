@@ -6,6 +6,7 @@ import {
   Loader2, Megaphone, Plus, Send, X, ImagePlus, FileText, Pencil, Trash2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import { timeAgo } from '@/lib/utils';
 import { ImageGrid } from '@/components/ui/Gallery';
 
@@ -34,6 +35,7 @@ export function CampaignUpdates({
   isOwner,
   initialUpdates,
 }: CampaignUpdatesProps) {
+  const { t } = useI18n();
   const [updates, setUpdates] = useState<UpdateRow[]>(initialUpdates);
 
   // Form state (shared by create + edit; editingId === null means "create").
@@ -182,7 +184,7 @@ export function CampaignUpdates({
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Megaphone className="w-6 h-6 text-brand-600" />
-          Yangiliklar
+          {t('ux.updatesTitle')}
           {updates.length > 0 && (
             <span className="text-base font-semibold text-gray-400">({updates.length})</span>
           )}
@@ -191,7 +193,7 @@ export function CampaignUpdates({
         {isOwner && !formOpen && (
           <button onClick={openCreate} className="btn-primary px-4 py-2 text-sm">
             <Plus className="w-4 h-4" />
-            Yangilik qo&apos;shish
+            {t('ux.addUpdate')}
           </button>
         )}
       </div>
@@ -319,7 +321,7 @@ export function CampaignUpdates({
 
       {/* Timeline */}
       {updates.length === 0 ? (
-        <p className="text-center text-gray-400 py-8">Hozircha yangiliklar yo&apos;q</p>
+        <p className="text-center text-gray-400 py-8">{t('ux.updatesEmpty')}</p>
       ) : (
         <ol className="relative ml-3 border-l-2 border-gray-100 dark:border-gray-800 space-y-8">
           {updates.map((u) => (

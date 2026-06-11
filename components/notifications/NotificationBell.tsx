@@ -16,7 +16,7 @@ import type { Notification } from '@/types';
  * nothing when logged out. No DB schema changes.
  */
 export function NotificationBell() {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -105,8 +105,8 @@ export function NotificationBell() {
       <button
         onClick={toggle}
         className="relative p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-50 transition-all"
-        aria-label="Bildirishnomalar"
-        title="Bildirishnomalar"
+        aria-label={t('ux.notifTitle')}
+        title={t('ux.notifTitle')}
       >
         <Bell className="w-5 h-5" />
         {unread > 0 && (
@@ -119,17 +119,17 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <span className="font-bold text-gray-900 text-sm">Bildirishnomalar</span>
+            <span className="font-bold text-gray-900 text-sm">{t('ux.notifTitle')}</span>
             {unread > 0 && (
               <button onClick={markAll} className="text-xs font-semibold text-green-600 hover:underline">
-                Barchasini o&apos;qildi
+                {t('ux.notifMarkAll')}
               </button>
             )}
           </div>
 
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="text-center text-sm text-gray-400 py-8">Hozircha bildirishnomalar yo&apos;q</p>
+              <p className="text-center text-sm text-gray-400 py-8">{t('ux.notifEmpty')}</p>
             ) : (
               items.map((n) => (
                 <button
@@ -159,7 +159,7 @@ export function NotificationBell() {
             onClick={() => setOpen(false)}
             className="block text-center text-sm font-semibold text-green-600 hover:bg-gray-50 py-3 border-t border-gray-100"
           >
-            Barcha bildirishnomalar
+            {t('ux.notifViewAll')}
           </Link>
         </div>
       )}

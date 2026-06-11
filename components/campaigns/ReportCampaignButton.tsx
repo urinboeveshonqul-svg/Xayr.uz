@@ -3,17 +3,19 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Flag, Loader2, X } from 'lucide-react';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 const REASONS = [
-  { value: 'fraud', label: 'Firibgarlik' },
-  { value: 'misleading', label: "Noto'g'ri ma'lumot" },
-  { value: 'spam', label: 'Spam' },
-  { value: 'other', label: 'Boshqa' },
+  { value: 'fraud', key: 'ux.flagFraud' },
+  { value: 'misleading', key: 'ux.flagMisleading' },
+  { value: 'spam', key: 'ux.flagSpam' },
+  { value: 'other', key: 'ux.flagOther' },
 ] as const;
 
 type Reason = (typeof REASONS)[number]['value'];
 
 export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<Reason>('fraud');
   const [details, setDetails] = useState('');
@@ -30,15 +32,15 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
       });
       const json = await res.json().catch(() => ({}));
       if (res.status === 409) {
-        toast.error("Siz bu kampaniyani allaqachon xabar qildingiz");
+        toast.error(t('ux.flagAlready'));
         setOpen(false);
         return;
       }
       if (!res.ok) {
-        toast.error(json.error ?? 'Xatolik yuz berdi');
+        toast.error(json.error ?? t('ux.errGeneric'));
         return;
       }
-      toast.success("Shikoyat yuborildi. Ko'rib chiqamiz.");
+      toast.success(t('ux.flagSent'));
       setOpen(false);
       setDetails('');
       setReason('fraud');
@@ -55,7 +57,7 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
         type="button"
       >
         <Flag className="w-3.5 h-3.5" />
-        Shikoyat qilish
+        {t('ux.flagBtn')}
       </button>
 
       {/* Modal backdrop */}
@@ -69,7 +71,7 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Flag className="w-4 h-4 text-red-500" />
-                Kampaniya haqida shikoyat
+                {t('ux.flagTitle')}
               </h2>
               <button
                 onClick={() => setOpen(false)}
@@ -84,7 +86,7 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
               {/* Reason radio group */}
               <div>
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Sabab tanlang
+                  {t('ux.flagReason')}
                 </p>
                 <div className="space-y-2">
                   {REASONS.map((r) => (
@@ -105,7 +107,7 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
                         className="accent-red-500"
                       />
                       <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                        {r.label}
+                        {t(r.key)}
                       </span>
                     </label>
                   ))}
@@ -115,7 +117,7 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
               {/* Optional details */}
               <div>
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">
-                  Qo'shimcha ma'lumot <span className="font-normal text-gray-400">(ixtiyoriy)</span>
+                  {t('ux.flagDetails')} <span className="font-normal text-gray-400">({t('ux.optional')})</span>
                 </label>
                 <textarea
                   value={details}
@@ -134,7 +136,7 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
                   onClick={() => setOpen(false)}
                   className="btn-ghost flex-1 py-2.5 text-sm"
                 >
-                  Bekor qilish
+                  {t('ux.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -147,7 +149,7 @@ export function ReportCampaignButton({ campaignId }: { campaignId: string }) {
                       Yuborilmoqda...
                     </>
                   ) : (
-                    'Yuborish'
+                    t('ux.submit')
                   )}
                 </button>
               </div>

@@ -240,7 +240,7 @@ export default async function HomePage({
         )}
 
         {/* RECENTLY VIEWED — per-user (client); hidden when empty */}
-        <RecentlyViewed title="So'nggi ko'rilgan kampaniyalar" />
+        <RecentlyViewed />
 
         {/* HOW IT WORKS */}
         <section className="py-20 lg:py-24 bg-white">

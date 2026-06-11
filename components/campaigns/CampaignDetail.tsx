@@ -65,7 +65,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
       <span className={`badge ${cat.color}`}><cat.Icon className="w-3.5 h-3.5" /> {cat.label}</span>
       {campaign.is_urgent && (
         <span className="badge bg-red-500 text-white">
-          <Zap className="w-3 h-3" /> Shoshilinch
+          <Zap className="w-3 h-3" /> {t('ux.urgent')}
         </span>
       )}
     </div>
@@ -74,7 +74,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl || window.location.href);
-      toast.success('Havola nusxalandi');
+      toast.success(t('ux.linkCopied'));
     } catch {
       /* clipboard unavailable */
     }
@@ -96,7 +96,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
       {/* Back */}
       <Link href="/campaigns" className="btn-ghost mb-6 inline-flex">
         <ChevronLeft className="w-4 h-4" />
-        Barcha kampaniyalar
+        {t('ux.allCampaigns')}
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -129,7 +129,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
           {campaign.story && (
             <div className="card p-6">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                Batafsil ma'lumot
+                {t('ux.story')}
               </h2>
               <div className="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
                 {campaign.story}
@@ -140,7 +140,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
           {/* Meta info */}
           <div className="card p-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-              Kampaniya haqida
+              {t('ux.aboutCampaign')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {campaign.location && (
@@ -149,7 +149,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                     <MapPin className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Joylashuv</p>
+                    <p className="text-xs text-gray-400">{t('ux.location')}</p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{campaign.location}</p>
                   </div>
                 </div>
@@ -160,7 +160,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                     <Calendar className="w-4 h-4 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Muddat</p>
+                    <p className="text-xs text-gray-400">{t('ux.deadline')}</p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       {new Date(campaign.deadline).toLocaleDateString('uz-UZ')}
                     </p>
@@ -172,7 +172,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   <Clock className="w-4 h-4 text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Yaratilgan</p>
+                  <p className="text-xs text-gray-400">{t('ux.createdAt')}</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {timeAgo(campaign.created_at)}
                   </p>
@@ -220,7 +220,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                 {formatMoneyFull(campaign.current_amount)}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {formatMoneyFull(campaign.goal_amount)} maqsaddan
+                {formatMoneyFull(campaign.goal_amount)} {t('ux.ofGoal')}
               </p>
             </div>
 
@@ -229,17 +229,17 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="text-center">
                 <div className="text-xl font-bold text-gray-900 dark:text-white">{pct}%</div>
-                <div className="text-xs text-gray-400">To'plandi</div>
+                <div className="text-xs text-gray-400">{t('ux.collected')}</div>
               </div>
               <div className="text-center border-x border-gray-100 dark:border-gray-800">
                 <div className="text-xl font-bold text-gray-900 dark:text-white">{campaign.donors_count}</div>
-                <div className="text-xs text-gray-400">Donorlar</div>
+                <div className="text-xs text-gray-400">{t('ux.donors')}</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold text-gray-900 dark:text-white">
                   {days !== null ? (days > 0 ? days : '0') : '∞'}
                 </div>
-                <div className="text-xs text-gray-400">Kun qoldi</div>
+                <div className="text-xs text-gray-400">{t('ux.daysLeft')}</div>
               </div>
             </div>
 
@@ -250,7 +250,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                 className="btn-primary w-full text-base py-4 min-h-[56px] lg:min-h-0 lg:py-3"
               >
                 <Heart className="w-5 h-5" />
-                Xayriya qilish
+                {t('ux.donate')}
               </button>
             ) : (
               <DonationForm
@@ -261,7 +261,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
 
             {/* Save (bookmark) — reuses the shared SaveButton */}
             <div className="mt-4">
-              <p className="text-xs text-gray-400 mb-2 text-center">Saqlash</p>
+              <p className="text-xs text-gray-400 mb-2 text-center">{t('ux.saveLbl')}</p>
               <div className="flex justify-center">
                 <SaveButton campaignId={campaign.id} />
               </div>
@@ -269,13 +269,13 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
 
             {/* Share buttons */}
             <div className="mt-4">
-              <p className="text-xs text-gray-400 mb-2 text-center">Ulashish</p>
+              <p className="text-xs text-gray-400 mb-2 text-center">{t('ux.share')}</p>
               <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={handleShare}
                   className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
-                  title="Ulashish"
-                  aria-label="Ulashish"
+                  title={t('ux.share')}
+                  aria-label={t('ux.share')}
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -302,8 +302,8 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                 <button
                   onClick={copyLink}
                   className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
-                  title="Havolani nusxalash"
-                  aria-label="Havolani nusxalash"
+                  title={t('ux.copyLink')}
+                  aria-label={t('ux.copyLink')}
                 >
                   <Link2 className="w-4 h-4" />
                 </button>
@@ -328,7 +328,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                     {campaign.profiles.full_name ?? 'Foydalanuvchi'}
                   </p>
                   <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3 text-brand-600" /> Tasdiqlangan
+                    <CheckCircle className="w-3 h-3 text-brand-600" /> {t('ux.verified')}
                   </p>
                 </div>
               </div>
@@ -370,7 +370,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
               className="btn-primary px-5 min-h-[48px] flex-shrink-0"
             >
               <Heart className="w-4 h-4" />
-              Xayriya qilish
+              {t('ux.donate')}
             </button>
           </div>
         </div>

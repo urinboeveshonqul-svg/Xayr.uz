@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import { timeAgo } from '@/lib/utils';
 import type { Notification } from '@/types';
 
@@ -22,6 +23,7 @@ export function NotificationsView({
   locale: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [items, setItems] = useState<Notification[]>(initial);
   const unread = items.filter((n) => !n.is_read).length;
 
@@ -52,20 +54,20 @@ export function NotificationsView({
       <div className="flex items-center justify-between mb-6">
         <h1 className="section-title flex items-center gap-2">
           <Bell className="w-6 h-6 text-brand-600" />
-          Bildirishnomalar
+          {t('ux.notifTitle')}
           {unread > 0 && <span className="text-base font-semibold text-gray-400">({unread})</span>}
         </h1>
         {unread > 0 && (
           <button onClick={markAll} className="btn-ghost text-sm gap-1.5">
             <CheckCheck className="w-4 h-4" />
-            Barchasini o&apos;qildi
+            {t('ux.notifMarkAll')}
           </button>
         )}
       </div>
 
       {items.length === 0 ? (
         <div className="card p-12 text-center text-gray-500 dark:text-gray-400">
-          Hozircha bildirishnomalar yo&apos;q
+          {t('ux.notifEmpty')}
         </div>
       ) : (
         <div className="space-y-2">

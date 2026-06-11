@@ -242,7 +242,7 @@ export default async function ProfilePage({
           </Link>
 
           {/* Recently viewed campaigns — per-user (client); hidden when empty */}
-          <RecentlyViewed title="So'nggi ko'rilgan kampaniyalar" compact />
+          <RecentlyViewed compact />
 
           {/* Completion reports the user has published (read-only) */}
           {reports.length > 0 && (

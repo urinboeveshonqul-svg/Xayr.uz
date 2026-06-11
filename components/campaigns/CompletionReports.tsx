@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { CheckCircle2, FileText, Pencil, Trash2, Loader2, ExternalLink } from 'lucide-react';
 import { CompletionReportForm } from '@/components/campaigns/CompletionReportForm';
 import { ImageGrid } from '@/components/ui/Gallery';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 interface ReportRow {
   id: string;
@@ -33,6 +34,7 @@ function docExt(url: string): string {
 
 export function CompletionReports({ reports, isOwner, campaignId, userId, beforeImages }: Props) {
   const router = useRouter();
+  const { t } = useI18n();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -59,7 +61,7 @@ export function CompletionReports({ reports, isOwner, campaignId, userId, before
     <section className="mt-8">
       <h2 className="text-xl font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         <CheckCircle2 className="w-5 h-5 text-green-600" />
-        Yakuniy hisobot
+        {t('ux.reportsTitle')}
       </h2>
 
       <div className="space-y-6">
@@ -78,7 +80,7 @@ export function CompletionReports({ reports, isOwner, campaignId, userId, before
               <div className="bg-green-50 dark:bg-green-900/20 px-6 py-4 flex items-start justify-between gap-3 border-b border-green-100 dark:border-green-900/30">
                 <div className="min-w-0">
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 dark:text-green-400">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Yakunlandi
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {t('ux.completedLbl')}
                   </span>
                   <h3 className="text-lg font-black text-gray-900 dark:text-white mt-1 leading-snug">
                     {r.title}
@@ -120,11 +122,11 @@ export function CompletionReports({ reports, isOwner, campaignId, userId, before
                 {beforeImages && beforeImages.length > 0 && r.images.length > 0 && (
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                      Avval / Keyin
+                      {t('ux.beforeAfter')}
                     </p>
                     <ImageGrid
                       images={[beforeImages[0], r.images[0]]}
-                      labels={['Avval', 'Keyin']}
+                      labels={[t('ux.before'), t('ux.after')]}
                       cols={2}
                     />
                   </div>
@@ -134,7 +136,7 @@ export function CompletionReports({ reports, isOwner, campaignId, userId, before
                 {r.images.length > 0 && (
                   <div>
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                      Galereya
+                      {t('ux.galleryLbl')}
                     </p>
                     <ImageGrid images={r.images} />
                   </div>
@@ -143,7 +145,7 @@ export function CompletionReports({ reports, isOwner, campaignId, userId, before
                 {/* Document viewer */}
                 {r.documents.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Hujjatlar</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ux.documents')}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {r.documents.map((doc, i) => (
                         <a
