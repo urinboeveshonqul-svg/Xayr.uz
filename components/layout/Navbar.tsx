@@ -17,6 +17,9 @@ export function Navbar() {
   const L = (path: string) => `/${locale}${path}`;
 
   const [user, setUser]         = useState<SupabaseUser | null>(null);
+  // Tri-state auth: until authReady, user===null means "unknown", NOT "logged
+  // out" — the UI must show a placeholder instead of Login/Register.
+  const [authReady, setAuthReady] = useState(false);
   const [profile, setProfile]   = useState<Profile | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -52,16 +55,23 @@ export function Navbar() {
 
       (async () => {
         try {
-          const { data } = await supabase.auth.getUser();
-          setUser(data?.user ?? null);
-          if (data?.user) await loadProfile(supabase, data.user.id);
+          // getSession() reads the cookie-backed session locally (no network
+          // round-trip, unlike getUser()), so the auth state resolves almost
+          // instantly on every navigation — no Login/Register flash.
+          const { data } = await supabase.auth.getSession();
+          const u = data.session?.user ?? null;
+          setUser(u);
+          setAuthReady(true);
+          if (u) await loadProfile(supabase, u.id);
         } catch {
           setUser(null);
+          setAuthReady(true);
         }
       })();
 
       const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
+        setAuthReady(true);
         if (session?.user) {
           void loadProfile(supabase, session.user.id);
         } else {
@@ -70,7 +80,8 @@ export function Navbar() {
       });
       unsubscribe = () => listener.subscription.unsubscribe();
     } catch {
-      /* Supabase unavailable — keep the signed-out navbar. */
+      /* Supabase unavailable — degrade to the signed-out navbar. */
+      setAuthReady(true);
     }
 
     return () => {
@@ -141,7 +152,10 @@ export function Navbar() {
             {/* Language switcher */}
             <LanguageSwitcher />
 
-            {user ? (
+            {!authReady ? (
+              /* Auth state unresolved — neutral skeleton, never the wrong UI */
+              <div className="w-56 h-11 rounded-xl bg-gray-100 animate-pulse" aria-hidden />
+            ) : user ? (
               <>
                 {profile?.role === 'admin' && (
                   <Link href={L('/admin')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all flex items-center gap-2">
@@ -241,7 +255,7 @@ export function Navbar() {
             <Siren className="w-4 h-4" /> {t('nav.emergency')}
           </Link>
 
-          {user ? (
+          {!authReady ? null : user ? (
             <>
               {profile?.role === 'admin' && (
                 <Link href={L('/admin')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
