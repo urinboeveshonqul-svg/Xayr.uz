@@ -7,7 +7,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
 import { EmailVerifyBanner } from '@/components/EmailVerifyBanner';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { METADATA_BASE, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/seo';
+import { METADATA_BASE, SITE_URL, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/seo';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' });
@@ -82,9 +82,48 @@ export default async function LocaleLayout({
 
   const messages = await getDictionary(locale as Locale);
 
+  // Structured data for search engines (Organization + WebSite with sitelinks
+  // search box). Rendered once per page in the shared layout.
+  const organizationLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Xayr',
+    url: SITE_URL,
+    logo: `${SITE_URL}/icon.svg`,
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: 'info@xayr.uz',
+      telephone: '+998712000000',
+    },
+  };
+  const websiteLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Xayr',
+    url: SITE_URL,
+    inLanguage: ['uz', 'ru', 'en'],
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${localeUrl(locale as Locale, '/campaigns')}?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
+        />
         <I18nProvider locale={locale as Locale} messages={messages}>
           <EmailVerifyBanner />
           {children}

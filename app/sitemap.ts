@@ -10,6 +10,10 @@ export const revalidate = 3600;
 const STATIC_PATHS = [
   '',            // home
   '/campaigns',
+  '/guide',
+  '/faq',
+  '/security',
+  '/fees',
   '/contact',
   '/privacy',
   '/terms',

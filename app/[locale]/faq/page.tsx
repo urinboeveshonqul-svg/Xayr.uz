@@ -28,8 +28,23 @@ export default async function FaqPage({ params }: Props) {
   const dict = await getDictionary(loc);
   const f = dict.faqPage;
 
+  // FAQPage structured data — makes the Q&A eligible for rich results.
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: f.items.map((it) => ({
+      '@type': 'Question',
+      name: it.q,
+      acceptedAnswer: { '@type': 'Answer', text: it.a },
+    })),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+      />
       <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
