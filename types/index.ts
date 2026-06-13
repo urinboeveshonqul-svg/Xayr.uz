@@ -23,7 +23,7 @@ export type CampaignCategory =
 export type DonationStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type PaymentMethod = 'click' | 'payme' | 'uzcard' | 'humo' | 'cash';
 export type NotificationType =
-  | 'general' | 'donation' | 'comment' | 'campaign_status' | 'update';
+  | 'general' | 'donation' | 'comment' | 'campaign_status' | 'update' | 'verification';
 export type PayoutStatus =
   | 'pending_review' | 'approved' | 'info_requested' | 'rejected' | 'paid' | 'cancelled';
 export type PayoutEventAction =

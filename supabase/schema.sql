@@ -118,7 +118,7 @@ create table if not exists public.notifications (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references public.users (id) on delete cascade,
   type       text not null default 'general'
-               check (type in ('general','donation','comment','campaign_status','update')),
+               check (type in ('general','donation','comment','campaign_status','update','verification')),
   title      text not null,
   body       text,
   link       text,
