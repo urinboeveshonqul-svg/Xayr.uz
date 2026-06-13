@@ -155,7 +155,11 @@
     "updatePassword": "Parolni yangilash",
     "verifyTitle": "Emailingizni tasdiqlang",
     "verifySubtitle": "Hisobingizni faollashtirish uchun xatdagi havolani bosing.",
-    "goToLogin": "Kirishga o'tish"
+    "goToLogin": "Kirishga o'tish",
+    "continueWithGoogle": "Google bilan davom etish",
+    "orDivider": "yoki",
+    "googleError": "Google orqali kirishda xatolik. Qayta urinib ko'ring.",
+    "googleCancelled": "Kirish bekor qilindi."
   },
   "dashboard": {
     "adminTitle": "Admin Panel",

@@ -155,7 +155,11 @@
     "updatePassword": "Update password",
     "verifyTitle": "Verify your email",
     "verifySubtitle": "Click the link in the email to activate your account.",
-    "goToLogin": "Go to login"
+    "goToLogin": "Go to login",
+    "continueWithGoogle": "Continue with Google",
+    "orDivider": "or",
+    "googleError": "Google sign-in failed. Please try again.",
+    "googleCancelled": "Sign-in was cancelled."
   },
   "dashboard": {
     "adminTitle": "Admin Panel",

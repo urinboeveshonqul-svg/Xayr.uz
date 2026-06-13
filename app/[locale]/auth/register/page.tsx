@@ -1,7 +1,9 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { Heart } from 'lucide-react';
 import { RegisterForm } from '@/components/auth/RegisterForm';
+import { GoogleButton, AuthDivider } from '@/components/auth/GoogleButton';
 
 export const metadata: Metadata = {
   title: "Ro'yxatdan o'tish — Xayr",
@@ -27,6 +29,15 @@ export default function RegisterPage() {
           </p>
         </div>
         <div className="card p-8">
+          {/* GoogleButton calls useSearchParams() → needs a Suspense boundary. */}
+          <Suspense fallback={
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 rounded-full border-2 border-gray-200 border-t-brand-600 animate-spin" />
+            </div>
+          }>
+            <GoogleButton />
+            <AuthDivider />
+          </Suspense>
           <RegisterForm />
         </div>
       </div>

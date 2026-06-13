@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { Heart } from 'lucide-react';
 import { LoginForm } from '@/components/auth/LoginForm';
+import { GoogleButton, AuthDivider } from '@/components/auth/GoogleButton';
 
 export const metadata: Metadata = {
   title: 'Kirish — Xayr',
@@ -29,14 +30,16 @@ export default function LoginPage() {
         </div>
         <div className="card p-8">
           {/*
-            LoginForm uses useSearchParams() which requires a Suspense boundary.
-            Without this, next build fails with a hard error.
+            GoogleButton and LoginForm both call useSearchParams(), which needs a
+            Suspense boundary or `next build` fails with a hard error.
           */}
           <Suspense fallback={
             <div className="flex justify-center py-8">
               <div className="w-6 h-6 rounded-full border-2 border-gray-200 border-t-brand-600 animate-spin" />
             </div>
           }>
+            <GoogleButton />
+            <AuthDivider />
             <LoginForm />
           </Suspense>
         </div>

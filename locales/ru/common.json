@@ -155,7 +155,11 @@
     "updatePassword": "Обновить пароль",
     "verifyTitle": "Подтвердите email",
     "verifySubtitle": "Нажмите на ссылку в письме, чтобы активировать аккаунт.",
-    "goToLogin": "Перейти ко входу"
+    "goToLogin": "Перейти ко входу",
+    "continueWithGoogle": "Продолжить с Google",
+    "orDivider": "или",
+    "googleError": "Ошибка входа через Google. Попробуйте снова.",
+    "googleCancelled": "Вход отменён."
   },
   "dashboard": {
     "adminTitle": "Панель администратора",

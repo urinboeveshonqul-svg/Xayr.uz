@@ -34,6 +34,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 24 | `contact-messages.sql` | Contact form storage + admin inbox | `contact_messages` exists |
 | 25 | `campaign-resubmit.sql` | Resubmit rejected campaigns | `resubmit_campaign` exists |
 | 26 | `payout-commission.sql` | 3% platform commission on withdrawals | `payout_requests.commission_amount` exists |
+| 27 | `google-oauth.sql` | Google sign-in profile creation (coalesces `name`/`picture`) — run after enabling the Google provider in the dashboard | Google signups get name + avatar |
 
 ## Critical notes
 

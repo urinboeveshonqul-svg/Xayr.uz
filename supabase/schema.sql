@@ -188,12 +188,14 @@ end; $$;
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
+  -- full_name/avatar_url: email signups set these explicitly; Google OAuth may
+  -- send name/picture instead, so coalesce across both shapes.
   insert into public.users (id, email, full_name, avatar_url, preferred_language)
   values (
     new.id,
     new.email,
-    new.raw_user_meta_data ->> 'full_name',
-    new.raw_user_meta_data ->> 'avatar_url',
+    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name'),
+    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture'),
     coalesce(new.raw_user_meta_data ->> 'preferred_language', 'uz')
   )
   on conflict (id) do nothing;
