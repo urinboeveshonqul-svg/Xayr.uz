@@ -9,6 +9,7 @@ import { ProfileForm } from '@/components/profile/ProfileForm';
 import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
 import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
+import { PushSettings } from '@/components/push/PushSettings';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -53,6 +54,26 @@ export default async function ProfilePage({
   // and the section degrades to zeros.
   const { data: statsRows } = await supabase.rpc('get_donor_stats', { p_user_id: user.id });
   const stats = statsRows?.[0] ?? null;
+
+  // Push-notification preferences (null if the push migration isn't applied yet
+  // → PushSettings falls back to sensible defaults and still saves on first use).
+  let pushPrefs: {
+    push_enabled: boolean;
+    donations: boolean;
+    campaign_updates: boolean;
+    verification: boolean;
+    marketing: boolean;
+  } | null = null;
+  try {
+    const { data } = await supabase
+      .from('notification_preferences')
+      .select('push_enabled, donations, campaign_updates, verification, marketing')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    pushPrefs = data ?? null;
+  } catch {
+    pushPrefs = null;
+  }
 
   // Recent donations (latest 5; full history lives at /profile/donations).
   interface RecentDonation {
@@ -201,6 +222,9 @@ export default async function ProfilePage({
               </div>
             )}
           </div>
+
+          {/* Browser push-notification settings (opt-in + per-category) */}
+          <PushSettings userId={user.id} initial={pushPrefs} />
 
           <div className="card p-8">
             <ProfileForm profile={profile} email={user.email ?? ''} />

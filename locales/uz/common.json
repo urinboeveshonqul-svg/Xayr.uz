@@ -3,6 +3,17 @@
     "title": "Xayr — O'zbekiston Xayriya Platformasi",
     "description": "O'zbekistondagi eng ishonchli xayriya platformasi. Kampaniya yarating, xayriya qiling va o'zgarish yarating."
   },
+  "push": {
+    "title": "Push bildirishnomalar",
+    "subtitle": "Muhim voqealar haqida brauzer orqali xabar oling",
+    "donations": "Xayriyalar",
+    "campaignUpdates": "Kampaniya yangiliklari",
+    "verification": "Tasdiqlash",
+    "marketing": "Yangiliklar va takliflar",
+    "error": "Saqlashda xatolik yuz berdi",
+    "enabledToast": "Push bildirishnomalar yoqildi",
+    "disabledToast": "Push bildirishnomalar o'chirildi"
+  },
   "nav": {
     "campaigns": "Kampaniyalar",
     "medical": "Tibbiyot",

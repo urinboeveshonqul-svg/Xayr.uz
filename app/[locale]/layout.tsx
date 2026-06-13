@@ -7,6 +7,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
 import { EmailVerifyBanner } from '@/components/EmailVerifyBanner';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { OneSignalProvider } from '@/components/push/OneSignalProvider';
 import { METADATA_BASE, SITE_URL, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/seo';
 import './globals.css';
 
@@ -125,6 +126,7 @@ export default async function LocaleLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
         />
         <I18nProvider locale={locale as Locale} messages={messages}>
+          <OneSignalProvider />
           <EmailVerifyBanner />
           {children}
           <BottomNav />

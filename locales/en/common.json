@@ -3,6 +3,17 @@
     "title": "Xayr — Uzbekistan Crowdfunding Platform",
     "description": "Uzbekistan's most trusted fundraising platform. Start a campaign, donate, and make a difference."
   },
+  "push": {
+    "title": "Push notifications",
+    "subtitle": "Get notified about important events in your browser",
+    "donations": "Donations",
+    "campaignUpdates": "Campaign updates",
+    "verification": "Verification",
+    "marketing": "News and offers",
+    "error": "Failed to save",
+    "enabledToast": "Push notifications enabled",
+    "disabledToast": "Push notifications disabled"
+  },
   "nav": {
     "campaigns": "Campaigns",
     "medical": "Medical",

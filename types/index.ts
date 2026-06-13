@@ -471,6 +471,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      notification_preferences: {
+        Row: {
+          user_id: string;
+          push_enabled: boolean;
+          donations: boolean;
+          campaign_updates: boolean;
+          verification: boolean;
+          marketing: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          push_enabled?: boolean;
+          donations?: boolean;
+          campaign_updates?: boolean;
+          verification?: boolean;
+          marketing?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          push_enabled?: boolean;
+          donations?: boolean;
+          campaign_updates?: boolean;
+          verification?: boolean;
+          marketing?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       saved_campaigns: {
         Row: {
           id: string;
@@ -744,6 +774,7 @@ export type CampaignReport = Row<'campaign_reports'> & {
 };
 export type Comment = Row<'comments'>;
 export type Notification = Row<'notifications'>;
+export type NotificationPreferences = Row<'notification_preferences'>;
 export type SavedCampaign = Row<'saved_campaigns'>;
 export type PayoutRequest = Row<'payout_requests'>;
 export type PayoutRequestEvent = Row<'payout_request_events'>;

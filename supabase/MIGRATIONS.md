@@ -36,6 +36,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 26 | `payout-commission.sql` | 3% platform commission on withdrawals | `payout_requests.commission_amount` exists |
 | 27 | `google-oauth.sql` | Google sign-in profile creation (coalesces `name`/`picture`) — run after enabling the Google provider in the dashboard | Google signups get name + avatar |
 | 28 | `platform-notifications.sql` | Owner notifications on campaign submit/approve/reject/pause + verification submit/approve/reject (adds `'verification'` type) | creators/applicants get decision notifications |
+| 29 | `push-notifications.sql` | Browser push preferences (`notification_preferences` table) for OneSignal delivery — see `docs/push-notifications-setup.md` | `notification_preferences` exists |
 
 ## Critical notes
 
