@@ -357,7 +357,7 @@
           "id": "contact",
           "heading": "Biz bilan bog'lanish",
           "paragraphs": [
-            "Maxfiylik bo'yicha savollaringiz bo'lsa, info@xayr.uz manzili orqali biz bilan bog'laning."
+            "Maxfiylik bo'yicha savollaringiz bo'lsa, Uzxayr@gmail.com manzili orqali biz bilan bog'laning."
           ],
           "bullets": []
         }
@@ -718,9 +718,9 @@
     "subtitle": "Savollaringiz bormi yoki yordam kerakmi? Biz bilan bemalol bog'laning.",
     "infoTitle": "Aloqa ma'lumotlari",
     "email": "Email",
-    "emailValue": "info@xayr.uz",
+    "emailValue": "Uzxayr@gmail.com",
     "phone": "Telefon",
-    "phoneValue": "+998 71 200 00 00",
+    "phoneValue": "+998 77 624 40 40",
     "address": "Manzil",
     "addressValue": "Toshkent, O'zbekiston",
     "hours": "Ish vaqti",

@@ -93,8 +93,8 @@ export default async function LocaleLayout({
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
-      email: 'info@xayr.uz',
-      telephone: '+998712000000',
+      email: 'Uzxayr@gmail.com',
+      telephone: '+998776244040',
     },
   };
   const websiteLd = {

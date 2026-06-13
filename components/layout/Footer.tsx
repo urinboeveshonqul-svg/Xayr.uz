@@ -114,11 +114,11 @@ export function Footer() {
 
           {/* Always-visible phone + email (tap-to-call / tap-to-mail) */}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 mt-3 text-xs">
-            <a href="tel:+998712000000" className="flex items-center gap-1.5 hover:text-white transition-colors">
-              <Phone className="w-3.5 h-3.5 text-green-500" /> +998 71 200 00 00
+            <a href="tel:+998776244040" className="flex items-center gap-1.5 hover:text-white transition-colors">
+              <Phone className="w-3.5 h-3.5 text-green-500" /> +998 77 624 40 40
             </a>
-            <a href="mailto:info@xayr.uz" className="flex items-center gap-1.5 hover:text-white transition-colors">
-              <Mail className="w-3.5 h-3.5 text-green-500" /> info@xayr.uz
+            <a href="mailto:Uzxayr@gmail.com" className="flex items-center gap-1.5 hover:text-white transition-colors">
+              <Mail className="w-3.5 h-3.5 text-green-500" /> Uzxayr@gmail.com
             </a>
           </div>
         </div>
@@ -189,11 +189,11 @@ export function Footer() {
             <ul className="space-y-4 text-sm">
               <li className="flex items-start gap-3">
                 <Mail className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <a href="mailto:info@xayr.uz" className="hover:text-white transition-colors">info@xayr.uz</a>
+                <a href="mailto:Uzxayr@gmail.com" className="hover:text-white transition-colors">Uzxayr@gmail.com</a>
               </li>
               <li className="flex items-start gap-3">
                 <Phone className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <a href="tel:+998712000000" className="hover:text-white transition-colors">+998 71 200 00 00</a>
+                <a href="tel:+998776244040" className="hover:text-white transition-colors">+998 77 624 40 40</a>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
