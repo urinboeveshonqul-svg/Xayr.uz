@@ -6,10 +6,17 @@
 -- own the affected entity were never told about admin DECISIONS. This adds:
 --
 --   CAMPAIGN owner (the creator):
---     • submitted  → campaign created as 'pending'        (under review)
---     • approved   → status pending/draft -> active       (went live)
---     • rejected   → status -> rejected                   (with resubmit hint)
---     • paused     → status active -> paused              (temporarily halted)
+--     • submitted   → campaign created as 'pending'       (under review)
+--     • approved    → status pending/draft -> active      (went live)
+--     • rejected    → status -> rejected                  (with resubmit hint)
+--     • paused      → status active -> paused             (temporarily halted)
+--     • goal reached→ current_amount crosses goal_amount  (owner copy)
+--     • completed   → status -> completed                 (owner copy)
+--
+--   The donor-notifications migration already tells DONORS about goal-reached
+--   and completed; these owner copies have a different recipient (the creator),
+--   so the creator is notified about every lifecycle event on their campaign
+--   without producing a duplicate for anyone.
 --
 --   VERIFICATION applicant (the user):
 --     • submitted  → verification_requests INSERT
@@ -71,7 +78,25 @@ begin
       values (new.user_id, 'campaign_status', 'Kampaniyangiz to''xtatildi',
               'Kampaniyangiz vaqtincha to''xtatildi: ' || new.title,
               '/campaigns/' || new.slug);
+
+    elsif new.status = 'completed' then
+      insert into public.notifications (user_id, type, title, body, link)
+      values (new.user_id, 'campaign_status', 'Kampaniyangiz yakunlandi',
+              'Tabriklaymiz! Kampaniyangiz muvaffaqiyatli yakunlandi: ' || new.title,
+              '/campaigns/' || new.slug);
     end if;
+  end if;
+
+  -- Goal reached — independent of any status change: fires once, the moment
+  -- current_amount first crosses goal_amount upward. Owner copy of the
+  -- milestone the donors are also notified about.
+  if new.goal_amount > 0
+     and old.current_amount < new.goal_amount
+     and new.current_amount >= new.goal_amount then
+    insert into public.notifications (user_id, type, title, body, link)
+    values (new.user_id, 'campaign_status', 'Maqsadga erishildi',
+            'Kampaniyangiz o''z maqsadiga erishdi: ' || new.title,
+            '/campaigns/' || new.slug);
   end if;
 
   return new;
