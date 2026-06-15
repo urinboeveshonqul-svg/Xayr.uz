@@ -471,6 +471,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_audit_log: {
+        Row: {
+          id: string;
+          admin_id: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          meta: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_id?: string | null;
+          action: string;
+          entity_type: string;
+          entity_id?: string | null;
+          meta?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          admin_id?: string | null;
+          action?: string;
+          entity_type?: string;
+          entity_id?: string | null;
+          meta?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       campaign_shares: {
         Row: {
           id: string;
