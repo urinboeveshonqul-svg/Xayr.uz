@@ -100,10 +100,10 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
         <button
           type="button"
           onClick={onClose}
-          className="btn-ghost p-1"
+          className="btn-ghost p-2"
           aria-label="Yopish"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 
@@ -115,7 +115,7 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
               key={amt}
               type="button"
               onClick={() => pickPreset(amt)}
-              className={`py-2 px-3 rounded-xl border text-sm font-semibold transition-all ${
+              className={`min-h-[48px] py-3 px-3 rounded-xl border text-sm font-semibold transition-all active:scale-[0.98] ${
                 selectedPreset === amt
                   ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400'
                   : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-brand-300 dark:hover:border-brand-700'
@@ -131,6 +131,7 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
           <label className="label">Boshqa miqdor (so'm)</label>
           <input
             type="number"
+            inputMode="numeric"
             value={customAmount}
             onChange={handleCustomChange}
             className="input"
@@ -175,7 +176,7 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="btn-primary w-full py-2.5"
+          className="btn-primary w-full py-3 min-h-[48px] text-base"
         >
           {isSubmitting ? (
             <>

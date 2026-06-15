@@ -17,6 +17,13 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
+
+  /* iOS Safari zooms the viewport when a focused field is < 16px. Force 16px on
+     form controls on small screens so focusing an input never triggers a zoom
+     (affects every form: auth, donation, create/edit campaign, verification). */
+  @media (max-width: 640px) {
+    input, select, textarea { font-size: 16px !important; }
+  }
 }
 
 /* ============================================================
@@ -186,6 +193,15 @@
 /* Whole-mark breathe — doubles as the simple-pulse fallback if per-piece
    transforms aren't applied. */
 .xayr-loader-tile { animation: xayrBreathe 1.6s ease-in-out infinite; }
+
+/* Modern route-transition bar — a slim indeterminate sweep at the top of the
+   viewport while the next route's server render streams. Replaces the old
+   full-page loader takeover. */
+@keyframes route-progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(260%); }
+}
+.animate-route-progress { animation: route-progress 1.1s ease-in-out infinite; }
 
 /* Accessibility: users who prefer reduced motion get none — site-wide. */
 @media (prefers-reduced-motion: reduce) {

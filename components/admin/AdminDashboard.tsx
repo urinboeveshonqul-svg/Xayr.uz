@@ -162,10 +162,16 @@ export function AdminDashboard({ pendingCampaigns }: AdminDashboardProps) {
       {/* Rejection reason modal */}
       {rejecting && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
           onClick={() => setRejecting(null)}
         >
-          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 animate-pop" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="w-full sm:max-w-md bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 animate-pop max-h-[90vh] overflow-y-auto"
+            style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t('admin.rejectTitle')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 truncate">{rejecting.title}</p>
             <label className="label">{t('admin.rejectReasonLabel')}</label>
