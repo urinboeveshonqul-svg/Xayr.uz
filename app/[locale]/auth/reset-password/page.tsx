@@ -1,32 +1,19 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
-import { Heart } from 'lucide-react';
 import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { getDictionary } from '@/i18n/dictionaries';
+import { isLocale } from '@/i18n/config';
 
-export const metadata: Metadata = {
-  title: 'Yangi parol — Xayr',
-};
+export const metadata: Metadata = { title: 'Yangi parol — Xayr' };
 
-export default function ResetPasswordPage() {
+export default async function ResetPasswordPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const lng = isLocale(locale) ? locale : 'uz';
+  const a = (await getDictionary(lng)).auth;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <Heart className="w-7 h-7 text-brand-600 fill-current" />
-            <span className="text-2xl font-black text-brand-600">Xayr</span>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Yangi parol o'rnating
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-            Hisobingiz uchun yangi parol kiriting.
-          </p>
-        </div>
-        <div className="card p-8">
-          <ResetPasswordForm />
-        </div>
-      </div>
-    </div>
+    <AuthShell locale={lng} title={a.resetTitle} subtitle={a.resetSubtitle}>
+      <ResetPasswordForm />
+    </AuthShell>
   );
 }

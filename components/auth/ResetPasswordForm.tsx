@@ -8,23 +8,24 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-const schema = z
-  .object({
-    password: z.string().min(6, 'Parol kamida 6 ta belgi bo\'lishi kerak'),
-    confirm_password: z.string(),
-  })
-  .refine((d) => d.password === d.confirm_password, {
-    message: 'Parollar mos kelmadi',
-    path: ['confirm_password'],
-  });
-
-type FormData = z.infer<typeof schema>;
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function ResetPasswordForm() {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [show, setShow] = useState(false);
   const [ready, setReady] = useState(false);
+
+  const schema = z
+    .object({
+      password: z.string().min(6, t('auth.vPasswordMin')),
+      confirm_password: z.string(),
+    })
+    .refine((d) => d.password === d.confirm_password, {
+      message: t('auth.vPasswordsMatch'),
+      path: ['confirm_password'],
+    });
+  type FormData = z.infer<typeof schema>;
 
   const {
     register,
@@ -38,13 +39,13 @@ export function ResetPasswordForm() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
-        toast.error('Tiklash havolasi yaroqsiz yoki muddati tugagan.');
-        router.replace('/auth/forgot-password');
+        toast.error(t('auth.resetInvalid'));
+        router.replace(`/${locale}/auth/forgot-password`);
       } else {
         setReady(true);
       }
     });
-  }, [router]);
+  }, [router, locale, t]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -56,11 +57,11 @@ export function ResetPasswordForm() {
         return;
       }
 
-      toast.success('Parol muvaffaqiyatli yangilandi!');
-      router.push('/');
+      toast.success(t('auth.passwordUpdated'));
+      router.push(`/${locale}`);
       router.refresh();
     } catch {
-      toast.error('Kutilmagan xatolik yuz berdi');
+      toast.error(t('auth.unexpected'));
     }
   };
 
@@ -75,7 +76,7 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="label">Yangi parol *</label>
+        <label className="label">{t('auth.newPassword')} *</label>
         <div className="relative">
           <input
             {...register('password')}
@@ -88,18 +89,16 @@ export function ResetPasswordForm() {
             type="button"
             onClick={() => setShow(!show)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            aria-label={show ? 'Parolni yashirish' : 'Parolni ko\'rsatish'}
+            aria-label={show ? t('auth.hidePassword') : t('auth.showPassword')}
           >
             {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
-        {errors.password && (
-          <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-        )}
+        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
       </div>
 
       <div>
-        <label className="label">Parolni tasdiqlang *</label>
+        <label className="label">{t('auth.confirmPassword')} *</label>
         <input
           {...register('confirm_password')}
           type={show ? 'text' : 'password'}
@@ -112,18 +111,14 @@ export function ResetPasswordForm() {
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="btn-primary w-full py-3 text-base"
-      >
+      <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 text-base">
         {isSubmitting ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            Saqlanmoqda...
+            {t('auth.saving')}
           </>
         ) : (
-          'Parolni yangilash'
+          t('auth.updatePassword')
         )}
       </button>
     </form>

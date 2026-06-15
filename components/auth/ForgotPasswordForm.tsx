@@ -7,15 +7,14 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Loader2, MailCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-const schema = z.object({
-  email: z.string().email("To'g'ri email kiriting"),
-});
-
-type FormData = z.infer<typeof schema>;
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function ForgotPasswordForm() {
+  const { t } = useI18n();
   const [sentTo, setSentTo] = useState<string | null>(null);
+
+  const schema = z.object({ email: z.string().email(t('auth.vEmail')) });
+  type FormData = z.infer<typeof schema>;
 
   const {
     register,
@@ -38,9 +37,9 @@ export function ForgotPasswordForm() {
       }
 
       setSentTo(data.email);
-      toast.success('Tiklash havolasi yuborildi!');
+      toast.success(t('auth.resetSent'));
     } catch {
-      toast.error('Kutilmagan xatolik yuz berdi');
+      toast.error(t('auth.unexpected'));
     }
   };
 
@@ -50,10 +49,9 @@ export function ForgotPasswordForm() {
         <div className="w-14 h-14 mx-auto rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
           <MailCheck className="w-7 h-7 text-green-600" />
         </div>
-        <h3 className="font-bold text-gray-900 dark:text-white">Emailingizni tekshiring</h3>
+        <h3 className="font-bold text-gray-900 dark:text-white">{t('auth.resetSentTitle')}</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          <span className="font-semibold">{sentTo}</span> manziliga parolni tiklash
-          havolasini yubordik. Havola 1 soat davomida amal qiladi.
+          <span className="font-semibold">{sentTo}</span> — {t('auth.resetSentBody')}
         </p>
       </div>
     );
@@ -62,31 +60,25 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="label">Email *</label>
+        <label className="label">{t('auth.email')} *</label>
         <input
           {...register('email')}
           type="email"
           className="input"
-          placeholder="sizning@email.com"
+          placeholder={t('auth.emailPlaceholder')}
           autoComplete="email"
         />
-        {errors.email && (
-          <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-        )}
+        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
       </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="btn-primary w-full py-3 text-base"
-      >
+      <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 text-base">
         {isSubmitting ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            Yuborilmoqda...
+            {t('auth.sending')}
           </>
         ) : (
-          'Tiklash havolasini yuborish'
+          t('auth.sendReset')
         )}
       </button>
     </form>

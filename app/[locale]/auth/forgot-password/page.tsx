@@ -1,37 +1,29 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Heart } from 'lucide-react';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { getDictionary } from '@/i18n/dictionaries';
+import { isLocale } from '@/i18n/config';
 
-export const metadata: Metadata = {
-  title: 'Parolni tiklash — Xayr',
-};
+export const metadata: Metadata = { title: 'Parolni tiklash — Xayr' };
 
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const lng = isLocale(locale) ? locale : 'uz';
+  const a = (await getDictionary(lng)).auth;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <Heart className="w-7 h-7 text-brand-600 fill-current" />
-            <span className="text-2xl font-black text-brand-600">Xayr</span>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Parolni unutdingizmi?
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-            Email manzilingizni kiriting — biz parolni tiklash havolasini yuboramiz.
-          </p>
-        </div>
-        <div className="card p-8">
-          <ForgotPasswordForm />
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-            <Link href="/auth/login" className="text-brand-600 font-semibold hover:underline">
-              Kirishga qaytish
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+    <AuthShell
+      locale={lng}
+      title={a.forgotTitle}
+      subtitle={a.forgotSubtitle}
+      footer={
+        <Link href={`/${lng}/auth/login`} className="text-brand-600 font-semibold hover:underline">
+          {a.backToLogin}
+        </Link>
+      }
+    >
+      <ForgotPasswordForm />
+    </AuthShell>
   );
 }

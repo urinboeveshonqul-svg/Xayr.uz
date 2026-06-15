@@ -7,25 +7,26 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-
-const schema = z
-  .object({
-    full_name: z.string().min(2, 'Ism kamida 2 ta belgi bo\'lishi kerak').max(100),
-    email: z.string().email("To'g'ri email kiriting"),
-    password: z.string().min(6, 'Parol kamida 6 ta belgi bo\'lishi kerak'),
-    confirm_password: z.string(),
-  })
-  .refine((d) => d.password === d.confirm_password, {
-    message: 'Parollar mos kelmadi',
-    path: ['confirm_password'],
-  });
-
-type FormData = z.infer<typeof schema>;
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function RegisterForm() {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  const schema = z
+    .object({
+      full_name: z.string().min(2, t('auth.vNameMin')).max(100),
+      email: z.string().email(t('auth.vEmail')),
+      password: z.string().min(6, t('auth.vPasswordMin')),
+      confirm_password: z.string(),
+    })
+    .refine((d) => d.password === d.confirm_password, {
+      message: t('auth.vPasswordsMatch'),
+      path: ['confirm_password'],
+    });
+  type FormData = z.infer<typeof schema>;
 
   const {
     register,
@@ -48,60 +49,51 @@ export function RegisterForm() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        toast.error(json?.error || 'Ro\'yxatdan o\'tishda xatolik yuz berdi');
+        toast.error(json?.error || t('auth.signupError'));
         return;
       }
 
       if (json.needsConfirmation) {
-        // Email confirmation required — show the verify-email notice.
-        toast.success('Tasdiqlash havolasi emailingizga yuborildi!');
-        router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
+        toast.success(t('auth.confirmSent'));
+        router.push(`/${locale}/auth/verify-email?email=${encodeURIComponent(data.email)}`);
       } else {
-        // Email confirmation disabled — user is already signed in.
-        toast.success('Ro\'yxatdan muvaffaqiyatli o\'tdingiz!');
-        router.push('/');
+        toast.success(t('auth.signupSuccess'));
+        router.push(`/${locale}`);
         router.refresh();
       }
     } catch {
-      toast.error('Kutilmagan xatolik yuz berdi');
+      toast.error(t('auth.unexpected'));
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {/* Full name */}
       <div>
-        <label className="label">To'liq ism *</label>
+        <label className="label">{t('auth.fullName')} *</label>
         <input
           {...register('full_name')}
           type="text"
           className="input"
-          placeholder="Ism Familiya"
+          placeholder={t('auth.namePlaceholder')}
           autoComplete="name"
         />
-        {errors.full_name && (
-          <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>
-        )}
+        {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>}
       </div>
 
-      {/* Email */}
       <div>
-        <label className="label">Email *</label>
+        <label className="label">{t('auth.email')} *</label>
         <input
           {...register('email')}
           type="email"
           className="input"
-          placeholder="sizning@email.com"
+          placeholder={t('auth.emailPlaceholder')}
           autoComplete="email"
         />
-        {errors.email && (
-          <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-        )}
+        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
       </div>
 
-      {/* Password */}
       <div>
-        <label className="label">Parol *</label>
+        <label className="label">{t('auth.password')} *</label>
         <div className="relative">
           <input
             {...register('password')}
@@ -114,19 +106,16 @@ export function RegisterForm() {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            aria-label={showPassword ? 'Parolni yashirish' : 'Parolni ko\'rsatish'}
+            aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
-        {errors.password && (
-          <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-        )}
+        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
       </div>
 
-      {/* Confirm password */}
       <div>
-        <label className="label">Parolni tasdiqlash *</label>
+        <label className="label">{t('auth.confirmPassword')} *</label>
         <div className="relative">
           <input
             {...register('confirm_password')}
@@ -139,7 +128,7 @@ export function RegisterForm() {
             type="button"
             onClick={() => setShowConfirm(!showConfirm)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            aria-label={showConfirm ? 'Parolni yashirish' : 'Parolni ko\'rsatish'}
+            aria-label={showConfirm ? t('auth.hidePassword') : t('auth.showPassword')}
           >
             {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -149,25 +138,18 @@ export function RegisterForm() {
         )}
       </div>
 
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="btn-primary w-full py-3 text-base"
-      >
+      <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 text-base">
         {isSubmitting ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            Ro'yxatdan o'tilmoqda...
+            {t('auth.signingUp')}
           </>
         ) : (
-          "Ro'yxatdan o'tish"
+          t('auth.signUp')
         )}
       </button>
 
-      <p className="text-xs text-gray-400 text-center">
-        Ro'yxatdan o'tish orqali siz platformamiz shartlarini qabul qilasiz.
-      </p>
+      <p className="text-xs text-gray-400 text-center">{t('auth.termsNote')}</p>
     </form>
   );
 }
