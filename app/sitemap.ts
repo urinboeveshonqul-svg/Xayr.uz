@@ -31,7 +31,7 @@ function alternatesFor(path: string): { languages: Record<string, string> } {
 }
 
 /** Fetch active campaign slugs (+ last update) without needing a request cookie. */
-async function getCampaignEntries(): Promise<{ slug: string; updated_at: string }[]> {
+async function getCampaignEntries(): Promise<{ slug: string; updated_at: string; image_url: string | null }[]> {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -40,13 +40,13 @@ async function getCampaignEntries(): Promise<{ slug: string; updated_at: string 
     const supabase = createClient(url, anon);
     const { data, error } = await supabase
       .from('campaigns')
-      .select('slug, updated_at')
+      .select('slug, updated_at, image_url')
       .eq('status', 'active')
       .order('updated_at', { ascending: false })
       .limit(5000);
 
     if (error || !data) return [];
-    return data as { slug: string; updated_at: string }[];
+    return data as { slug: string; updated_at: string; image_url: string | null }[];
   } catch {
     return [];
   }
@@ -77,6 +77,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily' as const,
       priority: 0.8,
       alternates: alternatesFor(path),
+      // Image sitemap extension — helps the campaign cover image get indexed.
+      ...(c.image_url ? { images: [c.image_url] } : {}),
     }));
   });
 

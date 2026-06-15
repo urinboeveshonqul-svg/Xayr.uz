@@ -5,6 +5,7 @@ import { BarChart3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
+import { buildCampaignJsonLd } from '@/lib/campaign-jsonld';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
@@ -194,8 +195,15 @@ export default async function CampaignDetailPage({ params }: Props) {
     getTeam(campaign.id),
   ]);
 
+  const jsonLd = buildCampaignJsonLd(campaign, loc);
+
   return (
     <>
+      {/* Per-campaign structured data (BreadcrumbList + WebPage + DonateAction) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
