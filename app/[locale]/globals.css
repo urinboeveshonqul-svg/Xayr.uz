@@ -168,6 +168,25 @@
   }
 }
 
+/* Branded route loader — the four logo strokes drift apart, then rejoin, while
+   the tile gently breathes. Translations are in SVG user units (96 viewBox), so
+   they scale with the mark. Under prefers-reduced-motion the block below freezes
+   all of this to a clean static logo. */
+@keyframes xayrTL { 0%, 100% { transform: translate(0, 0); } 45% { transform: translate(-7px, -7px); } }
+@keyframes xayrTR { 0%, 100% { transform: translate(0, 0); } 45% { transform: translate(7px, -7px); } }
+@keyframes xayrBL { 0%, 100% { transform: translate(0, 0); } 45% { transform: translate(-7px, 7px); } }
+@keyframes xayrBR { 0%, 100% { transform: translate(0, 0); } 45% { transform: translate(7px, 7px); } }
+@keyframes xayrBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+.xayr-piece { transform-box: view-box; }
+.xayr-tl { animation: xayrTL 1.3s ease-in-out infinite; }
+.xayr-tr { animation: xayrTR 1.3s ease-in-out infinite; }
+.xayr-bl { animation: xayrBL 1.3s ease-in-out infinite; }
+.xayr-br { animation: xayrBR 1.3s ease-in-out infinite; }
+/* Whole-mark breathe — doubles as the simple-pulse fallback if per-piece
+   transforms aren't applied. */
+.xayr-loader-tile { animation: xayrBreathe 1.6s ease-in-out infinite; }
+
 /* Accessibility: users who prefer reduced motion get none — site-wide. */
 @media (prefers-reduced-motion: reduce) {
   html {
