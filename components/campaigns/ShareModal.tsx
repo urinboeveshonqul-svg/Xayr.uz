@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, type ComponentType } from 'react';
 import toast from 'react-hot-toast';
 import { X, Send, Facebook, Link2, MessageCircle } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
@@ -50,7 +50,7 @@ export function ShareModal({
     }
   };
 
-  const channels: { key: ShareSource; label: string; href?: string; Icon: typeof Send; cls: string }[] = [
+  const channels: { key: ShareSource; label: string; href?: string; Icon: ComponentType<{ className?: string }>; cls: string }[] = [
     { key: 'whatsapp', label: 'WhatsApp', href: links.whatsapp, Icon: MessageCircle, cls: 'bg-green-50 text-green-600 dark:bg-green-900/20' },
     { key: 'telegram', label: 'Telegram', href: links.telegram, Icon: Send, cls: 'bg-blue-50 text-blue-500 dark:bg-blue-900/20' },
     { key: 'facebook', label: 'Facebook', href: links.facebook, Icon: Facebook, cls: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' },
