@@ -29,7 +29,7 @@ export default async function MyCampaignsPage({
   // query intent clear and indexed.
   const { data } = await supabase
     .from('campaigns')
-    .select('id, title, slug, status, image_url, current_amount, goal_amount, donors_count, created_at')
+    .select('id, title, slug, status, image_url, current_amount, goal_amount, donors_count, rejection_reason, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 

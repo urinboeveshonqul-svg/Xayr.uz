@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { formatMoney } from '@/lib/utils';
-import { Users, Megaphone, Clock, Heart, TrendingUp, CheckCircle } from 'lucide-react';
+import { getDictionary } from '@/i18n/dictionaries';
+import { isLocale } from '@/i18n/config';
+import { Users, Megaphone, Clock, Heart, TrendingUp, CheckCircle, Wallet } from 'lucide-react';
 import type { Campaign } from '@/types';
 
 export const metadata: Metadata = { title: 'Admin Panel — Xayr' };
@@ -15,6 +17,8 @@ export default async function AdminOverviewPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const lng = isLocale(locale) ? locale : 'uz';
+  const ad = (await getDictionary(lng)).admin;
   const admin = createAdminClient();
 
   const [{ data: stats }, { data: pending }, { data: top }] = await Promise.all([
@@ -36,19 +40,20 @@ export default async function AdminOverviewPage({
     (top as { id: string; title: string; slug: string; current_amount: number; goal_amount: number; donors_count: number }[]) ?? [];
 
   const cards = [
-    { label: 'Foydalanuvchilar', value: String(stats?.users_count ?? 0), icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { label: 'Kampaniyalar', value: String(stats?.campaigns_count ?? 0), icon: Megaphone, color: 'text-green-500', bg: 'bg-green-50' },
-    { label: 'Kutilmoqda', value: String(stats?.pending_count ?? 0), icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-    { label: 'Faol', value: String(stats?.active_count ?? 0), icon: CheckCircle, color: 'text-teal-500', bg: 'bg-teal-50' },
-    { label: 'Xayriyalar', value: String(stats?.donations_count ?? 0), icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
-    { label: "Yig'ilgan", value: `${formatMoney(stats?.total_raised ?? 0)} so'm`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { label: ad.cUsers, value: String(stats?.users_count ?? 0), icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { label: ad.cCampaigns, value: String(stats?.campaigns_count ?? 0), icon: Megaphone, color: 'text-green-500', bg: 'bg-green-50' },
+    { label: ad.cPending, value: String(stats?.pending_count ?? 0), icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+    { label: ad.cActive, value: String(stats?.active_count ?? 0), icon: CheckCircle, color: 'text-teal-500', bg: 'bg-teal-50' },
+    { label: ad.cDonations, value: String(stats?.donations_count ?? 0), icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
+    { label: ad.cRaised, value: `${formatMoney(stats?.total_raised ?? 0)} so'm`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { label: ad.cRevenue, value: `${formatMoney(stats?.revenue ?? 0)} so'm`, icon: Wallet, color: 'text-brand-600', bg: 'bg-brand-50' },
   ];
 
   return (
     <div className="space-y-10">
       {/* Statistics */}
       <section>
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Statistika</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{ad.statsTitle}</h2>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map((c, i) => (
             <div key={i} className="card p-5 flex items-center gap-4">
@@ -67,7 +72,7 @@ export default async function AdminOverviewPage({
       {/* Report: top campaigns */}
       {topCampaigns.length > 0 && (
         <section>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Eng ko&apos;p to&apos;plangan kampaniyalar</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{ad.topCampaigns}</h2>
           <div className="card divide-y divide-gray-100 dark:divide-gray-800">
             {topCampaigns.map((c, i) => (
               <Link
@@ -77,7 +82,7 @@ export default async function AdminOverviewPage({
               >
                 <span className="text-lg font-black text-gray-300 w-6 text-center">{i + 1}</span>
                 <span className="flex-1 min-w-0 font-semibold text-gray-900 dark:text-white truncate">{c.title}</span>
-                <span className="text-xs text-gray-400 hidden sm:block">{c.donors_count} donor</span>
+                <span className="text-xs text-gray-400 hidden sm:block">{c.donors_count} {ad.donorsShort}</span>
                 <span className="font-bold text-brand-600 flex-shrink-0">{formatMoney(c.current_amount)} so&apos;m</span>
               </Link>
             ))}
@@ -87,7 +92,7 @@ export default async function AdminOverviewPage({
 
       {/* Pending approvals */}
       <section>
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Tasdiqlash kutilmoqda</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{ad.pendingTitle}</h2>
         <AdminDashboard pendingCampaigns={pendingCampaigns} />
       </section>
     </div>

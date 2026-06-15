@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { getDictionary } from '@/i18n/dictionaries';
+import { isLocale } from '@/i18n/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +16,7 @@ export default async function AdminLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const ad = (await getDictionary(isLocale(locale) ? locale : 'uz')).admin;
   const supabase = await createClient();
 
   const {
@@ -34,8 +37,8 @@ export default async function AdminLayout({
       <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="section-title mb-1">Admin Panel</h1>
-          <p className="section-sub mb-6">Platformani boshqaring</p>
+          <h1 className="section-title mb-1">{ad.panelTitle}</h1>
+          <p className="section-sub mb-6">{ad.panelSubtitle}</p>
           <AdminNav />
           {children}
         </div>

@@ -22,6 +22,7 @@ export interface MyCampaignRow {
   current_amount: number;
   goal_amount: number;
   donors_count: number;
+  rejection_reason: string | null;
   created_at: string;
 }
 
@@ -206,7 +207,9 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
 
                 {c.status === 'rejected' && (
                   <p className="text-xs text-red-500 mt-2">
-                    {t('dash.rejectedHint')}
+                    {c.rejection_reason
+                      ? `${t('dash.rejectedReason')}: ${c.rejection_reason}`
+                      : t('dash.rejectedHint')}
                   </p>
                 )}
               </article>

@@ -4,22 +4,24 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Megaphone, Users, ShieldCheck, Flag, Wallet, Mail, HandCoins } from 'lucide-react';
 import { isLocale } from '@/i18n/config';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 export function AdminNav() {
   const pathname = usePathname();
+  const { t } = useI18n();
   const segments = pathname.split('/');
   const locale = isLocale(segments[1]) ? segments[1] : 'uz';
   const bare = '/' + segments.slice(2).join('/'); // path without locale, e.g. /admin/users
 
   const tabs = [
-    { href: `/${locale}/admin`, match: '/admin', label: 'Umumiy', icon: LayoutDashboard },
-    { href: `/${locale}/admin/campaigns`, match: '/admin/campaigns', label: 'Kampaniyalar', icon: Megaphone },
-    { href: `/${locale}/admin/donations`, match: '/admin/donations', label: 'Xayriyalar', icon: HandCoins },
-    { href: `/${locale}/admin/verifications`, match: '/admin/verifications', label: 'Tasdiqlash', icon: ShieldCheck },
-    { href: `/${locale}/admin/users`, match: '/admin/users', label: 'Foydalanuvchilar', icon: Users },
-    { href: `/${locale}/admin/flags`, match: '/admin/flags', label: 'Shikoyatlar', icon: Flag },
-    { href: `/${locale}/admin/payouts`, match: '/admin/payouts', label: "To'lovlar", icon: Wallet },
-    { href: `/${locale}/admin/messages`, match: '/admin/messages', label: 'Murojaatlar', icon: Mail },
+    { href: `/${locale}/admin`, match: '/admin', label: t('admin.navOverview'), icon: LayoutDashboard },
+    { href: `/${locale}/admin/campaigns`, match: '/admin/campaigns', label: t('admin.navCampaigns'), icon: Megaphone },
+    { href: `/${locale}/admin/donations`, match: '/admin/donations', label: t('admin.navDonations'), icon: HandCoins },
+    { href: `/${locale}/admin/verifications`, match: '/admin/verifications', label: t('admin.navVerifications'), icon: ShieldCheck },
+    { href: `/${locale}/admin/users`, match: '/admin/users', label: t('admin.navUsers'), icon: Users },
+    { href: `/${locale}/admin/flags`, match: '/admin/flags', label: t('admin.navFlags'), icon: Flag },
+    { href: `/${locale}/admin/payouts`, match: '/admin/payouts', label: t('admin.navPayouts'), icon: Wallet },
+    { href: `/${locale}/admin/messages`, match: '/admin/messages', label: t('admin.navMessages'), icon: Mail },
   ];
 
   return (

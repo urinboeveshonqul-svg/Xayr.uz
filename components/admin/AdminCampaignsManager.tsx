@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { ExternalLink, Trash2, Loader2, Siren, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney } from '@/lib/utils';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign, CampaignStatus, TeamRole } from '@/types';
 
 export interface TeamInfo {
@@ -13,20 +14,7 @@ export interface TeamInfo {
   role: TeamRole;
 }
 
-const ROLE_LABEL: Record<TeamRole, string> = {
-  owner: 'Egasi',
-  manager: 'Menejer',
-  editor: 'Muharrir',
-};
-
-const STATUSES: { value: CampaignStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'Barchasi' },
-  { value: 'pending', label: 'Kutilmoqda' },
-  { value: 'active', label: 'Faol' },
-  { value: 'paused', label: "To'xtatilgan" },
-  { value: 'rejected', label: 'Rad etilgan' },
-  { value: 'completed', label: 'Yakunlangan' },
-];
+const STATUS_VALUES: (CampaignStatus | 'all')[] = ['all', 'pending', 'active', 'paused', 'rejected', 'completed'];
 
 const STATUS_BADGE: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
@@ -43,10 +31,19 @@ interface Props {
 }
 
 export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props) {
+  const { t } = useI18n();
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
   const [filter, setFilter] = useState<CampaignStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const statusLabel: Record<string, string> = {
+    all: t('admin.stAll'), pending: t('admin.stPending'), active: t('admin.stActive'),
+    paused: t('admin.stPaused'), rejected: t('admin.stRejected'), completed: t('admin.stCompleted'),
+  };
+  const roleLabel: Record<TeamRole, string> = {
+    owner: t('admin.roleOwner'), manager: t('admin.roleManager'), editor: t('admin.roleEditor'),
+  };
 
   const visible = campaigns.filter(
     (c) =>
@@ -56,23 +53,35 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
 
   // Admins can update/delete any campaign (RLS: is_admin()).
   const setStatus = async (id: string, status: CampaignStatus) => {
+    // Rejecting requires a reason the owner will see.
+    let rejection_reason: string | null = null;
+    if (status === 'rejected') {
+      const input = window.prompt(t('admin.rejectReasonLabel'));
+      if (input === null) return; // cancelled
+      if (!input.trim()) {
+        toast.error(t('admin.rejectReasonRequired'));
+        return;
+      }
+      rejection_reason = input.trim();
+    }
     setBusyId(id);
     try {
       const supabase = createClient();
-      const { error } = await supabase.from('campaigns').update({ status }).eq('id', id);
+      const patch = status === 'rejected' ? { status, rejection_reason } : { status };
+      const { error } = await supabase.from('campaigns').update(patch).eq('id', id);
       if (error) {
         toast.error(error.message);
         return;
       }
-      setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
-      toast.success('Holat yangilandi');
+      setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, status, ...(rejection_reason ? { rejection_reason } : {}) } : c)));
+      toast.success(t('admin.statusUpdated'));
     } finally {
       setBusyId(null);
     }
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Kampaniyani butunlay o'chirishni tasdiqlaysizmi?")) return;
+    if (!confirm(t('admin.deleteConfirm'))) return;
     setBusyId(id);
     try {
       const supabase = createClient();
@@ -82,7 +91,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
         return;
       }
       setCampaigns((prev) => prev.filter((c) => c.id !== id));
-      toast.success("O'chirildi");
+      toast.success(t('admin.deleted'));
     } finally {
       setBusyId(null);
     }
@@ -95,7 +104,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Sarlavha bo'yicha qidirish..."
+          placeholder={t('admin.searchTitle')}
           className="input flex-1"
         />
         <select
@@ -103,13 +112,13 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
           onChange={(e) => setFilter(e.target.value as CampaignStatus | 'all')}
           className="input sm:w-48"
         >
-          {STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
+          {STATUS_VALUES.map((s) => (
+            <option key={s} value={s}>{statusLabel[s]}</option>
           ))}
         </select>
       </div>
 
-      <p className="text-sm text-gray-500">{visible.length} ta kampaniya</p>
+      <p className="text-sm text-gray-500">{t('admin.nCampaigns').replace('{count}', String(visible.length))}</p>
 
       <div className="space-y-3">
         {visible.map((c) => {
@@ -118,18 +127,18 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
             <div key={c.id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`badge ${STATUS_BADGE[c.status] ?? ''}`}>{c.status}</span>
+                  <span className={`badge ${STATUS_BADGE[c.status] ?? ''}`}>{statusLabel[c.status] ?? c.status}</span>
                   {c.is_urgent && <span className="badge bg-red-500 text-white"><Siren className="w-3 h-3" /></span>}
                 </div>
                 <p className="font-semibold text-gray-900 dark:text-white truncate">{c.title}</p>
                 <p className="text-xs text-gray-400">
-                  {formatMoney(c.current_amount)} / {formatMoney(c.goal_amount)} so&apos;m · {c.donors_count} donor
+                  {formatMoney(c.current_amount)} / {formatMoney(c.goal_amount)} so&apos;m · {c.donors_count} {t('admin.donorsShort')}
                 </p>
                 {team?.[c.id] && team[c.id].length > 0 && (
                   <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
                     <Users className="w-3 h-3 flex-shrink-0" />
                     {team[c.id]
-                      .map((m) => `${m.name ?? '—'} (${ROLE_LABEL[m.role]})`)
+                      .map((m) => `${m.name ?? '—'} (${roleLabel[m.role]})`)
                       .join(', ')}
                   </p>
                 )}
@@ -141,15 +150,15 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
                   onChange={(e) => setStatus(c.id, e.target.value as CampaignStatus)}
                   className="input py-1.5 text-xs w-36"
                 >
-                  {STATUSES.filter((s) => s.value !== 'all').map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
+                  {STATUS_VALUES.filter((s) => s !== 'all').map((s) => (
+                    <option key={s} value={s}>{statusLabel[s]}</option>
                   ))}
                 </select>
                 <Link
                   href={`/${locale}/campaigns/${c.slug}`}
                   target="_blank"
                   className="btn-ghost p-2 border border-gray-200 dark:border-gray-700"
-                  title="Ko'rish"
+                  title={t('admin.view')}
                 >
                   <ExternalLink className="w-4 h-4" />
                 </Link>
@@ -157,7 +166,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
                   onClick={() => remove(c.id)}
                   disabled={busy}
                   className="p-2 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
-                  title="O'chirish"
+                  title={t('admin.delete')}
                 >
                   {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 </button>
@@ -166,7 +175,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
           );
         })}
         {visible.length === 0 && (
-          <div className="card p-12 text-center text-gray-400">Kampaniyalar topilmadi</div>
+          <div className="card p-12 text-center text-gray-400">{t('admin.notFound')}</div>
         )}
       </div>
     </div>

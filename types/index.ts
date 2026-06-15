@@ -137,6 +137,7 @@ export type Database = {
           location: string | null;
           donors_count: number;
           views: number;
+          rejection_reason: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -158,6 +159,7 @@ export type Database = {
           location?: string | null;
           donors_count?: number;
           views?: number;
+          rejection_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -179,6 +181,7 @@ export type Database = {
           location?: string | null;
           donors_count?: number;
           views?: number;
+          rejection_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -749,6 +752,7 @@ export type Database = {
           completed_count: number;
           donations_count: number;
           total_raised: number;
+          revenue: number;
         };
         Relationships: [];
       };
