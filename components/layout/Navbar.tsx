@@ -6,7 +6,7 @@ import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User, HeartPulse, Grad
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
-import { CrossroadsGlyph } from '@/components/brand/CrossroadsGlyph';
+import { XayrLogo } from '@/components/branding/XayrLogo';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { Avatar } from '@/components/ui/Avatar';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -112,13 +112,8 @@ export function Navbar() {
         <div className="flex items-center justify-between h-20">
 
           {/* Logo */}
-          <Link href={L('')} className="flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <CrossroadsGlyph className="w-12 h-12 text-white" />
-            </div>
-            <span className="text-2xl font-black tracking-tight text-slate-900">
-              Xayr
-            </span>
+          <Link href={L('')} className="group">
+            <XayrLogo size="lg" />
           </Link>
 
           {/* Desktop Nav */}

@@ -6,7 +6,7 @@ import {
   ShieldCheck, BadgeCheck, Headphones, ChevronDown,
 } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { CrossroadsGlyph } from '@/components/brand/CrossroadsGlyph';
+import { XayrLogo } from '@/components/branding/XayrLogo';
 
 export function Footer() {
   const { t, locale } = useI18n();
@@ -44,11 +44,8 @@ export function Footer() {
         {/* ── Mobile compact footer (<sm only): logo + 2-line tagline,
                tap-to-expand accordions, compact phone/email row ── */}
         <div className="sm:hidden pt-8 pb-3">
-          <Link href={L('')} className="inline-flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow">
-              <CrossroadsGlyph className="w-8 h-8 text-white" />
-            </div>
-            <span className="text-lg font-black tracking-tight text-white">Xayr</span>
+          <Link href={L('')} className="inline-flex">
+            <XayrLogo size="sm" textClassName="text-white" />
           </Link>
           <p className="text-xs leading-relaxed line-clamp-2 mt-2">{t('footer.tagline')}</p>
 
@@ -128,11 +125,8 @@ export function Footer() {
 
           {/* Brand + social */}
           <div className="col-span-2 lg:col-span-1 space-y-4">
-            <Link href={L('')} className="inline-flex items-center gap-2.5">
-              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                <CrossroadsGlyph className="w-10 h-10 text-white" />
-              </div>
-              <span className="text-xl font-black tracking-tight text-white">Xayr</span>
+            <Link href={L('')} className="inline-flex">
+              <XayrLogo size="md" textClassName="text-white" />
             </Link>
             <p className="text-sm leading-relaxed max-w-xs">{t('footer.tagline')}</p>
             <div className="flex items-center gap-2 pt-1">

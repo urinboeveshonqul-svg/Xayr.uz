@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { CrossroadsGlyph } from '@/components/brand/CrossroadsGlyph';
+import { XayrLogo } from '@/components/branding/XayrLogo';
 
 /**
  * Shared layout for every auth screen: centered card with the official Xayr
@@ -26,11 +26,8 @@ export function AuthShell({
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-950 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href={`/${locale}`} className="inline-flex items-center gap-2.5 mb-6">
-            <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-              <CrossroadsGlyph className="w-6 h-6 text-white" />
-            </span>
-            <span className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">Xayr</span>
+          <Link href={`/${locale}`} className="inline-flex mb-6">
+            <XayrLogo size="lg" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
           {subtitle && <p className="text-gray-500 dark:text-gray-400 mt-1.5 text-sm">{subtitle}</p>}
