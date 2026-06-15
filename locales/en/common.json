@@ -3,6 +3,20 @@
     "title": "Xayr — Uzbekistan Crowdfunding Platform",
     "description": "Uzbekistan's most trusted fundraising platform. Start a campaign, donate, and make a difference."
   },
+  "share": {
+    "title": "Share this campaign",
+    "subtitle": "Reach more people and gather support",
+    "trafficSources": "Traffic sources",
+    "totalShares": "Total shares",
+    "noShares": "No shares yet",
+    "srcWhatsapp": "WhatsApp",
+    "srcTelegram": "Telegram",
+    "srcFacebook": "Facebook",
+    "srcX": "X (Twitter)",
+    "srcCopyLink": "Copy link",
+    "srcNative": "Device share",
+    "srcOther": "Other"
+  },
   "push": {
     "title": "Push notifications",
     "subtitle": "Get notified about important events in your browser",
@@ -608,6 +622,7 @@
     "saveLbl": "Save",
     "copyLink": "Copy link",
     "linkCopied": "Link copied",
+    "close": "Close",
     "verified": "Verified",
     "updatesTitle": "Updates",
     "updatesEmpty": "No updates yet",

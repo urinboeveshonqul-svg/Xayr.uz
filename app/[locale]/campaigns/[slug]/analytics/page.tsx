@@ -53,6 +53,9 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
       .limit(5),
   ]);
 
+  // Share traffic by source (owner-only RPC; [] if the migration isn't applied).
+  const { data: shareRows } = await supabase.rpc('get_share_stats', { p_campaign_id: campaign.id });
+
   // Bucket completed donations into the last 14 days for the chart.
   const DAYS = 14;
   const byDay = new Map<string, number>();
@@ -118,6 +121,7 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             recentDonations={donationRows ?? []}
             recentUpdates={updateRows ?? []}
             chart={chart}
+            shareStats={shareRows ?? []}
             locale={loc}
           />
 

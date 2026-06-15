@@ -471,6 +471,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      campaign_shares: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          source: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          source: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          campaign_id?: string;
+          source?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       notification_preferences: {
         Row: {
           user_id: string;
@@ -722,6 +743,13 @@ export type Database = {
           total_amount: number;
           campaigns_count: number;
           first_donation: string | null;
+        }[];
+      };
+      get_share_stats: {
+        Args: { p_campaign_id: string };
+        Returns: {
+          source: string;
+          total: number;
         }[];
       };
       campaign_available_balance: {

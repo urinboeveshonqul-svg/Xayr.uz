@@ -3,6 +3,20 @@
     "title": "Xayr — O'zbekiston Xayriya Platformasi",
     "description": "O'zbekistondagi eng ishonchli xayriya platformasi. Kampaniya yarating, xayriya qiling va o'zgarish yarating."
   },
+  "share": {
+    "title": "Kampaniyani ulashing",
+    "subtitle": "Ko'proq odamlarga yetkazing va yordam to'plang",
+    "trafficSources": "Trafik manbalari",
+    "totalShares": "Jami ulashishlar",
+    "noShares": "Hozircha ulashishlar yo'q",
+    "srcWhatsapp": "WhatsApp",
+    "srcTelegram": "Telegram",
+    "srcFacebook": "Facebook",
+    "srcX": "X (Twitter)",
+    "srcCopyLink": "Havola nusxasi",
+    "srcNative": "Qurilma ulashuvi",
+    "srcOther": "Boshqa"
+  },
   "push": {
     "title": "Push bildirishnomalar",
     "subtitle": "Muhim voqealar haqida brauzer orqali xabar oling",
@@ -608,6 +622,7 @@
     "saveLbl": "Saqlash",
     "copyLink": "Havolani nusxalash",
     "linkCopied": "Havola nusxalandi",
+    "close": "Yopish",
     "verified": "Tasdiqlangan",
     "updatesTitle": "Yangiliklar",
     "updatesEmpty": "Hozircha yangiliklar yo'q",

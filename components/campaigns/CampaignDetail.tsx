@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
-  ChevronLeft, Zap, CheckCircle, Send, Facebook, Link2
+  ChevronLeft, Zap, CheckCircle, Send, Facebook, Link2, MessageCircle
 } from 'lucide-react';
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -14,8 +14,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { DonationForm } from '@/components/donations/DonationForm';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { SaveButton } from '@/components/campaigns/SaveButton';
+import { ShareModal } from '@/components/campaigns/ShareModal';
 import { FollowButton } from '@/components/profile/FollowButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { trackShare, shareLinks } from '@/lib/share';
 import type { Campaign, Donor } from '@/types';
 
 interface CampaignDetailProps {
@@ -26,6 +28,7 @@ interface CampaignDetailProps {
 export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   const { t } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   // Mobile sticky donate bar: appears after scrolling past the hero.
   const [showSticky, setShowSticky] = useState(false);
@@ -74,22 +77,30 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl || window.location.href);
+      trackShare(campaign.id, 'copy_link');
       toast.success(t('ux.linkCopied'));
     } catch {
       /* clipboard unavailable */
     }
   };
 
+  // Native device share sheet (WhatsApp/Telegram/Instagram/SMS/Email/…) with a
+  // custom modal fallback when the Web Share API is unavailable (most desktops).
   const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: campaign.title, url: shareUrl || window.location.href });
+    const url = shareUrl || window.location.href;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: campaign.title, text: campaign.description, url });
+        trackShare(campaign.id, 'native');
+      } catch {
+        /* user dismissed the share sheet — not an error */
+      }
     } else {
-      await copyLink();
+      setShowShare(true);
     }
   };
 
-  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(campaign.title)}`;
-  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+  const links = shareLinks(shareUrl || (typeof window !== 'undefined' ? window.location.href : ''), campaign.title);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -280,7 +291,19 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   <Share2 className="w-4 h-4" />
                 </button>
                 <a
-                  href={telegramUrl}
+                  href={links.whatsapp}
+                  onClick={() => trackShare(campaign.id, 'whatsapp')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-green-600 hover:bg-green-50 flex items-center justify-center transition-all"
+                  title="WhatsApp"
+                  aria-label="WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </a>
+                <a
+                  href={links.telegram}
+                  onClick={() => trackShare(campaign.id, 'telegram')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-500 hover:bg-blue-50 flex items-center justify-center transition-all"
@@ -290,7 +313,8 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   <Send className="w-4 h-4" />
                 </a>
                 <a
-                  href={facebookUrl}
+                  href={links.facebook}
+                  onClick={() => trackShare(campaign.id, 'facebook')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all"
@@ -366,6 +390,14 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
               </div>
             </div>
             <button
+              onClick={handleShare}
+              className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+              title={t('ux.share')}
+              aria-label={t('ux.share')}
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+            <button
               onClick={donateFromSticky}
               className="btn-primary px-5 min-h-[48px] flex-shrink-0"
             >
@@ -374,6 +406,17 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Share modal — primary entry on desktop, Web Share fallback on mobile */}
+      {showShare && (
+        <ShareModal
+          campaignId={campaign.id}
+          title={campaign.title}
+          imageUrl={campaign.image_url}
+          url={shareUrl || (typeof window !== 'undefined' ? window.location.href : '')}
+          onClose={() => setShowShare(false)}
+        />
       )}
     </div>
   );

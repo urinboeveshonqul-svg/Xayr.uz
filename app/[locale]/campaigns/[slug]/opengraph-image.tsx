@@ -19,6 +19,7 @@ type OgCampaign = {
   current_amount: number;
   goal_amount: number;
   donors_count: number;
+  image_url: string | null;
 };
 
 async function getCampaign(slug: string): Promise<OgCampaign | null> {
@@ -30,12 +31,29 @@ async function getCampaign(slug: string): Promise<OgCampaign | null> {
     const supabase = createClient(url, anon);
     const { data, error } = await supabase
       .from('campaigns')
-      .select('title, current_amount, goal_amount, donors_count')
+      .select('title, current_amount, goal_amount, donors_count, image_url')
       .eq('slug', slug)
       .single();
 
     if (error || !data) return null;
     return data as OgCampaign;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Verify the campaign photo is actually fetchable before handing it to Satori —
+ * a broken/unreachable URL would throw during render and 500 the whole OG route,
+ * leaving shares with no preview at all. If the check fails we fall back to the
+ * brand-gradient card (which always renders).
+ */
+async function imageReachable(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(2500) });
+    const type = res.headers.get('content-type') ?? '';
+    return res.ok && type.startsWith('image/') ? url : null;
   } catch {
     return null;
   }
@@ -82,21 +100,22 @@ export default async function OgImage({ params }: Props) {
   const goal = campaign?.goal_amount ?? 0;
   const donors = campaign?.donors_count ?? 0;
   const progress = getProgress(raised, goal);
+  const photo = await imageReachable(campaign?.image_url ?? null);
 
   const fonts = await loadFont(`${title} Xayr xayriya kampaniyasi soʻm ${formatMoney(raised)} ${formatMoney(goal)}`);
   const fontFamily = fonts.length > 0 ? 'Inter' : 'sans-serif';
 
   return new ImageResponse(
     (
+      <div style={{ width: '100%', height: '100%', display: 'flex', fontFamily }}>
       <div
         style={{
-          width: '100%',
+          flex: 1,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '64px',
-          fontFamily,
           background: 'linear-gradient(135deg, #064e3b 0%, #047857 55%, #10b981 100%)',
           color: '#ffffff',
         }}
@@ -169,6 +188,19 @@ export default async function OgImage({ params }: Props) {
             </div>
           </div>
         </div>
+      </div>
+
+        {/* Campaign photo panel — only when reachable; else the gradient fills 100% */}
+        {photo && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photo}
+            width={460}
+            height={630}
+            style={{ width: '460px', height: '630px', objectFit: 'cover' }}
+            alt=""
+          />
+        )}
       </div>
     ),
     {

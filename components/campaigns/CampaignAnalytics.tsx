@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  TrendingUp, Users, Eye, Target, Coins, Clock, BarChart3, Megaphone, ArrowLeft, Heart,
+  TrendingUp, Users, Eye, Target, Coins, Clock, BarChart3, Megaphone, ArrowLeft, Heart, Share2,
 } from 'lucide-react';
 import { formatMoney, getProgress, daysLeft, timeAgo } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -34,6 +34,10 @@ interface ChartBucket {
   label: string;
   total: number;
 }
+interface ShareStat {
+  source: string;
+  total: number;
+}
 
 const STATUS_CLS: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
@@ -49,16 +53,31 @@ export async function CampaignAnalytics({
   recentDonations,
   recentUpdates,
   chart,
+  shareStats = [],
   locale,
 }: {
   campaign: CampaignInfo;
   recentDonations: DonationItem[];
   recentUpdates: UpdateItem[];
   chart: ChartBucket[];
+  shareStats?: ShareStat[];
   locale: string;
 }) {
   const dict = await getDictionary(isLocale(locale) ? locale : 'uz');
   const d = dict.dash;
+  const sh = dict.share;
+
+  // Order + label the share sources; sum for the total + percentage bars.
+  const SHARE_ORDER = ['whatsapp', 'telegram', 'facebook', 'x', 'copy_link', 'native', 'other'] as const;
+  const shareLabel: Record<string, string> = {
+    whatsapp: sh.srcWhatsapp, telegram: sh.srcTelegram, facebook: sh.srcFacebook,
+    x: sh.srcX, copy_link: sh.srcCopyLink, native: sh.srcNative, other: sh.srcOther,
+  };
+  const shareBySource = new Map(shareStats.map((s) => [s.source, Number(s.total)] as const));
+  const shareTotal = shareStats.reduce((sum, s) => sum + Number(s.total), 0);
+  const shareRows = SHARE_ORDER
+    .map((src) => ({ src, total: shareBySource.get(src) ?? 0 }))
+    .filter((r) => r.total > 0);
   const statusLabel: Record<string, string> = {
     draft: d.stDraft, pending: d.stPending, active: d.stActive,
     paused: d.stPaused, rejected: d.stRejected, completed: d.stCompleted,
@@ -143,6 +162,39 @@ export async function CampaignAnalytics({
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Traffic sources — where shares came from (owner-only). Hidden until
+          at least one share is recorded. */}
+      {shareRows.length > 0 && (
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-brand-600" /> {sh.trafficSources}
+            </h2>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {sh.totalShares}: {shareTotal.toLocaleString('uz-UZ')}
+            </span>
+          </div>
+          <ul className="space-y-3">
+            {shareRows.map(({ src, total }) => {
+              const barPct = shareTotal > 0 ? Math.round((total / shareTotal) * 100) : 0;
+              return (
+                <li key={src}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">{shareLabel[src] ?? src}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {total.toLocaleString('uz-UZ')} · {barPct}%
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-emerald-500" style={{ width: `${barPct}%` }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
