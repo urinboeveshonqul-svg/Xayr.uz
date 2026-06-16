@@ -38,7 +38,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 28 | `platform-notifications.sql` | Owner notifications on campaign submit/approve/reject/pause + verification submit/approve/reject (adds `'verification'` type) | creators/applicants get decision notifications |
 | 29 | `push-notifications.sql` | Browser push preferences (`notification_preferences` table) for OneSignal delivery — see `docs/push-notifications-setup.md` | `notification_preferences` exists |
 | 30 | `campaign-shares.sql` | Share tracking (`campaign_shares` table + `get_share_stats` RPC) for the Traffic Sources analytics | `campaign_shares` exists |
-| 31 | `admin-donation-management.sql` | Admin donation tool: `admin_audit_log` table + donor confirm/reject notification trigger | `admin_audit_log` exists |
+| 31 | `admin-donation-management.sql` | **Automatic** donor notification on donation completed/failed (`notify_on_donation_status` trigger) + `admin_audit_log` table (retained for future admin-action logging; the manual donation tool was removed) | trigger exists |
 | 32 | `admin-workflow.sql` | Campaign `rejection_reason` + `admin_stats.revenue` + reject notification reason | `campaigns.rejection_reason` exists |
 
 ## Critical notes
