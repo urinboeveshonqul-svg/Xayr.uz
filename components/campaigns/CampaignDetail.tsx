@@ -26,7 +26,7 @@ interface CampaignDetailProps {
 }
 
 export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
@@ -351,7 +351,15 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
                   <p className="font-bold text-gray-900 dark:text-white truncate">
                     {campaign.profiles.full_name ?? 'Foydalanuvchi'}
                   </p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                  {campaign.profiles.username && (
+                    <Link
+                      href={`/${locale}/u/${campaign.profiles.username}`}
+                      className="text-xs text-gray-400 hover:text-brand-600 transition-colors truncate block"
+                    >
+                      @{campaign.profiles.username}
+                    </Link>
+                  )}
+                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                     <CheckCircle className="w-3 h-3 text-brand-600" /> {t('ux.verified')}
                   </p>
                 </div>

@@ -114,6 +114,9 @@ export default async function ProfilePage({
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <div className="mb-8">
             <h1 className="section-title">{dict.nav.profile}</h1>
+            {profile.username && (
+              <p className="text-sm text-gray-400 font-semibold">@{profile.username}</p>
+            )}
             <p className="section-sub">{d.manageInfo}</p>
           </div>
 

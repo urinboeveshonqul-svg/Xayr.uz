@@ -267,7 +267,16 @@
     "vEmail": "To'g'ri email kiriting",
     "vPasswordMin": "Parol kamida 6 ta belgi bo'lishi kerak",
     "vPasswordsMatch": "Parollar mos kelmadi",
-    "vNameMin": "Ism kamida 2 ta belgi bo'lishi kerak"
+    "vNameMin": "Ism kamida 2 ta belgi bo'lishi kerak",
+    "emailOrUsername": "Email yoki foydalanuvchi nomi",
+    "emailOrUsernamePlaceholder": "email yoki @foydalanuvchi",
+    "vIdentifier": "Email yoki foydalanuvchi nomini kiriting",
+    "username": "Foydalanuvchi nomi",
+    "usernamePlaceholder": "foydalanuvchi",
+    "usernameAvailable": "Bo'sh",
+    "usernameTaken": "Band qilingan",
+    "vUsername": "3–30 ta belgi: kichik harflar, raqamlar, _ va .",
+    "vUsernameTaken": "Bu foydalanuvchi nomini tanlab bo'lmaydi"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",
@@ -616,6 +625,7 @@
     "manageInfo": "Shaxsiy ma'lumotlaringizni boshqaring",
     "followersLbl": "Obunachilar",
     "followingLbl": "Kuzatilmoqda",
+    "joined": "Qo'shilgan",
     "donorStats": "Xayriya statistikasi",
     "donationsLbl": "Xayriyalar",
     "campaignsLbl": "Kampaniyalar",

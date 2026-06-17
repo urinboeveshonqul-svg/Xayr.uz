@@ -267,7 +267,16 @@
     "vEmail": "Введите корректный email",
     "vPasswordMin": "Пароль должен содержать не менее 6 символов",
     "vPasswordsMatch": "Пароли не совпадают",
-    "vNameMin": "Имя должно содержать не менее 2 символов"
+    "vNameMin": "Имя должно содержать не менее 2 символов",
+    "emailOrUsername": "Эл. почта или имя пользователя",
+    "emailOrUsernamePlaceholder": "email или @username",
+    "vIdentifier": "Введите эл. почту или имя пользователя",
+    "username": "Имя пользователя",
+    "usernamePlaceholder": "username",
+    "usernameAvailable": "Свободно",
+    "usernameTaken": "Занято",
+    "vUsername": "3–30 символов: строчные буквы, цифры, _ и .",
+    "vUsernameTaken": "Это имя пользователя выбрать нельзя"
   },
   "dashboard": {
     "adminTitle": "Панель администратора",
@@ -616,6 +625,7 @@
     "manageInfo": "Управляйте личными данными",
     "followersLbl": "Подписчики",
     "followingLbl": "Подписки",
+    "joined": "Присоединился",
     "donorStats": "Статистика пожертвований",
     "donationsLbl": "Пожертвования",
     "campaignsLbl": "Кампании",

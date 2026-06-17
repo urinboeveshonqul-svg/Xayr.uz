@@ -267,7 +267,16 @@
     "vEmail": "Enter a valid email",
     "vPasswordMin": "Password must be at least 6 characters",
     "vPasswordsMatch": "Passwords do not match",
-    "vNameMin": "Name must be at least 2 characters"
+    "vNameMin": "Name must be at least 2 characters",
+    "emailOrUsername": "Email or Username",
+    "emailOrUsernamePlaceholder": "email or @username",
+    "vIdentifier": "Enter your email or username",
+    "username": "Username",
+    "usernamePlaceholder": "username",
+    "usernameAvailable": "Available",
+    "usernameTaken": "Already taken",
+    "vUsername": "3–30 chars: lowercase letters, numbers, _ and .",
+    "vUsernameTaken": "This username can't be selected"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",
@@ -616,6 +625,7 @@
     "manageInfo": "Manage your personal information",
     "followersLbl": "Followers",
     "followingLbl": "Following",
+    "joined": "Joined",
     "donorStats": "Donation statistics",
     "donationsLbl": "Donations",
     "campaignsLbl": "Campaigns",

@@ -9,6 +9,7 @@ const schema = z.object({
   full_name: z.string().min(2).max(100),
   email: z.string().email().max(254),
   password: z.string().min(6).max(128),
+  username: z.string().min(3).max(30),
 });
 
 /**
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Validation failed' }, { status: 422 });
   }
   const { full_name, email, password } = parsed.data;
+  const username = parsed.data.username.toLowerCase();
+
+  // Server-side username validation — never trust the client.
+  if (!/^[a-z0-9_.]{3,30}$/.test(username)) {
+    return NextResponse.json({ error: "Foydalanuvchi nomi noto'g'ri" }, { status: 422 });
+  }
 
   const ip = getClientIp(request);
   const rl = await enforceRateLimit('signup', `signup:${ip}`);
@@ -35,12 +42,21 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
+
+  // Reserved / already-taken check before creating the account.
+  const { data: available } = await supabase.rpc('is_username_available', { candidate: username });
+  if (available === false) {
+    return NextResponse.json({ error: 'username_taken' }, { status: 409 });
+  }
+
   const origin = new URL(request.url).origin;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { full_name },
+      // handle_new_user reads `username` (and falls back to a generated one if
+      // it was taken in a race — signup never fails on username).
+      data: { full_name, username },
       emailRedirectTo: `${origin}/auth/callback`,
     },
   });

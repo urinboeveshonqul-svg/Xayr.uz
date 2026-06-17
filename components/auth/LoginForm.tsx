@@ -17,7 +17,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
 
   const schema = z.object({
-    email: z.string().email(t('auth.vEmail')),
+    identifier: z.string().min(1, t('auth.vIdentifier')),
     password: z.string().min(6, t('auth.vPasswordMin')),
   });
   type FormData = z.infer<typeof schema>;
@@ -34,7 +34,7 @@ export function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email, password: data.password }),
+        body: JSON.stringify({ identifier: data.identifier, password: data.password }),
       });
       const json = await res.json().catch(() => ({}));
 
@@ -57,15 +57,15 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="label">{t('auth.email')} *</label>
+        <label className="label">{t('auth.emailOrUsername')} *</label>
         <input
-          {...register('email')}
-          type="email"
+          {...register('identifier')}
+          type="text"
           className="input"
-          placeholder={t('auth.emailPlaceholder')}
-          autoComplete="email"
+          placeholder={t('auth.emailOrUsernamePlaceholder')}
+          autoComplete="username"
         />
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+        {errors.identifier && <p className="text-red-500 text-xs mt-1">{errors.identifier.message}</p>}
       </div>
 
       <div>

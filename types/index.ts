@@ -46,6 +46,8 @@ export type Database = {
           verified_at: string | null;
           rejection_reason: string | null;
           email_confirmed: boolean;
+          username: string | null;
+          username_changed_at: string | null;
           bio: string | null;
           phone: string | null;
           donor_stats_public: boolean;
@@ -787,6 +789,14 @@ export type Database = {
           total: number;
         }[];
       };
+      is_username_available: {
+        Args: { candidate: string };
+        Returns: boolean;
+      };
+      change_username: {
+        Args: { new_name: string };
+        Returns: string;
+      };
       campaign_available_balance: {
         Args: { p_campaign_id: string };
         Returns: number;
@@ -848,7 +858,7 @@ export type PayoutRequestEvent = Row<'payout_request_events'>;
 export type Donor = Database['public']['Views']['campaign_donors']['Row'];
 
 export type Campaign = Row<'campaigns'> & {
-  profiles?: (Pick<Profile, 'full_name' | 'avatar_url'> & { bio?: string | null }) | null;
+  profiles?: (Pick<Profile, 'full_name' | 'avatar_url'> & { bio?: string | null; username?: string | null }) | null;
   categories?: { slug: CampaignCategory } | null;
   cover_image?: string | null;
   total_donations?: number;

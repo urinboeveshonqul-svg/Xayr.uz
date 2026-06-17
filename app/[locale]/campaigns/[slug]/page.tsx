@@ -27,7 +27,7 @@ async function getCampaign(slug: string): Promise<Campaign | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*, profiles:users(full_name, avatar_url, bio), categories(slug)')
+      .select('*, profiles:users(full_name, avatar_url, bio, username), categories(slug)')
       .eq('slug', slug)
       .single();
 
