@@ -18,10 +18,10 @@ export function CrossroadsGlyph({ className }: { className?: string }) {
       aria-hidden="true"
       focusable="false"
     >
-      <line x1="24" y1="24" x2="42" y2="42" />
-      <line x1="72" y1="72" x2="54" y2="54" />
-      <line x1="72" y1="24" x2="54" y2="42" />
-      <line x1="24" y1="72" x2="42" y2="54" />
+      <line className="xayr-stroke xayr-stroke-tl" x1="24" y1="24" x2="42" y2="42" />
+      <line className="xayr-stroke xayr-stroke-br" x1="72" y1="72" x2="54" y2="54" />
+      <line className="xayr-stroke xayr-stroke-tr" x1="72" y1="24" x2="54" y2="42" />
+      <line className="xayr-stroke xayr-stroke-bl" x1="24" y1="72" x2="42" y2="54" />
     </svg>
   );
 }
