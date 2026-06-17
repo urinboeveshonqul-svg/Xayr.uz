@@ -53,14 +53,13 @@ export function RegisterForm() {
         return;
       }
 
-      if (json.needsConfirmation) {
-        toast.success(t('auth.confirmSent'));
-        router.push(`/${locale}/auth/verify-email?email=${encodeURIComponent(data.email)}`);
-      } else {
-        toast.success(t('auth.signupSuccess'));
-        router.push(`/${locale}`);
-        router.refresh();
-      }
+      // Frictionless onboarding: never wall the user behind an email-verify page.
+      // They land on the app immediately (auto-logged-in when a session exists);
+      // the dismissible banner nudges them to confirm later, and email
+      // confirmation is only enforced at campaign creation.
+      toast.success(t('auth.signupSuccess'));
+      router.push(`/${locale}`);
+      router.refresh();
     } catch {
       toast.error(t('auth.unexpected'));
     }

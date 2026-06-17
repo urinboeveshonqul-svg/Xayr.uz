@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +9,7 @@ import toast from 'react-hot-toast';
 import { Upload, Loader2, ImagePlus, X, Siren } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { VerifyEmailModal } from '@/components/auth/VerifyEmailModal';
 import { slugify, CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
 
@@ -32,12 +32,14 @@ type FormData = z.infer<typeof schema>;
 interface CreateCampaignFormProps {
   userId: string;
   categories: { id: string; slug: CampaignCategory }[];
-  isVerified: boolean;
+  /** Email confirmation — the gate for creating a campaign. */
+  emailVerified: boolean;
 }
 
-export function CreateCampaignForm({ userId, categories, isVerified }: CreateCampaignFormProps) {
+export function CreateCampaignForm({ userId, categories, emailVerified }: CreateCampaignFormProps) {
   const router = useRouter();
   const { t, locale } = useI18n();
+  const [showVerify, setShowVerify] = useState(false);
 
   // Cover image (required)
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -128,6 +130,11 @@ export function CreateCampaignForm({ userId, categories, isVerified }: CreateCam
   };
 
   const onSubmit = async (data: FormData) => {
+    // Email confirmation is mandatory to create a campaign — no bypass.
+    if (!emailVerified) {
+      setShowVerify(true);
+      return;
+    }
     if (!coverFile) {
       setCoverError('Muqova rasmi majburiy');
       return;
@@ -162,8 +169,9 @@ export function CreateCampaignForm({ userId, categories, isVerified }: CreateCam
         is_urgent: data.is_urgent,
         image_url,
         images,
-        // Unverified authors can only draft; the DB trigger also enforces this.
-        status: isVerified ? 'pending' : 'draft',
+        // Email-confirmed authors publish to 'pending'; the DB trigger
+        // (enforce_campaign_publish) re-checks email confirmation server-side.
+        status: 'pending',
       });
 
       if (error) {
@@ -171,12 +179,8 @@ export function CreateCampaignForm({ userId, categories, isVerified }: CreateCam
         return;
       }
 
-      toast.success(
-        isVerified
-          ? 'Kampaniya yaratildi! Moderatsiyadan o\'tgach faollashadi.'
-          : 'Kampaniya qoralama sifatida saqlandi.'
-      );
-      router.push(isVerified ? `/${locale}/campaigns` : `/${locale}/verify`);
+      toast.success('Kampaniya yaratildi! Moderatsiyadan o\'tgach faollashadi.');
+      router.push(`/${locale}/campaigns`);
       router.refresh();
     } catch (err) {
       toast.error('Rasm yuklashda yoki saqlashda xatolik');
@@ -190,15 +194,21 @@ export function CreateCampaignForm({ userId, categories, isVerified }: CreateCam
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Verification gate notice */}
-      {!isVerified && (
+      {/* Email-verification gate notice */}
+      {!emailVerified && (
         <div className="card p-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-900/40">
-          <p className="text-sm text-yellow-800 dark:text-yellow-300">{t('verify.draftNotice')}</p>
-          <Link href={`/${locale}/verify`} className="btn-primary mt-3 py-2.5 text-sm">
-            {t('verify.verifyToPublish')}
-          </Link>
+          <p className="text-sm text-yellow-800 dark:text-yellow-300">{t('verify.gateBody')}</p>
+          <button
+            type="button"
+            onClick={() => setShowVerify(true)}
+            className="btn-primary mt-3 py-2.5 text-sm"
+          >
+            {t('verify.gateVerify')}
+          </button>
         </div>
       )}
+
+      {showVerify && <VerifyEmailModal onClose={() => setShowVerify(false)} />}
 
       {/* Cover image (required) */}
       <div>

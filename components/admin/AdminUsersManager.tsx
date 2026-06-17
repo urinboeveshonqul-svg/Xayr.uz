@@ -2,15 +2,22 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Loader2, ShieldCheck, Shield } from 'lucide-react';
+import { Loader2, ShieldCheck, Shield, MailCheck, MailWarning } from 'lucide-react';
 
 interface AdminUser {
   id: string;
   full_name: string | null;
   email: string | null;
   role: 'user' | 'admin';
+  email_confirmed: boolean;
   created_at: string;
 }
+
+const EMAIL_FILTERS: { value: 'all' | 'verified' | 'unverified'; label: string }[] = [
+  { value: 'all', label: 'Barchasi' },
+  { value: 'verified', label: 'Tasdiqlangan' },
+  { value: 'unverified', label: 'Tasdiqlanmagan' },
+];
 
 interface Props {
   initialUsers: AdminUser[];
@@ -20,14 +27,19 @@ interface Props {
 export function AdminUsersManager({ initialUsers, currentUserId }: Props) {
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);
   const [search, setSearch] = useState('');
+  const [emailFilter, setEmailFilter] = useState<'all' | 'verified' | 'unverified'>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const visible = users.filter(
-    (u) =>
-      !search.trim() ||
-      (u.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (u.email ?? '').toLowerCase().includes(search.toLowerCase())
-  );
+  const visible = users.filter((u) => {
+    if (emailFilter === 'verified' && !u.email_confirmed) return false;
+    if (emailFilter === 'unverified' && u.email_confirmed) return false;
+    const q = search.trim().toLowerCase();
+    return (
+      !q ||
+      (u.full_name ?? '').toLowerCase().includes(q) ||
+      (u.email ?? '').toLowerCase().includes(q)
+    );
+  });
 
   const setRole = async (userId: string, role: 'user' | 'admin') => {
     setBusyId(userId);
@@ -57,6 +69,21 @@ export function AdminUsersManager({ initialUsers, currentUserId }: Props) {
         placeholder="Ism yoki email bo'yicha qidirish..."
         className="input"
       />
+      <div className="flex flex-wrap gap-2">
+        {EMAIL_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setEmailFilter(f.value)}
+            className={`badge cursor-pointer transition-all ${
+              emailFilter === f.value
+                ? 'bg-brand-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
       <p className="text-sm text-gray-500">{visible.length} ta foydalanuvchi</p>
 
       <div className="space-y-2">
@@ -70,7 +97,14 @@ export function AdminUsersManager({ initialUsers, currentUserId }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 dark:text-white truncate">{u.full_name ?? '—'}</p>
-                <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                <p className="text-xs text-gray-400 truncate flex items-center gap-1">
+                  {u.email_confirmed ? (
+                    <MailCheck className="w-3 h-3 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <MailWarning className="w-3 h-3 text-yellow-500 flex-shrink-0" />
+                  )}
+                  <span className="truncate">{u.email}</span>
+                </p>
               </div>
               <span
                 className={`badge ${

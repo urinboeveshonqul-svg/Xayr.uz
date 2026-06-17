@@ -15,12 +15,12 @@ export default async function AdminUsersPage() {
   const admin = createAdminClient();
   const { data } = await admin
     .from('users')
-    .select('id, full_name, email, role, created_at')
+    .select('id, full_name, email, role, email_confirmed, created_at')
     .order('created_at', { ascending: false })
     .limit(500);
 
   const users =
-    (data as { id: string; full_name: string | null; email: string | null; role: 'user' | 'admin'; created_at: string }[]) ?? [];
+    (data as { id: string; full_name: string | null; email: string | null; role: 'user' | 'admin'; email_confirmed: boolean; created_at: string }[]) ?? [];
 
   return <AdminUsersManager initialUsers={users} currentUserId={user?.id ?? ''} />;
 }

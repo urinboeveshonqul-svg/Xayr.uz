@@ -40,6 +40,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 30 | `campaign-shares.sql` | Share tracking (`campaign_shares` table + `get_share_stats` RPC) for the Traffic Sources analytics | `campaign_shares` exists |
 | 31 | `admin-donation-management.sql` | **Automatic** donor notification on donation completed/failed (`notify_on_donation_status` trigger) + `admin_audit_log` table (retained for future admin-action logging; the manual donation tool was removed) | trigger exists |
 | 32 | `admin-workflow.sql` | Campaign `rejection_reason` + `admin_stats.revenue` + reject notification reason | `campaigns.rejection_reason` exists |
+| 33 | `email-verification-gate.sql` | Email-confirmation publish gate (`is_email_confirmed`, `users.email_confirmed` mirror, publish trigger keyed to email) | `users.email_confirmed` exists |
 
 ## Critical notes
 

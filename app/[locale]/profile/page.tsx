@@ -9,6 +9,7 @@ import { ProfileForm } from '@/components/profile/ProfileForm';
 import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
 import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
+import { EmailVerificationCard } from '@/components/profile/EmailVerificationCard';
 import { PushSettings } from '@/components/push/PushSettings';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { formatMoney, timeAgo } from '@/lib/utils';
@@ -121,6 +122,9 @@ export default async function ProfilePage({
             initialUrl={profile.avatar_url}
             name={profile.full_name}
           />
+
+          {/* Email confirmation status (unlocks campaign creation) */}
+          <EmailVerificationCard />
 
           <VerificationStatusCard
             status={profile.verification_status}

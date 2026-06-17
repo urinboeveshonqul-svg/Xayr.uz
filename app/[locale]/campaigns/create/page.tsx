@@ -22,12 +22,9 @@ export default async function CreateCampaignPage() {
     .select('id, slug')
     .order('sort_order');
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('verification_status')
-    .eq('id', user.id)
-    .single();
-  const isVerified = profile?.verification_status === 'verified';
+  // Email confirmation is the campaign-creation gate (authoritative source:
+  // auth.users.email_confirmed_at). OAuth users arrive pre-confirmed.
+  const emailVerified = !!user.email_confirmed_at;
 
   return (
     <>
@@ -41,7 +38,7 @@ export default async function CreateCampaignPage() {
             </p>
           </div>
           <div className="card p-8">
-            <CreateCampaignForm userId={user.id} categories={categories ?? []} isVerified={isVerified} />
+            <CreateCampaignForm userId={user.id} categories={categories ?? []} emailVerified={emailVerified} />
           </div>
         </div>
       </main>

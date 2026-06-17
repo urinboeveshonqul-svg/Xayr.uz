@@ -45,6 +45,7 @@ export type Database = {
           verification_status: VerificationStatus;
           verified_at: string | null;
           rejection_reason: string | null;
+          email_confirmed: boolean;
           bio: string | null;
           phone: string | null;
           donor_stats_public: boolean;
