@@ -6,10 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Check, X, AlertTriangle, Info } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
-type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'short';
 
 export function RegisterForm() {
   const { t, locale } = useI18n();
@@ -51,6 +51,7 @@ export function RegisterForm() {
     const u = (usernameValue || '').toLowerCase().trim();
     setSuggestions([]);
     if (!u) { setAvail('idle'); return; }
+    if (u.length < 3) { setAvail('short'); return; }
     if (!/^[a-z0-9_.]{3,30}$/.test(u)) { setAvail('invalid'); return; }
     setAvail('checking');
     const handle = setTimeout(async () => {
@@ -62,7 +63,7 @@ export function RegisterForm() {
         } else {
           setAvail('taken');
           const year = new Date().getFullYear();
-          setSuggestions([`${u}1`, `${u}_uz`, `${u}${year}`]);
+          setSuggestions([`${u}1`, `${u}_uz`, `${u}${year}`, `${u}${year + 1}`]);
         }
       } catch {
         setAvail('idle');
@@ -72,7 +73,7 @@ export function RegisterForm() {
   }, [usernameValue]);
 
   const onSubmit = async (data: FormData) => {
-    if (avail === 'taken' || avail === 'invalid') {
+    if (avail === 'taken' || avail === 'invalid' || avail === 'short') {
       toast.error(t('auth.vUsernameTaken'));
       return;
     }
@@ -121,48 +122,107 @@ export function RegisterForm() {
         {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>}
       </div>
 
-      {/* Username with live availability */}
+      {/* Username — live availability, friendly guidance */}
       <div>
-        <label className="label">{t('auth.username')} *</label>
-        <div className="relative">
+        <div className="flex items-center justify-between">
+          <label className="label mb-0">{t('auth.username')} *</label>
+          {(usernameValue || '').length > 0 && (
+            <span className={`text-xs ${(usernameValue || '').length > 30 ? 'text-red-500' : 'text-gray-400'}`}>
+              {(usernameValue || '').length}/30
+            </span>
+          )}
+        </div>
+        <div className="relative mt-1.5">
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">@</span>
           <input
             {...register('username')}
+            onChange={(e) =>
+              setValue('username', e.target.value.toLowerCase().replace(/\s+/g, ''), { shouldValidate: true })
+            }
             type="text"
             className="input pl-8 pr-10 lowercase"
-            placeholder={t('auth.usernamePlaceholder')}
+            placeholder={t('auth.usernameExamplePlaceholder')}
             autoComplete="username"
             autoCapitalize="none"
+            autoCorrect="off"
             spellCheck={false}
+            maxLength={30}
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2">
             {avail === 'checking' && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
             {avail === 'available' && <Check className="w-4 h-4 text-green-600" />}
+            {avail === 'short' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
             {(avail === 'taken' || avail === 'invalid') && <X className="w-4 h-4 text-red-500" />}
           </span>
         </div>
-        {avail === 'available' && <p className="text-green-600 text-xs mt-1">✓ {t('auth.usernameAvailable')}</p>}
-        {avail === 'invalid' && <p className="text-red-500 text-xs mt-1">{t('auth.vUsername')}</p>}
-        {avail === 'taken' && (
-          <div className="mt-1.5">
-            <p className="text-red-500 text-xs">{t('auth.usernameTaken')}</p>
-            {suggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                {suggestions.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setValue('username', s, { shouldValidate: true })}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 transition-colors"
-                  >
-                    @{s}
-                  </button>
-                ))}
-              </div>
-            )}
+
+        {/* Status — icon + text (never color alone) */}
+        <div aria-live="polite" className="mt-1.5 text-xs">
+          {avail === 'available' && (
+            <p className="flex items-center gap-1 text-green-600"><Check className="w-3.5 h-3.5 flex-shrink-0" /> {t('auth.usernameAvailable')}</p>
+          )}
+          {avail === 'short' && (
+            <p className="flex items-center gap-1 text-orange-500"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {t('auth.usernameTooShort')}</p>
+          )}
+          {avail === 'invalid' && (
+            <p className="flex items-center gap-1 text-red-500"><X className="w-3.5 h-3.5 flex-shrink-0" /> {t('auth.usernameInvalidChars')}</p>
+          )}
+          {avail === 'taken' && (
+            <p className="flex items-center gap-1 text-red-500"><X className="w-3.5 h-3.5 flex-shrink-0" /> {t('auth.usernameTaken')}</p>
+          )}
+          {errors.username && avail === 'idle' && (
+            <p className="flex items-center gap-1 text-red-500"><X className="w-3.5 h-3.5 flex-shrink-0" /> {errors.username.message}</p>
+          )}
+        </div>
+
+        {/* Suggestions when taken */}
+        {avail === 'taken' && suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setValue('username', s, { shouldValidate: true })}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 transition-colors"
+              >
+                @{s}
+              </button>
+            ))}
           </div>
         )}
-        {errors.username && avail !== 'invalid' && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
+
+        {/* Examples when empty */}
+        {avail === 'idle' && !usernameValue && (
+          <div className="mt-2">
+            <p className="text-xs text-gray-400 mb-1">{t('auth.usernameExamplesLabel')}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {['hakimova80', 'ali_2004', 'sardor.uz', 'aziza_99'].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setValue('username', s, { shouldValidate: true })}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  @{s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Friendly guidance */}
+        <p className="mt-2 text-xs text-gray-400 leading-relaxed">
+          {t('auth.usernameHelpTitle')} {t('auth.usernameHelpChars')} · {t('auth.usernameHelpLength')}
+        </p>
+
+        {/* Public profile note */}
+        <p className="mt-1 text-xs text-gray-400 flex items-center gap-1.5">
+          <Info className="w-3 h-3 flex-shrink-0" />
+          <span>
+            {t('auth.usernamePublicNote')}{' '}
+            <span className="text-gray-500 dark:text-gray-400">xayr.uz/u/{usernameValue || 'hakimova80'}</span>
+          </span>
+        </p>
       </div>
 
       <div>

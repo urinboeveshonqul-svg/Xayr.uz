@@ -276,7 +276,15 @@
     "usernameAvailable": "Свободно",
     "usernameTaken": "Занято",
     "vUsername": "3–30 символов: строчные буквы, цифры, _ и .",
-    "vUsernameTaken": "Это имя пользователя выбрать нельзя"
+    "vUsernameTaken": "Это имя пользователя выбрать нельзя",
+    "usernameExamplePlaceholder": "Например: hakimova80",
+    "usernameTooShort": "Имя пользователя слишком короткое",
+    "usernameInvalidChars": "Только буквы, цифры, _ или .",
+    "usernameExamplesLabel": "Примеры:",
+    "usernameHelpTitle": "Выберите уникальное имя пользователя.",
+    "usernameHelpChars": "Можно использовать строчные буквы, цифры, _ и .",
+    "usernameHelpLength": "3–30 символов",
+    "usernamePublicNote": "Это имя появится в вашем публичном профиле:"
   },
   "dashboard": {
     "adminTitle": "Панель администратора",

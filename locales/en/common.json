@@ -276,7 +276,15 @@
     "usernameAvailable": "Available",
     "usernameTaken": "Already taken",
     "vUsername": "3–30 chars: lowercase letters, numbers, _ and .",
-    "vUsernameTaken": "This username can't be selected"
+    "vUsernameTaken": "This username can't be selected",
+    "usernameExamplePlaceholder": "Example: hakimova80",
+    "usernameTooShort": "Username is too short",
+    "usernameInvalidChars": "Use only letters, numbers, _ or .",
+    "usernameExamplesLabel": "Examples:",
+    "usernameHelpTitle": "Choose a unique username.",
+    "usernameHelpChars": "You can use lowercase letters, numbers, _ and .",
+    "usernameHelpLength": "3–30 characters",
+    "usernamePublicNote": "This will appear on your public profile:"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",

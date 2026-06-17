@@ -276,7 +276,15 @@
     "usernameAvailable": "Bo'sh",
     "usernameTaken": "Band qilingan",
     "vUsername": "3–30 ta belgi: kichik harflar, raqamlar, _ va .",
-    "vUsernameTaken": "Bu foydalanuvchi nomini tanlab bo'lmaydi"
+    "vUsernameTaken": "Bu foydalanuvchi nomini tanlab bo'lmaydi",
+    "usernameExamplePlaceholder": "Masalan: hakimova80",
+    "usernameTooShort": "Foydalanuvchi nomi juda qisqa",
+    "usernameInvalidChars": "Faqat harflar, raqamlar, _ yoki .",
+    "usernameExamplesLabel": "Namunalar:",
+    "usernameHelpTitle": "Noyob foydalanuvchi nomini tanlang.",
+    "usernameHelpChars": "Kichik harflar, raqamlar, _ va . ishlatishingiz mumkin.",
+    "usernameHelpLength": "3–30 ta belgi",
+    "usernamePublicNote": "Bu nom ommaviy profilingizda ko'rinadi:"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",
