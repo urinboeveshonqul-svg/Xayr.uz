@@ -35,7 +35,7 @@ async function getProfile(username: string): Promise<PublicUser | null> {
     const { data } = await supabase
       .from('users')
       .select('id, full_name, avatar_url, bio, username, verification_status, created_at')
-      .eq('username', username.toLowerCase())
+      .eq('username', username.toLowerCase().replace(/^@+/, ''))
       .maybeSingle();
     return (data as PublicUser) ?? null;
   } catch {

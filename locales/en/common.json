@@ -284,7 +284,9 @@
     "usernameHelpTitle": "Choose a unique username.",
     "usernameHelpChars": "You can use lowercase letters, numbers, _ and .",
     "usernameHelpLength": "3–30 characters",
-    "usernamePublicNote": "This will appear on your public profile:"
+    "usernamePublicNote": "This will appear on your public profile:",
+    "usernamePlaceholderPlain": "hakimova80",
+    "usernamePreviewTitle": "Your profile:"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",

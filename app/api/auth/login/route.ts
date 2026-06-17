@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { normalizeLoginIdentifier } from '@/lib/username';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -25,7 +26,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Validation failed' }, { status: 422 });
   }
   const { identifier, password } = parsed.data;
-  const id = identifier.trim();
+  // Strip a leading @ so "@hakimova80" works the same as "hakimova80".
+  const id = normalizeLoginIdentifier(identifier);
 
   const ip = getClientIp(request);
   const rl = await enforceRateLimit('login', `login:${ip}:${id.toLowerCase()}`);

@@ -284,7 +284,9 @@
     "usernameHelpTitle": "Выберите уникальное имя пользователя.",
     "usernameHelpChars": "Можно использовать строчные буквы, цифры, _ и .",
     "usernameHelpLength": "3–30 символов",
-    "usernamePublicNote": "Это имя появится в вашем публичном профиле:"
+    "usernamePublicNote": "Это имя появится в вашем публичном профиле:",
+    "usernamePlaceholderPlain": "hakimova80",
+    "usernamePreviewTitle": "Ваш профиль:"
   },
   "dashboard": {
     "adminTitle": "Панель администратора",

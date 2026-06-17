@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeUsernameInput, isValidUsername } from '@/lib/username';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -25,10 +26,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Validation failed' }, { status: 422 });
   }
   const { full_name, email, password } = parsed.data;
-  const username = parsed.data.username.toLowerCase();
+  // Sanitize (strip @/spaces, lowercase, collapse repeats) then validate — never
+  // trust the client. Stored bare, without @.
+  const username = sanitizeUsernameInput(parsed.data.username);
 
-  // Server-side username validation — never trust the client.
-  if (!/^[a-z0-9_.]{3,30}$/.test(username)) {
+  if (!isValidUsername(username)) {
     return NextResponse.json({ error: "Foydalanuvchi nomi noto'g'ri" }, { status: 422 });
   }
 

@@ -284,7 +284,9 @@
     "usernameHelpTitle": "Noyob foydalanuvchi nomini tanlang.",
     "usernameHelpChars": "Kichik harflar, raqamlar, _ va . ishlatishingiz mumkin.",
     "usernameHelpLength": "3–30 ta belgi",
-    "usernamePublicNote": "Bu nom ommaviy profilingizda ko'rinadi:"
+    "usernamePublicNote": "Bu nom ommaviy profilingizda ko'rinadi:",
+    "usernamePlaceholderPlain": "hakimova80",
+    "usernamePreviewTitle": "Sizning profilingiz:"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",

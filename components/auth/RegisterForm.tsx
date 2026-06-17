@@ -8,6 +8,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff, Check, X, AlertTriangle, Info } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { sanitizeUsernameInput, isValidUsername, displayUsername } from '@/lib/username';
 
 type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'short';
 
@@ -52,7 +53,7 @@ export function RegisterForm() {
     setSuggestions([]);
     if (!u) { setAvail('idle'); return; }
     if (u.length < 3) { setAvail('short'); return; }
-    if (!/^[a-z0-9_.]{3,30}$/.test(u)) { setAvail('invalid'); return; }
+    if (!isValidUsername(u)) { setAvail('invalid'); return; }
     setAvail('checking');
     const handle = setTimeout(async () => {
       try {
@@ -133,15 +134,12 @@ export function RegisterForm() {
           )}
         </div>
         <div className="relative mt-1.5">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">@</span>
           <input
             {...register('username')}
-            onChange={(e) =>
-              setValue('username', e.target.value.toLowerCase().replace(/\s+/g, ''), { shouldValidate: true })
-            }
+            onChange={(e) => setValue('username', sanitizeUsernameInput(e.target.value), { shouldValidate: true })}
             type="text"
-            className="input pl-8 pr-10 lowercase"
-            placeholder={t('auth.usernameExamplePlaceholder')}
+            className="input pr-10 lowercase"
+            placeholder={t('auth.usernamePlaceholderPlain')}
             autoComplete="username"
             autoCapitalize="none"
             autoCorrect="off"
@@ -215,14 +213,17 @@ export function RegisterForm() {
           {t('auth.usernameHelpTitle')} {t('auth.usernameHelpChars')} · {t('auth.usernameHelpLength')}
         </p>
 
-        {/* Public profile note */}
-        <p className="mt-1 text-xs text-gray-400 flex items-center gap-1.5">
-          <Info className="w-3 h-3 flex-shrink-0" />
-          <span>
-            {t('auth.usernamePublicNote')}{' '}
-            <span className="text-gray-500 dark:text-gray-400">xayr.uz/u/{usernameValue || 'hakimova80'}</span>
-          </span>
-        </p>
+        {/* Live profile preview */}
+        {usernameValue && (
+          <div className="mt-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 px-3 py-2 flex items-center gap-2">
+            <Info className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[11px] text-gray-400">{t('auth.usernamePreviewTitle')}</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{displayUsername(usernameValue)}</p>
+              <p className="text-[11px] text-gray-500 truncate">xayr.uz/u/{usernameValue}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div>

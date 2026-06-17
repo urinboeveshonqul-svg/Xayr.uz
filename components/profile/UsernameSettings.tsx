@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { AtSign, Check, X, Loader2, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { sanitizeUsernameInput, isValidUsername, displayUsername } from '@/lib/username';
 
 type Avail = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 const COOLDOWN_DAYS = 30;
@@ -50,7 +51,7 @@ export function UsernameSettings({
     setSuggestions([]);
     if (locked || unchanged) { setAvail('idle'); return; }
     if (!normalized) { setAvail('idle'); return; }
-    if (!/^[a-z0-9_.]{3,30}$/.test(normalized)) { setAvail('invalid'); return; }
+    if (!isValidUsername(normalized)) { setAvail('invalid'); return; }
     setAvail('checking');
     const h = setTimeout(async () => {
       try {
@@ -111,23 +112,24 @@ export function UsernameSettings({
         <div>
           <h2 className="text-sm font-bold text-gray-900 dark:text-white">{t('dash.unTitle')}</h2>
           <p className="text-xs text-gray-400">
-            {t('dash.unCurrent')}: <span className="font-semibold">@{current || '—'}</span>
+            {t('dash.unCurrent')}: <span className="font-semibold">{current ? displayUsername(current) : '—'}</span>
           </p>
         </div>
       </div>
 
-      {/* Input */}
+      {/* Input — no @, auto-formatted */}
       <div className="relative">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">@</span>
         <input
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => setValue(sanitizeUsernameInput(e.target.value))}
           disabled={locked || saving}
           type="text"
           autoCapitalize="none"
+          autoCorrect="off"
           spellCheck={false}
-          className="input pl-8 pr-10 lowercase disabled:opacity-60"
-          placeholder={t('auth.usernamePlaceholder')}
+          maxLength={30}
+          className="input pr-10 lowercase disabled:opacity-60"
+          placeholder={t('auth.usernamePlaceholderPlain')}
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2">
           {locked && <Lock className="w-4 h-4 text-gray-400" />}
