@@ -10,6 +10,7 @@ import { VerificationStatusCard } from '@/components/profile/VerificationStatusC
 import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { EmailVerificationCard } from '@/components/profile/EmailVerificationCard';
+import { UsernameSettings } from '@/components/profile/UsernameSettings';
 import { PushSettings } from '@/components/push/PushSettings';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { formatMoney, timeAgo } from '@/lib/utils';
@@ -128,6 +129,12 @@ export default async function ProfilePage({
 
           {/* Email confirmation status (unlocks campaign creation) */}
           <EmailVerificationCard />
+
+          {/* Username (change with 30-day cooldown + live availability) */}
+          <UsernameSettings
+            initialUsername={profile.username}
+            changedAt={profile.username_changed_at}
+          />
 
           <VerificationStatusCard
             status={profile.verification_status}
