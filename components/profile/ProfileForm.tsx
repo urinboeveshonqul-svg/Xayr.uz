@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -67,7 +67,12 @@ export function ProfileForm({ profile, email }: ProfileFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Email (read-only) */}
       <div>
-        <label className="label">Email</label>
+        <label className="label flex items-center gap-1.5">
+          Email
+          {profile.email_confirmed && (
+            <CheckCircle className="w-3.5 h-3.5 text-green-600" aria-label="Verified" />
+          )}
+        </label>
         <input
           type="email"
           value={email}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { MailCheck, Loader2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -14,15 +15,33 @@ import { useI18n } from '@/components/i18n/I18nProvider';
  */
 export function VerifyEmailModal({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+
+    // Auto-continue: poll for verification (done in another tab) and, once
+    // confirmed, refresh + close so the campaign gate clears without a reload.
+    const timer = setInterval(async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user?.email_confirmed_at) {
+        clearInterval(timer);
+        toast.success(t('verify.emailVerifiedAnnounce'));
+        router.refresh();
+        onClose();
+      }
+    }, 5000);
+
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [onClose, router, t]);
 
   const resend = async () => {
     if (!email) return;
