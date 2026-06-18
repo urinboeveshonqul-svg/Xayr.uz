@@ -286,7 +286,9 @@
     "usernameHelpLength": "3–30 characters",
     "usernamePublicNote": "This will appear on your public profile:",
     "usernamePlaceholderPlain": "hakimova80",
-    "usernamePreviewTitle": "Your profile:"
+    "usernamePreviewTitle": "Your profile:",
+    "usernameIdeas": "Ideas:",
+    "usernameShuffle": "Shuffle"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",

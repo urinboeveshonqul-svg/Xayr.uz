@@ -286,7 +286,9 @@
     "usernameHelpLength": "3–30 ta belgi",
     "usernamePublicNote": "Bu nom ommaviy profilingizda ko'rinadi:",
     "usernamePlaceholderPlain": "hakimova80",
-    "usernamePreviewTitle": "Sizning profilingiz:"
+    "usernamePreviewTitle": "Sizning profilingiz:",
+    "usernameIdeas": "Tavsiyalar:",
+    "usernameShuffle": "Yangilash"
   },
   "dashboard": {
     "adminTitle": "Admin Panel",

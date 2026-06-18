@@ -6,9 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Loader2, Eye, EyeOff, Check, X, AlertTriangle, Info } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Check, X, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { sanitizeUsernameInput, isValidUsername, displayUsername } from '@/lib/username';
+import { randomUsernames, smartUsernameSuggestions } from '@/lib/username-generator';
 
 type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'short';
 
@@ -19,6 +20,11 @@ export function RegisterForm() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [avail, setAvail] = useState<AvailState>('idle');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  // Fresh random suggestions each page load (client-only → no hydration mismatch).
+  const [randomIdeas, setRandomIdeas] = useState<string[]>([]);
+  useEffect(() => {
+    setRandomIdeas(randomUsernames(6));
+  }, []);
 
   const schema = z
     .object({
@@ -63,8 +69,7 @@ export function RegisterForm() {
           setAvail('available');
         } else {
           setAvail('taken');
-          const year = new Date().getFullYear();
-          setSuggestions([`${u}1`, `${u}_uz`, `${u}${year}`, `${u}${year + 1}`]);
+          setSuggestions(smartUsernameSuggestions(u, 5));
         }
       } catch {
         setAvail('idle');
@@ -181,7 +186,7 @@ export function RegisterForm() {
                 key={s}
                 type="button"
                 onClick={() => setValue('username', s, { shouldValidate: true })}
-                className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 transition-colors"
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 hover:-translate-y-0.5 active:scale-95 transition-all"
               >
                 @{s}
               </button>
@@ -189,17 +194,28 @@ export function RegisterForm() {
           </div>
         )}
 
-        {/* Examples when empty */}
+        {/* Fresh, random Uzbek-inspired ideas when empty */}
         {avail === 'idle' && !usernameValue && (
           <div className="mt-2">
-            <p className="text-xs text-gray-400 mb-1">{t('auth.usernameExamplesLabel')}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs text-gray-400">{t('auth.usernameIdeas')}</p>
+              <button
+                type="button"
+                onClick={() => setRandomIdeas(randomUsernames(6))}
+                className="text-gray-400 hover:text-brand-600 transition-colors"
+                aria-label={t('auth.usernameShuffle')}
+                title={t('auth.usernameShuffle')}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <div className="flex flex-wrap gap-1.5">
-              {['hakimova80', 'ali_2004', 'sardor.uz', 'aziza_99'].map((s) => (
+              {(randomIdeas.length ? randomIdeas : ['mehrnova', 'tongpulse', 'lochincore']).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setValue('username', s, { shouldValidate: true })}
-                  className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:-translate-y-0.5 active:scale-95 transition-all"
                 >
                   @{s}
                 </button>

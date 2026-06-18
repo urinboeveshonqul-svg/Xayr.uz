@@ -286,7 +286,9 @@
     "usernameHelpLength": "3–30 символов",
     "usernamePublicNote": "Это имя появится в вашем публичном профиле:",
     "usernamePlaceholderPlain": "hakimova80",
-    "usernamePreviewTitle": "Ваш профиль:"
+    "usernamePreviewTitle": "Ваш профиль:",
+    "usernameIdeas": "Идеи:",
+    "usernameShuffle": "Обновить"
   },
   "dashboard": {
     "adminTitle": "Панель администратора",
