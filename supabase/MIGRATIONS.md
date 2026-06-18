@@ -43,7 +43,8 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 33 | `email-verification-gate.sql` | Email-confirmation publish gate (`is_email_confirmed`, `users.email_confirmed` mirror, publish trigger keyed to email) | `users.email_confirmed` exists |
 | 34 | `usernames.sql` | Unique usernames (`users.username`, reserved list, `is_username_available`/`change_username`/`generate_username`, backfill + OAuth auto-assign) | `users.username` exists |
 | 35 | `usernames-rules.sql` | Stricter username rules (no leading/trailing/consecutive `.`, no `__`); generator collapses repeats | `username_format_ok('a..b')` is false |
-| 36 | `campaign-create-email-gate.sql` | Server-side: `campaigns_insert_own` requires a confirmed email (or admin) — unverified users can't create even via the API | unverified insert is denied |
+| 36 | `campaign-create-email-gate.sql` | Server-side: `campaigns_insert_own` requires a confirmed email (or admin) — superseded by #37 | — |
+| 37 | `campaign-create-kyc-gate.sql` | Campaign create/publish gated on **KYC** (`verification_status='verified'`) instead of email — RLS insert + publish trigger | unverified-KYC insert is denied |
 
 ## Critical notes
 

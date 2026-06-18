@@ -9,7 +9,6 @@ import toast from 'react-hot-toast';
 import { Upload, Loader2, ImagePlus, X, Siren } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { VerifyEmailModal } from '@/components/auth/VerifyEmailModal';
 import { slugify, CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
 
@@ -32,18 +31,11 @@ type FormData = z.infer<typeof schema>;
 interface CreateCampaignFormProps {
   userId: string;
   categories: { id: string; slug: CampaignCategory }[];
-  /** Email confirmation — the gate for creating a campaign. */
-  emailVerified: boolean;
 }
 
-export function CreateCampaignForm({ userId, categories, emailVerified }: CreateCampaignFormProps) {
+export function CreateCampaignForm({ userId, categories }: CreateCampaignFormProps) {
   const router = useRouter();
   const { t, locale } = useI18n();
-  // Email-verification gate. Open the modal immediately for unverified users so
-  // verification happens here (not via a redirect); on success the form unlocks
-  // and they continue without clicking again.
-  const [verified, setVerified] = useState(emailVerified);
-  const [showVerify, setShowVerify] = useState(!emailVerified);
 
   // Cover image (required)
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -134,11 +126,6 @@ export function CreateCampaignForm({ userId, categories, emailVerified }: Create
   };
 
   const onSubmit = async (data: FormData) => {
-    // Email confirmation is mandatory to create a campaign — no bypass.
-    if (!verified) {
-      setShowVerify(true);
-      return;
-    }
     if (!coverFile) {
       setCoverError('Muqova rasmi majburiy');
       return;
@@ -198,26 +185,6 @@ export function CreateCampaignForm({ userId, categories, emailVerified }: Create
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Email-verification gate notice */}
-      {!verified && (
-        <div className="card p-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-900/40">
-          <p className="text-sm text-yellow-800 dark:text-yellow-300">{t('verify.gateBody')}</p>
-          <button
-            type="button"
-            onClick={() => setShowVerify(true)}
-            className="btn-primary mt-3 py-2.5 text-sm"
-          >
-            {t('verify.gateVerify')}
-          </button>
-        </div>
-      )}
-
-      {showVerify && (
-        <VerifyEmailModal
-          onClose={() => setShowVerify(false)}
-          onVerified={() => { setVerified(true); setShowVerify(false); }}
-        />
-      )}
 
       {/* Cover image (required) */}
       <div>

@@ -4,10 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
+import { CampaignKycGate } from '@/components/campaigns/CampaignKycGate';
+import type { VerificationStatus } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Kampaniya yaratish — Xayr',
 };
+export const dynamic = 'force-dynamic';
 
 export default async function CreateCampaignPage() {
   const supabase = await createClient();
@@ -17,14 +20,19 @@ export default async function CreateCampaignPage() {
     redirect('/auth/login?next=/campaigns/create');
   }
 
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('id, slug')
-    .order('sort_order');
+  // KYC (identity) verification is the campaign-creation gate. Re-checked
+  // server-side by RLS + the publish trigger, so this can't be bypassed.
+  const { data: profile } = await supabase
+    .from('users')
+    .select('verification_status, rejection_reason')
+    .eq('id', user.id)
+    .single();
+  const status = (profile?.verification_status ?? 'unverified') as VerificationStatus;
+  const approved = status === 'verified';
 
-  // Email confirmation is the campaign-creation gate (authoritative source:
-  // auth.users.email_confirmed_at). OAuth users arrive pre-confirmed.
-  const emailVerified = !!user.email_confirmed_at;
+  const { data: categories } = approved
+    ? await supabase.from('categories').select('id, slug').order('sort_order')
+    : { data: null };
 
   return (
     <>
@@ -33,13 +41,16 @@ export default async function CreateCampaignPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <div className="mb-8">
             <h1 className="section-title">Yangi Kampaniya</h1>
-            <p className="section-sub">
-              Kampaniyangiz haqida batafsil ma'lumot kiriting
-            </p>
+            <p className="section-sub">Kampaniyangiz haqida batafsil ma'lumot kiriting</p>
           </div>
-          <div className="card p-8">
-            <CreateCampaignForm userId={user.id} categories={categories ?? []} emailVerified={emailVerified} />
-          </div>
+
+          {approved ? (
+            <div className="card p-8">
+              <CreateCampaignForm userId={user.id} categories={categories ?? []} />
+            </div>
+          ) : (
+            <CampaignKycGate status={status} rejectionReason={profile?.rejection_reason ?? null} />
+          )}
         </div>
       </main>
       <Footer />

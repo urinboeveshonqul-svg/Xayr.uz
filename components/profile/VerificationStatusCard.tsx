@@ -29,6 +29,11 @@ export function VerificationStatusCard({
   rejectionReason: string | null;
 }) {
   const { t, locale } = useI18n();
+
+  // KYC status section is shown only while verification is incomplete; once
+  // approved the profile stays clean (no permanent reminder).
+  if (status === 'verified') return null;
+
   const s = STYLES[status] ?? STYLES.unverified;
   const Icon = s.icon;
 
