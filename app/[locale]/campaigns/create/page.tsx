@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
 import { CampaignKycGate } from '@/components/campaigns/CampaignKycGate';
-import type { VerificationStatus } from '@/types';
+import { toKycStatus } from '@/lib/kyc';
 
 export const metadata: Metadata = {
   title: 'Kampaniya yaratish — Xayr',
@@ -27,12 +27,13 @@ export default async function CreateCampaignPage() {
     .select('verification_status, rejection_reason')
     .eq('id', user.id)
     .single();
-  const status = (profile?.verification_status ?? 'unverified') as VerificationStatus;
-  const approved = status === 'verified';
+  const kyc = toKycStatus(profile?.verification_status);
+  const approved = kyc === 'approved';
 
-  const { data: categories } = approved
-    ? await supabase.from('categories').select('id, slug').order('sort_order')
-    : { data: null };
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, slug')
+    .order('sort_order');
 
   return (
     <>
@@ -49,7 +50,7 @@ export default async function CreateCampaignPage() {
               <CreateCampaignForm userId={user.id} categories={categories ?? []} />
             </div>
           ) : (
-            <CampaignKycGate status={status} rejectionReason={profile?.rejection_reason ?? null} />
+            <CampaignKycGate status={kyc} rejectionReason={profile?.rejection_reason ?? null} />
           )}
         </div>
       </main>

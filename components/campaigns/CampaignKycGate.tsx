@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ShieldCheck, Clock, XCircle, Loader2 } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import type { VerificationStatus } from '@/types';
+import type { KycStatus } from '@/lib/kyc';
 
 /**
  * KYC gate shown on the campaign-creation page for users who aren't approved.
@@ -16,7 +16,7 @@ export function CampaignKycGate({
   status,
   rejectionReason,
 }: {
-  status: VerificationStatus;
+  status: KycStatus;
   rejectionReason: string | null;
 }) {
   const { t, locale } = useI18n();

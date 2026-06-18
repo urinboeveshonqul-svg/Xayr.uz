@@ -3,56 +3,41 @@
 import Link from 'next/link';
 import { ShieldCheck, Clock, XCircle, ShieldAlert } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import type { VerificationStatus } from '@/types';
-
-const STYLES: Record<
-  VerificationStatus,
-  { badge: string; iconWrap: string; icon: typeof ShieldCheck }
-> = {
-  unverified: { badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', iconWrap: 'bg-gray-100 text-gray-500 dark:bg-gray-800', icon: ShieldAlert },
-  pending:    { badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', iconWrap: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20', icon: Clock },
-  verified:   { badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400', iconWrap: 'bg-green-50 text-green-600 dark:bg-green-900/20', icon: ShieldCheck },
-  rejected:   { badge: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400', iconWrap: 'bg-red-50 text-red-600 dark:bg-red-900/20', icon: XCircle },
-};
+import type { KycStatus } from '@/lib/kyc';
 
 /**
- * Verification status summary shown at the top of the profile page.
- * Uses the existing design-system primitives (card / btn-primary) — no redesign.
+ * Profile KYC status section. Shown only while identity verification is
+ * incomplete — once `approved` it renders nothing (clean profile). Pure KYC
+ * vocabulary: not_started / pending / rejected (approved is the hidden case).
  */
+type VisibleStatus = Exclude<KycStatus, 'approved'>;
+
+const STYLES: Record<VisibleStatus, { badge: string; iconWrap: string; icon: typeof ShieldCheck }> = {
+  not_started: { badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', iconWrap: 'bg-gray-100 text-gray-500 dark:bg-gray-800', icon: ShieldAlert },
+  pending:     { badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', iconWrap: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20', icon: Clock },
+  rejected:    { badge: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400', iconWrap: 'bg-red-50 text-red-600 dark:bg-red-900/20', icon: XCircle },
+};
+
 export function VerificationStatusCard({
   status,
-  verifiedAt,
   rejectionReason,
 }: {
-  status: VerificationStatus;
-  verifiedAt: string | null;
+  status: KycStatus;
   rejectionReason: string | null;
 }) {
   const { t, locale } = useI18n();
 
-  // KYC status section is shown only while verification is incomplete; once
-  // approved the profile stays clean (no permanent reminder).
-  if (status === 'verified') return null;
+  // Approved → no card at all.
+  if (status === 'approved') return null;
 
-  const s = STYLES[status] ?? STYLES.unverified;
+  const s = STYLES[status];
   const Icon = s.icon;
 
-  const statusLabel =
-    {
-      unverified: t('profileVerify.statusUnverified'),
-      pending: t('profileVerify.statusPending'),
-      verified: t('profileVerify.statusVerified'),
-      rejected: t('profileVerify.statusRejected'),
-    }[status] ?? t('profileVerify.statusUnverified');
-
-  let formattedVerifiedAt: string | null = null;
-  if (verifiedAt) {
-    try {
-      formattedVerifiedAt = new Date(verifiedAt).toLocaleDateString(locale);
-    } catch {
-      formattedVerifiedAt = verifiedAt;
-    }
-  }
+  const statusLabel: Record<VisibleStatus, string> = {
+    not_started: t('profileVerify.statusUnverified'),
+    pending: t('profileVerify.statusPending'),
+    rejected: t('profileVerify.statusRejected'),
+  };
 
   return (
     <div className="card p-6 mb-4">
@@ -64,23 +49,11 @@ export function VerificationStatusCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <h2 className="font-bold text-gray-900 dark:text-white">{t('profileVerify.cardTitle')}</h2>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${s.badge}`}>{statusLabel}</span>
-            {status === 'verified' && <ShieldCheck className="w-4 h-4 text-green-600" aria-hidden />}
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${s.badge}`}>{statusLabel[status]}</span>
           </div>
 
           {status === 'pending' && (
             <p className="text-sm text-gray-500 dark:text-gray-400">{t('profileVerify.pendingMsg')}</p>
-          )}
-
-          {status === 'verified' && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {t('profileVerify.verifiedMsg')}
-              {formattedVerifiedAt && (
-                <span className="block mt-0.5 text-xs text-gray-400">
-                  {t('profileVerify.verifiedAtLabel')}: {formattedVerifiedAt}
-                </span>
-              )}
-            </p>
           )}
 
           {status === 'rejected' && (
@@ -97,7 +70,7 @@ export function VerificationStatusCard({
             </>
           )}
 
-          {status === 'unverified' && (
+          {status === 'not_started' && (
             <Link href={`/${locale}/verify`} className="btn-primary mt-3 inline-flex">
               {t('profileVerify.startBtn')}
             </Link>

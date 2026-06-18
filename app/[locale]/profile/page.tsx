@@ -13,6 +13,7 @@ import { UsernameSettings } from '@/components/profile/UsernameSettings';
 import { PushSettings } from '@/components/push/PushSettings';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { formatMoney, timeAgo } from '@/lib/utils';
+import { toKycStatus } from '@/lib/kyc';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
 import type { CampaignReport } from '@/types';
@@ -133,8 +134,7 @@ export default async function ProfilePage({
           />
 
           <VerificationStatusCard
-            status={profile.verification_status}
-            verifiedAt={profile.verified_at}
+            status={toKycStatus(profile.verification_status)}
             rejectionReason={profile.rejection_reason}
           />
 
