@@ -89,6 +89,14 @@ transition writes a `payout_request_events` row → `notify_on_payout_event`
 notifies the campaign owner. A 3% platform commission is computed server-side.
 See `payouts.sql`, `payout-notifications.sql`, `payout-commission.sql`.
 
+## Foundation hardening (provider-ready)
+- **`donations.payment_ref`** is UNIQUE + indexed (`payment-foundation.sql` #38) — the by-ref webhook lookup is fast and duplicate refs are impossible.
+- **`payment_events`** logs every webhook *before* processing: provider, `provider_event_id` (unique → dedupe), payment_ref, donation_id, status, amount, currency, raw payload (JSONB), signature_valid, processed/processed_at, error_message. Admin-only read (RLS); writes via service role.
+- **Idempotency:** `isDuplicateWebhook()` short-circuits a re-delivered event; `confirmDonation` only transitions `pending` rows, so balances can never be credited twice.
+- **Amount/currency verification:** `confirmDonation(ref, status, { amount, currency })` rejects completion unless the paid amount equals the recorded amount and the currency matches — campaign totals are never touched on mismatch.
+- **Provider-independent helpers** (`lib/payments/helpers.ts`): `validatePaymentAmount`, `validateCurrency`, `createPaymentEvent`, `markPaymentProcessed`, `isDuplicateWebhook`.
+- **Donor-facing pages:** `/payment/success` (polls `/api/payments/status` until completed/failed) and `/payment/failed` (reasons + retry). **Admin reconciliation:** `/admin/donations` (view-only — donations + their payment_events, webhook history, duplicate attempts).
+
 ## Future gateway integration (Payme / Click / Uzcard / Humo)
 1. Add `lib/payments/providers/<name>.ts` implementing `PaymentProvider` (incl. `verifyWebhook`).
 2. Register it in the `providers` map in [lib/payments/index.ts](../lib/payments/index.ts).

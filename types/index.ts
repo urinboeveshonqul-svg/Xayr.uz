@@ -507,6 +507,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      payment_events: {
+        Row: {
+          id: string;
+          provider: string;
+          provider_event_id: string | null;
+          payment_ref: string | null;
+          donation_id: string | null;
+          status: string | null;
+          amount: number | null;
+          currency: string | null;
+          raw_payload: Record<string, unknown> | null;
+          signature_valid: boolean | null;
+          processed: boolean;
+          processed_at: string | null;
+          received_at: string;
+          error_message: string | null;
+        };
+        Insert: {
+          id?: string;
+          provider: string;
+          provider_event_id?: string | null;
+          payment_ref?: string | null;
+          donation_id?: string | null;
+          status?: string | null;
+          amount?: number | null;
+          currency?: string | null;
+          raw_payload?: Record<string, unknown> | null;
+          signature_valid?: boolean | null;
+          processed?: boolean;
+          processed_at?: string | null;
+          received_at?: string;
+          error_message?: string | null;
+        };
+        Update: {
+          id?: string;
+          provider?: string;
+          provider_event_id?: string | null;
+          payment_ref?: string | null;
+          donation_id?: string | null;
+          status?: string | null;
+          amount?: number | null;
+          currency?: string | null;
+          raw_payload?: Record<string, unknown> | null;
+          signature_valid?: boolean | null;
+          processed?: boolean;
+          processed_at?: string | null;
+          received_at?: string;
+          error_message?: string | null;
+        };
+        Relationships: [];
+      };
       campaign_shares: {
         Row: {
           id: string;
@@ -848,6 +899,7 @@ export type CampaignReport = Row<'campaign_reports'> & {
 export type Comment = Row<'comments'>;
 export type Notification = Row<'notifications'>;
 export type NotificationPreferences = Row<'notification_preferences'>;
+export type PaymentEvent = Row<'payment_events'>;
 export type SavedCampaign = Row<'saved_campaigns'>;
 export type PayoutRequest = Row<'payout_requests'>;
 export type PayoutRequestEvent = Row<'payout_request_events'>;

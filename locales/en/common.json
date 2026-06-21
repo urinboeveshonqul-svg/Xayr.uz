@@ -8,6 +8,7 @@
     "panelSubtitle": "Manage the platform",
     "navOverview": "Overview",
     "navCampaigns": "Campaigns",
+    "navDonations": "Donations",
     "navVerifications": "Verification",
     "navUsers": "Users",
     "navFlags": "Reports",
@@ -71,6 +72,25 @@
     "srcCopyLink": "Copy link",
     "srcNative": "Device share",
     "srcOther": "Other"
+  },
+  "payment": {
+    "successTitle": "Payment Successful",
+    "confirming": "We are confirming your payment...",
+    "amount": "Amount",
+    "campaign": "Campaign",
+    "reference": "Transaction reference",
+    "status": "Status",
+    "backToCampaign": "Back to Campaign",
+    "allCampaigns": "All campaigns",
+    "failedTitle": "Payment failed",
+    "failedDesc": "The payment was not completed. Possible reasons:",
+    "reason1": "Insufficient funds in your account",
+    "reason2": "Payment was cancelled or timed out",
+    "reason3": "Bank or payment system error",
+    "retry": "Retry Donation",
+    "stPending": "Pending",
+    "stCompleted": "Completed",
+    "stFailed": "Failed"
   },
   "push": {
     "title": "Push notifications",

@@ -33,6 +33,14 @@ export interface PaymentIntent {
 export interface WebhookResult {
   reference: string;
   status: PaymentStatus;
+  /** Gateway's unique event id — used for webhook idempotency/dedupe. */
+  providerEventId?: string;
+  /** Amount the gateway reports as paid (integer so'm) — verified server-side. */
+  amount?: number;
+  /** Currency the gateway reports (e.g. "UZS") — verified server-side. */
+  currency?: string;
+  /** Whether the provider's signature/checksum validated. */
+  signatureValid?: boolean;
   raw?: unknown;
 }
 

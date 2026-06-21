@@ -8,6 +8,7 @@
     "panelSubtitle": "Platformani boshqaring",
     "navOverview": "Umumiy",
     "navCampaigns": "Kampaniyalar",
+    "navDonations": "Xayriyalar",
     "navVerifications": "Tasdiqlash",
     "navUsers": "Foydalanuvchilar",
     "navFlags": "Shikoyatlar",
@@ -71,6 +72,25 @@
     "srcCopyLink": "Havola nusxasi",
     "srcNative": "Qurilma ulashuvi",
     "srcOther": "Boshqa"
+  },
+  "payment": {
+    "successTitle": "To'lov muvaffaqiyatli",
+    "confirming": "To'lovingizni tasdiqlayapmiz...",
+    "amount": "Miqdor",
+    "campaign": "Kampaniya",
+    "reference": "Tranzaksiya raqami",
+    "status": "Holat",
+    "backToCampaign": "Kampaniyaga qaytish",
+    "allCampaigns": "Barcha kampaniyalar",
+    "failedTitle": "To'lov amalga oshmadi",
+    "failedDesc": "To'lov yakunlanmadi. Quyidagilar sabab bo'lishi mumkin:",
+    "reason1": "Hisobingizda mablag' yetarli emas",
+    "reason2": "To'lov bekor qilindi yoki vaqti tugadi",
+    "reason3": "Bank yoki to'lov tizimi xatosi",
+    "retry": "Qayta urinish",
+    "stPending": "Kutilmoqda",
+    "stCompleted": "Tasdiqlandi",
+    "stFailed": "Amalga oshmadi"
   },
   "push": {
     "title": "Push bildirishnomalar",

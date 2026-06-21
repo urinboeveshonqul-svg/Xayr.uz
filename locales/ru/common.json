@@ -8,6 +8,7 @@
     "panelSubtitle": "Управляйте платформой",
     "navOverview": "Обзор",
     "navCampaigns": "Кампании",
+    "navDonations": "Пожертвования",
     "navVerifications": "Верификация",
     "navUsers": "Пользователи",
     "navFlags": "Жалобы",
@@ -71,6 +72,25 @@
     "srcCopyLink": "Копирование ссылки",
     "srcNative": "Системный доступ",
     "srcOther": "Другое"
+  },
+  "payment": {
+    "successTitle": "Платёж выполнен",
+    "confirming": "Подтверждаем ваш платёж...",
+    "amount": "Сумма",
+    "campaign": "Кампания",
+    "reference": "Номер транзакции",
+    "status": "Статус",
+    "backToCampaign": "Вернуться к кампании",
+    "allCampaigns": "Все кампании",
+    "failedTitle": "Платёж не прошёл",
+    "failedDesc": "Платёж не завершён. Возможные причины:",
+    "reason1": "Недостаточно средств на счёте",
+    "reason2": "Платёж отменён или истёк по времени",
+    "reason3": "Ошибка банка или платёжной системы",
+    "retry": "Повторить",
+    "stPending": "Ожидается",
+    "stCompleted": "Подтверждён",
+    "stFailed": "Не выполнен"
   },
   "push": {
     "title": "Push-уведомления",
