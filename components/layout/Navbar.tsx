@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User, HeartPulse, GraduationCap, Siren, ClipboardList } from 'lucide-react';
+import { Menu, X, Heart, LogOut, LayoutDashboard, Search, User, ClipboardList } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
@@ -116,23 +116,9 @@ export function Navbar() {
             <XayrLogo size="lg" />
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-2">
-            <Link href={L('/campaigns')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              {t('nav.campaigns')}
-            </Link>
-            <Link href={L('/campaigns?category=medical')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              {t('nav.medical')}
-            </Link>
-            <Link href={L('/campaigns?category=education')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              {t('nav.education')}
-            </Link>
-            <Link href={L('/campaigns?category=disaster')} className="px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:text-green-600 hover:bg-green-50 transition-all">
-              {t('nav.emergency')}
-            </Link>
-          </nav>
-
-          {/* Desktop Actions */}
+          {/* Desktop Actions — minimal, right-aligned (no middle nav; campaigns
+              and categories are discoverable via search, homepage sections,
+              on-page filters and the footer) */}
           <div className="hidden lg:flex items-center gap-3">
 
             {/* Search */}
@@ -236,19 +222,6 @@ export function Navbar() {
           <div className="pb-2">
             <LanguageSwitcher />
           </div>
-
-          <Link href={L('/campaigns')} className="block px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
-            {t('nav.campaigns')}
-          </Link>
-          <Link href={L('/campaigns?category=medical')} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
-            <HeartPulse className="w-4 h-4" /> {t('nav.medical')}
-          </Link>
-          <Link href={L('/campaigns?category=education')} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
-            <GraduationCap className="w-4 h-4" /> {t('nav.education')}
-          </Link>
-          <Link href={L('/campaigns?category=disaster')} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 transition-all" onClick={() => setMenuOpen(false)}>
-            <Siren className="w-4 h-4" /> {t('nav.emergency')}
-          </Link>
 
           {!authReady ? null : user ? (
             <>
