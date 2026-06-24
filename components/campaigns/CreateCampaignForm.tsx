@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
-import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
+import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_GALLERY = 5;
@@ -131,6 +131,11 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
   const onSubmit = async (data: FormData) => {
     if (!coverFile) {
       setCoverError('Muqova rasmi majburiy');
+      return;
+    }
+    // Stop the submission if Turnstile is enabled but hasn't issued a token yet.
+    if (isTurnstileEnabled() && !captchaToken) {
+      toast.error('Security verification failed. Please try again.');
       return;
     }
 

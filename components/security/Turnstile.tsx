@@ -8,6 +8,20 @@ const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render
 // Kept in sync with TURNSTILE_FAILED_MESSAGE in lib/security/turnstile.ts (that
 // module is server-only, so the literal is duplicated rather than imported).
 const FAILED_MESSAGE = 'Security verification failed. Please try again.';
+// Hard cap so the loading state ALWAYS clears, even if the Cloudflare script
+// never fires onload/onerror on a flaky (mobile) network — prevents an infinite
+// "loading" spinner.
+const LOAD_TIMEOUT_MS = 12000;
+
+/**
+ * True when Turnstile is configured (a site key is present). Forms use this to
+ * gate submission: when enabled, a request must carry a token. When NOT
+ * configured the widget is hidden and the server verifier fails open, so forms
+ * must behave exactly as before. Safe to call on the client (reads NEXT_PUBLIC).
+ */
+export function isTurnstileEnabled(): boolean {
+  return Boolean(SITE_KEY);
+}
 
 type TurnstileApi = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
@@ -89,6 +103,11 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
     let active = true;
     setStatus('loading');
 
+    // Failsafe: never let the widget sit in 'loading' forever.
+    const timeoutId = setTimeout(() => {
+      if (active) setStatus((s) => (s === 'ready' ? s : 'error'));
+    }, LOAD_TIMEOUT_MS);
+
     loadScript()
       .then(() => {
         const el = containerRef.current;
@@ -131,6 +150,7 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
 
     return () => {
       active = false;
+      clearTimeout(timeoutId);
       if (window.turnstile && widgetId.current) {
         try {
           window.turnstile.remove(widgetId.current);

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
+import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 
 const MAX = 5 * 1024 * 1024;
 type DocType = 'id_front' | 'id_back' | 'selfie';
@@ -51,6 +51,10 @@ export function VerificationWizard({ userId }: { userId: string }) {
   };
 
   const submit = async () => {
+    if (isTurnstileEnabled() && !captchaToken) {
+      toast.error('Security verification failed. Please try again.');
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch('/api/verification/submit', {

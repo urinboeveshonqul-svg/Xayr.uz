@@ -9,7 +9,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
+import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 
 export function LoginForm() {
   const { t, locale } = useI18n();
@@ -32,6 +32,12 @@ export function LoginForm() {
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
+    // Stop the submission if Turnstile is enabled but hasn't issued a token yet
+    // (common on mobile while the challenge resolves). Show the error, never hang.
+    if (isTurnstileEnabled() && !captchaToken) {
+      toast.error('Security verification failed. Please try again.');
+      return;
+    }
     try {
       // Auth goes through our server route so it can be rate-limited.
       const res = await fetch('/api/auth/login', {

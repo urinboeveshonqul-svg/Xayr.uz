@@ -10,7 +10,7 @@ import { Loader2, Eye, EyeOff, Check, X, AlertTriangle, Info, RefreshCw } from '
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { sanitizeUsernameInput, isValidUsername, displayUsername } from '@/lib/username';
 import { randomUsernames, smartUsernameSuggestions } from '@/lib/username-generator';
-import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
+import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 
 type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'short';
 
@@ -84,6 +84,11 @@ export function RegisterForm() {
   const onSubmit = async (data: FormData) => {
     if (avail === 'taken' || avail === 'invalid' || avail === 'short') {
       toast.error(t('auth.vUsernameTaken'));
+      return;
+    }
+    // Stop the submission if Turnstile is enabled but hasn't issued a token yet.
+    if (isTurnstileEnabled() && !captchaToken) {
+      toast.error('Security verification failed. Please try again.');
       return;
     }
     try {

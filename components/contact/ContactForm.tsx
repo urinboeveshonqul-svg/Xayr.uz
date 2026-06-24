@@ -7,7 +7,7 @@ import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Loader2, Send } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
+import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 
 export function ContactForm() {
   const { t } = useI18n();
@@ -32,6 +32,10 @@ export function ContactForm() {
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
+    if (isTurnstileEnabled() && !captchaToken) {
+      toast.error('Security verification failed. Please try again.');
+      return;
+    }
     // Routed server-side so the message is Turnstile-gated before it lands in
     // contact_messages. Admins review at /admin/messages.
     try {
