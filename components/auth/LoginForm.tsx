@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -9,12 +9,15 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
 
 export function LoginForm() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   const schema = z.object({
     identifier: z.string().min(1, t('auth.vIdentifier')),
@@ -34,12 +37,19 @@ export function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: data.identifier, password: data.password }),
+        body: JSON.stringify({
+          identifier: data.identifier,
+          password: data.password,
+          turnstileToken: captchaToken,
+        }),
       });
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         toast.error(json?.error || t('auth.loginError'));
+        // Tokens are single-use — refresh the widget for the next attempt.
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
         return;
       }
 
@@ -97,6 +107,8 @@ export function LoginForm() {
           </Link>
         </div>
       </div>
+
+      <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} className="flex justify-center" />
 
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 text-base">
         {isSubmitting ? (

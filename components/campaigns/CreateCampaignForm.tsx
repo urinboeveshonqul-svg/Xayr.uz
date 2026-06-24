@@ -9,8 +9,9 @@ import toast from 'react-hot-toast';
 import { Upload, Loader2, ImagePlus, X, Siren } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { slugify, CATEGORY_CONFIG } from '@/lib/utils';
+import { CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
+import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_GALLERY = 5;
@@ -47,6 +48,8 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
   const [uploading, setUploading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const blobUrls = useRef<string[]>([]);
 
   // Revoke every created object URL on unmount to avoid memory leaks.
@@ -143,30 +146,32 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
         images.push(await uploadImage(supabase, file, 'gallery'));
       }
 
-      // 3) Insert campaign row
-      const slug = slugify(data.title) + '-' + Date.now().toString(36);
-      const category_id = categories.find((c) => c.slug === data.category)?.id ?? null;
-
-      const { error } = await supabase.from('campaigns').insert({
-        user_id: userId,
-        title: data.title,
-        slug,
-        description: data.description,
-        story: data.story || null,
-        category_id,
-        goal_amount: data.goal,
-        deadline: data.deadline || null,
-        location: data.location || null,
-        is_urgent: data.is_urgent,
-        image_url,
-        images,
-        // Email-confirmed authors publish to 'pending'; the DB trigger
-        // (enforce_campaign_publish) re-checks email confirmation server-side.
-        status: 'pending',
+      // 3) Create the campaign via the server route. It is Turnstile-gated and
+      //    inserts under the user's own session, so the KYC RLS gate + publish
+      //    trigger still enforce server-side. slug + category_id are derived there.
+      const res = await fetch('/api/campaigns/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          story: data.story || null,
+          category: data.category,
+          goal: data.goal,
+          location: data.location || null,
+          deadline: data.deadline || null,
+          is_urgent: data.is_urgent,
+          image_url,
+          images,
+          turnstileToken: captchaToken,
+        }),
       });
 
-      if (error) {
-        toast.error('Xatolik: ' + error.message);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast.error('Xatolik: ' + (json.error || ''));
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
         return;
       }
 
@@ -334,6 +339,9 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
           <Siren className="w-4 h-4 text-red-500" /> Shoshilinch kampaniya sifatida belgilash
         </span>
       </label>
+
+      {/* Bot/abuse gate */}
+      <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} />
 
       {/* Submit */}
       <button type="submit" disabled={isLoading} className="btn-primary w-full py-3 text-base">

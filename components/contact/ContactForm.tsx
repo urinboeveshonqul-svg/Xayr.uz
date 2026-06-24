@@ -3,13 +3,16 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Loader2, Send } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
 
 export function ContactForm() {
   const { t } = useI18n();
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   // Schema is built per-render so validation messages follow the active locale.
   const schema = z.object({
@@ -29,20 +32,33 @@ export function ContactForm() {
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
-    // Stored in contact_messages (insert allowed for everyone via RLS;
-    // reading is admin-only). Admins review at /admin/messages.
-    const { error } = await createClient().from('contact_messages').insert({
-      name: data.name.trim(),
-      email: data.email.trim(),
-      subject: data.subject?.trim() || null,
-      message: data.message.trim(),
-    });
-    if (error) {
+    // Routed server-side so the message is Turnstile-gated before it lands in
+    // contact_messages. Admins review at /admin/messages.
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          subject: data.subject || null,
+          message: data.message,
+          turnstileToken: captchaToken,
+        }),
+      });
+      if (!res.ok) {
+        toast.error(t('contactPage.form.errSend'));
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
+        return;
+      }
+      toast.success(t('contactPage.form.success'));
+      reset();
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
+    } catch {
       toast.error(t('contactPage.form.errSend'));
-      return;
     }
-    toast.success(t('contactPage.form.success'));
-    reset();
   };
 
   const inputClass =
@@ -106,6 +122,8 @@ export function ContactForm() {
         />
         {errors.message && <p className="mt-1.5 text-sm text-red-600">{errors.message.message}</p>}
       </div>
+
+      <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} />
 
       <button
         type="submit"

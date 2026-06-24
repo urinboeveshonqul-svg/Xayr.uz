@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import { Loader2, Eye, EyeOff, Check, X, AlertTriangle, Info, RefreshCw } from '
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { sanitizeUsernameInput, isValidUsername, displayUsername } from '@/lib/username';
 import { randomUsernames, smartUsernameSuggestions } from '@/lib/username-generator';
+import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
 
 type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'short';
 
@@ -18,6 +19,8 @@ export function RegisterForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const [avail, setAvail] = useState<AvailState>('idle');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   // Fresh random suggestions each page load (client-only → no hydration mismatch).
@@ -93,12 +96,16 @@ export function RegisterForm() {
           username: data.username.toLowerCase(),
           email: data.email,
           password: data.password,
+          turnstileToken: captchaToken,
         }),
       });
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         toast.error(json?.error || t('auth.signupError'));
+        // Tokens are single-use — refresh the widget for the next attempt.
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
         return;
       }
 
@@ -299,6 +306,8 @@ export function RegisterForm() {
           <p className="text-red-500 text-xs mt-1">{errors.confirm_password.message}</p>
         )}
       </div>
+
+      <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} className="flex justify-center" />
 
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 text-base">
         {isSubmitting ? (

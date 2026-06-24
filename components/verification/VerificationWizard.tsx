@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
 
 const MAX = 5 * 1024 * 1024;
 type DocType = 'id_front' | 'id_back' | 'selfie';
@@ -19,6 +20,8 @@ export function VerificationWizard({ userId }: { userId: string }) {
 
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   // Step 1 — personal details
   const [legalName, setLegalName] = useState('');
@@ -55,10 +58,16 @@ export function VerificationWizard({ userId }: { userId: string }) {
         body: JSON.stringify({
           legal_name: legalName, date_of_birth: dob, address,
           documents: { id_front: paths.id_front, id_back: paths.id_back, selfie: paths.selfie },
+          turnstileToken: captchaToken,
         }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(json.error ?? 'Error'); return; }
+      if (!res.ok) {
+        toast.error(json.error ?? 'Error');
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
+        return;
+      }
       toast.success(t('verify.pendingMsg'));
       router.push(`/${locale}/verify`);
       router.refresh();
@@ -151,6 +160,9 @@ export function VerificationWizard({ userId }: { userId: string }) {
           <Row label={t('verify.address')} value={address} />
           <Row label={t('verify.step3Title')} value={paths.id_back ? '2' : '1'} />
           <Row label={t('verify.selfie')} value={<Check className="w-4 h-4 text-green-600" />} />
+          <div className="pt-2">
+            <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} />
+          </div>
         </div>
       )}
 

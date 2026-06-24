@@ -3,15 +3,17 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Loader2, MailCheck } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { Turnstile, type TurnstileHandle } from '@/components/security/Turnstile';
 
 export function ForgotPasswordForm() {
   const { t } = useI18n();
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   const schema = z.object({ email: z.string().email(t('auth.vEmail')) });
   type FormData = z.infer<typeof schema>;
@@ -24,15 +26,18 @@ export function ForgotPasswordForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        // The recovery link lands on the callback, which exchanges the code for
-        // a session and then forwards to the reset-password page.
-        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+      // Routed server-side so the request is Turnstile-gated + rate-limited.
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, turnstileToken: captchaToken }),
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast.error(json?.error || t('auth.unexpected'));
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
         return;
       }
 
@@ -70,6 +75,8 @@ export function ForgotPasswordForm() {
         />
         {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
       </div>
+
+      <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} className="flex justify-center" />
 
       <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 text-base">
         {isSubmitting ? (

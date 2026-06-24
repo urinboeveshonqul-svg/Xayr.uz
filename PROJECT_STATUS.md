@@ -348,6 +348,8 @@ Names only — never commit real values. Template: `.env.example`.
 | `ONESIGNAL_REST_API_KEY` | OneSignal REST key — **secret** | ⏳ Optional | `/api/push/notify` |
 | `SUPABASE_WEBHOOK_SECRET` | Shared secret for push webhook — **secret** | ⏳ Optional (push webhook returns 503 without it) | `/api/push/notify` auth |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limiting — **secret** | ⏳ Optional (fails open if absent) | `lib/rate-limit.ts` |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile widget (public) | ⏳ Optional (widget hidden if absent) | `components/security/Turnstile.tsx` |
+| `TURNSTILE_SECRET_KEY` | Turnstile server verification — **secret** | ⏳ Optional (verification skipped/fail-open if absent) | `lib/turnstile.ts` |
 
 > Secrets must never use the `NEXT_PUBLIC_` prefix. Set them in Vercel project env (server scope).
 
@@ -412,6 +414,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 - **Authorization** — Admin routes re-verify `role='admin'` server-side via `auth.getUser()` before any service-role write. Role changes only through `/api/admin/set-role` (self-change blocked). Users cannot self-promote (column grants exclude `role`/`verification_status`).
 - **Storage** — Own-folder policies on public buckets; `verification-documents` private with 5-minute admin signed URLs; KYC submit validates paths are in the user's folder.
 - **Rate limiting** — Upstash sliding-window on login, signup, donation, admin, views; fails open if Redis is unavailable.
+- **Bot protection (Turnstile)** — Cloudflare Turnstile on register, login, password reset, contact, campaign creation, and KYC submission. Always verified server-side (`lib/turnstile.ts`); the client token is never trusted. Fails open only when unconfigured (dev). Setup: `docs/turnstile-setup.md`.
 - **Validation** — Zod on all API inputs; username sanitization/format enforcement; UUID checks.
 - **Secrets** — Service role, OneSignal REST key, webhook secret kept server-only (never `NEXT_PUBLIC_`).
 - **XSS** — User content rendered as text; `dangerouslySetInnerHTML` used only for `JSON.stringify`'d JSON-LD (5 controlled sites).
