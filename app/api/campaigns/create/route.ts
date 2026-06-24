@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { verifyTurnstile, tokenFromBody } from '@/lib/turnstile';
-import { getClientIp } from '@/lib/rate-limit';
+import { getClientIp, rateLimitOr429 } from '@/lib/rate-limit';
 import { slugify } from '@/lib/utils';
 
 export const runtime = 'nodejs';
@@ -32,6 +32,10 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Rate limit by IP first (cheapest check, before any parsing/DB work).
+  const limited = await rateLimitOr429(request, 'campaign');
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
 
   const ts = await verifyTurnstile(tokenFromBody(body), getClientIp(request));

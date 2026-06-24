@@ -15,13 +15,29 @@ const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 export const rateLimitEnabled = Boolean(url && token);
 
-export type LimiterName = 'login' | 'signup' | 'donation' | 'admin' | 'views';
+export type LimiterName =
+  | 'login'
+  | 'signup'
+  | 'reset'
+  | 'donation'
+  | 'campaign'
+  | 'contact'
+  | 'search'
+  | 'notifications'
+  | 'admin'
+  | 'views';
 
-// (count, window) per limiter — tune here in one place.
+// (count, window) per limiter — tune here in one place. Limits are intentionally
+// generous so they curb scripted abuse without tripping on normal human usage.
 const CONFIG: Record<LimiterName, { tokens: number; window: `${number} ${'s' | 'm' | 'h'}` }> = {
   login: { tokens: 5, window: '60 s' },
   signup: { tokens: 3, window: '60 s' },
+  reset: { tokens: 3, window: '60 s' },        // password-reset emails (anti-bombing)
   donation: { tokens: 10, window: '60 s' },
+  campaign: { tokens: 5, window: '60 s' },      // campaign creation
+  contact: { tokens: 3, window: '60 s' },       // contact form
+  search: { tokens: 20, window: '60 s' },       // search queries (human refines a few/min)
+  notifications: { tokens: 30, window: '60 s' }, // notifications page loads
   admin: { tokens: 30, window: '10 s' },
   views: { tokens: 5, window: '1 h' },
 };
@@ -70,7 +86,12 @@ async function getLimiters(): Promise<LimiterMap | null> {
         return {
           login: make('login'),
           signup: make('signup'),
+          reset: make('reset'),
           donation: make('donation'),
+          campaign: make('campaign'),
+          contact: make('contact'),
+          search: make('search'),
+          notifications: make('notifications'),
           admin: make('admin'),
           views: make('views'),
         };
@@ -126,4 +147,25 @@ export function tooManyRequests(
   message = 'Too many requests. Please try again later.'
 ): NextResponse {
   return NextResponse.json({ error: message }, { status: 429, headers: rateLimitHeaders(r) });
+}
+
+/**
+ * Reusable one-call guard for API route handlers. Rate-limits by client IP
+ * (optionally namespaced by `keySuffix`, e.g. a username or campaign id) and
+ * returns a ready 429 `NextResponse` when the limit is exceeded, or `null` when
+ * the request may proceed. Fails open (returns null) when limiting is disabled.
+ *
+ *   const limited = await rateLimitOr429(request, 'contact');
+ *   if (limited) return limited;
+ */
+export async function rateLimitOr429(
+  request: Request,
+  name: LimiterName,
+  opts?: { keySuffix?: string; message?: string }
+): Promise<NextResponse | null> {
+  const ip = getClientIp(request);
+  const id = opts?.keySuffix ? `${name}:${ip}:${opts.keySuffix}` : `${name}:${ip}`;
+  const rl = await enforceRateLimit(name, id);
+  if (!rl.success) return tooManyRequests(rl, opts?.message);
+  return null;
 }

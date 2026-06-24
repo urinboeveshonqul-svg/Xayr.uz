@@ -31,6 +31,41 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // ── Rate limit search queries + the notifications page (per IP) ─────
+  // These have no API route (search is server-rendered; notifications are read
+  // client-side), so the page request is the only app-layer choke point.
+  // Background prefetch fetches are excluded so Next.js link prefetching and
+  // normal browsing never trip the limit; only real, query-bearing searches and
+  // notification page loads are counted.
+  const isPrefetch =
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.get('purpose') === 'prefetch';
+  if (!isPrefetch && isLocale(segments[1])) {
+    const sectionIp = getClientIp(request);
+    const plainText = (rl: Awaited<ReturnType<typeof enforceRateLimit>>, msg: string) =>
+      new NextResponse(msg, {
+        status: 429,
+        headers: { ...rateLimitHeaders(rl), 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+
+    // Search: the campaigns listing WITH a query (?q=…). Plain browsing and
+    // category/sort filtering (no q) are never limited.
+    if (
+      segments[2] === 'campaigns' &&
+      segments.length === 3 &&
+      request.nextUrl.searchParams.has('q')
+    ) {
+      const rl = await enforceRateLimit('search', `search:${sectionIp}`);
+      if (!rl.success) return plainText(rl, 'Too many searches. Please slow down.');
+    }
+
+    // Notifications page loads.
+    if (segments[2] === 'notifications') {
+      const rl = await enforceRateLimit('notifications', `notif:${sectionIp}`);
+      if (!rl.success) return plainText(rl, 'Too many requests. Please slow down.');
+    }
+  }
+
   // Leave route handlers / internals untouched (the auth callback must stay
   // locale-agnostic so Supabase redirect URLs keep working).
   if (

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { verifyTurnstile, tokenFromBody } from '@/lib/turnstile';
-import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { getClientIp, rateLimitOr429 } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -28,11 +28,11 @@ export async function POST(request: Request) {
   }
   const { email } = parsed.data;
 
-  // Reuse the signup limiter (low volume) to throttle reset-email abuse.
-  const rl = await enforceRateLimit('signup', `forgot:${ip}`);
-  if (!rl.success) {
-    return tooManyRequests(rl, "Juda ko'p urinish. Iltimos, biroz kuting va qayta urinib ko'ring.");
-  }
+  // Dedicated 'reset' limiter throttles reset-email abuse (anti-bombing).
+  const limited = await rateLimitOr429(request, 'reset', {
+    message: "Juda ko'p urinish. Iltimos, biroz kuting va qayta urinib ko'ring.",
+  });
+  if (limited) return limited;
 
   const origin = new URL(request.url).origin;
   const supabase = await createClient();

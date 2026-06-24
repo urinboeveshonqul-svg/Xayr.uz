@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyTurnstile, tokenFromBody } from '@/lib/turnstile';
-import { getClientIp } from '@/lib/rate-limit';
+import { getClientIp, rateLimitOr429 } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +19,10 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Rate limit by IP first (cheapest check, before any parsing/DB work).
+  const limited = await rateLimitOr429(request, 'contact');
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
 
   // Verify the human-check BEFORE doing any work.
