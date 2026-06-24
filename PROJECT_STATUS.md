@@ -419,6 +419,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 **Known risks**
 | Sev | Item |
 |---|---|
+| 🔴 | Broad `SELECT` on `public.users` exposes `email`/`phone`/`rejection_reason` to anyone with the anon key (PII enumeration). See `docs/rls-audit.md` F1 — needs a coordinated schema+app fix (public-safe view / PII split), not a blind change. |
 | ⚠️ | Live RLS unverified — biggest real risk if migration #5 (and others) aren't applied in prod. |
 | 🟡 | Push webhook secret compared with `!==` (not constant-time). |
 | 🟡 | `campaign_shares` / `campaign_flags` allow anonymous/auth insert → analytics/spam inflation. |
@@ -477,6 +478,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 | 🟠 High | No `package-lock.json` → non-reproducible builds; CI can't use `npm ci` | repo root, `.github/workflows/ci.yml` | Commit a lockfile; switch CI to `npm ci`. |
 | 🟠 High | No automated tests; CI = typecheck + build only | repo-wide | Add tests for payment idempotency, RLS, donation trigger. |
 | 🟡 Medium | No transactional email (receipts, payout confirmations, contact replies) | — | Integrate an email provider. |
+| 🔴 Critical | Broad `SELECT` on `public.users` leaks `email`/`phone`/`rejection_reason` (PII enumeration via anon key) | `supabase/schema.sql` `users_select_all` | Public-safe profile view or split PII into own-row-RLS table; see `docs/rls-audit.md` F1. |
 | 🟡 Low | Push webhook secret compare not constant-time | `app/api/push/notify/route.ts:58` | Use `crypto.timingSafeEqual`. |
 | 🟡 Low | `campaign_shares` / `campaign_flags` insert inflation | flag/share insert paths | Rate-limit or server-throttle. |
 | 🟡 Low | Auth callback `next` not restricted to relative paths | `app/auth/callback/route.ts:27` | Allow only paths matching `^/[^/]`. |

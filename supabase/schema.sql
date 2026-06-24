@@ -329,6 +329,17 @@ create policy users_select_all  on public.users for select using (true);
 create policy users_insert_self on public.users for insert with check (auth.uid() = id);
 create policy users_update_self on public.users for update using (auth.uid() = id) with check (auth.uid() = id);
 
+-- Column-level UPDATE privileges. RLS gates WHICH ROWS a user may update, but
+-- not WHICH COLUMNS — with the default table-level UPDATE grant a user could set
+-- their own `role` to 'admin' (privilege escalation). Revoke the blanket grant
+-- and re-grant only profile-editable columns; `role` (and later
+-- verification_status) is therefore writable ONLY by the service role (the admin
+-- set-role API, after an is_admin() check). Safe-by-default in the base schema;
+-- verification.sql / admin-dashboard.sql re-assert this for existing deploys.
+revoke update on public.users from anon, authenticated;
+grant update (full_name, avatar_url, bio, phone, preferred_language, updated_at)
+  on public.users to authenticated;
+
 -- ── CATEGORIES ─────────────────────────────────────────────
 drop policy if exists categories_select_all on public.categories;
 drop policy if exists categories_admin_write on public.categories;
@@ -357,9 +368,20 @@ create policy campaigns_delete_own on public.campaigns for delete
 -- ── DONATIONS ──────────────────────────────────────────────
 -- Anyone can record a donation (guests included). Reads limited to the
 -- donor, the campaign owner, and admins.
-drop policy if exists donations_insert_any    on public.donations;
-drop policy if exists donations_select_scoped on public.donations;
-create policy donations_insert_any on public.donations for insert with check (true);
+drop policy if exists donations_insert_any     on public.donations;
+drop policy if exists donations_insert_pending on public.donations;
+drop policy if exists donations_select_scoped  on public.donations;
+-- Clients may insert ONLY 'pending' donations, for themselves or as a guest.
+-- There is deliberately NO client UPDATE/DELETE policy, so moving a donation to
+-- 'completed' requires the service role (donation API / payment webhooks). This
+-- makes campaign totals — credited by the apply_donation trigger on completion —
+-- impossible to forge from the client. (secure-donations-rls.sql re-asserts this
+-- for existing deployments; the base schema is now safe-by-default.)
+create policy donations_insert_pending on public.donations for insert
+  with check (
+    status = 'pending'
+    and (donor_id is null or donor_id = auth.uid())
+  );
 create policy donations_select_scoped on public.donations for select using (
   donor_id = auth.uid()
   or public.is_admin()
