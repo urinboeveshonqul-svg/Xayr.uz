@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifyTurnstile, tokenFromBody } from '@/lib/turnstile';
+import { verifyTurnstile, tokenFromBody, TURNSTILE_FAILED_MESSAGE } from '@/lib/security/turnstile';
 import { getClientIp, rateLimitOr429 } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   // Verify the human-check BEFORE doing any work.
   const ts = await verifyTurnstile(tokenFromBody(body), getClientIp(request));
   if (!ts.success) {
-    return NextResponse.json({ error: 'captcha_failed' }, { status: 400 });
+    return NextResponse.json({ error: TURNSTILE_FAILED_MESSAGE }, { status: 400 });
   }
 
   const parsed = schema.safeParse(body);

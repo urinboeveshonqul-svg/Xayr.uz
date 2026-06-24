@@ -16,6 +16,9 @@
 
 const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
+/** Canonical user-facing message shown whenever Turnstile verification fails. */
+export const TURNSTILE_FAILED_MESSAGE = 'Security verification failed. Please try again.';
+
 export interface TurnstileResult {
   /** True when the request may proceed (verified, or intentionally skipped). */
   success: boolean;

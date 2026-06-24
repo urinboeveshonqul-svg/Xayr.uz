@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifyTurnstile, tokenFromBody } from '@/lib/turnstile';
+import { verifyTurnstile, tokenFromBody, TURNSTILE_FAILED_MESSAGE } from '@/lib/security/turnstile';
 import { getClientIp } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   // Bot/abuse gate — server-side Turnstile verification (never trust the client).
   const ts = await verifyTurnstile(tokenFromBody(body), getClientIp(request));
-  if (!ts.success) return NextResponse.json({ error: 'captcha_failed' }, { status: 400 });
+  if (!ts.success) return NextResponse.json({ error: TURNSTILE_FAILED_MESSAGE }, { status: 400 });
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: 'Validation failed' }, { status: 422 });

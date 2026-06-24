@@ -16,7 +16,7 @@ client token is never trusted on its own.
 | KYC submission | `components/verification/VerificationWizard.tsx` | `POST /api/verification/submit` |
 
 Shared pieces:
-- **`lib/turnstile.ts`** — `verifyTurnstile(token, ip)` calls Cloudflare's
+- **`lib/security/turnstile.ts`** — `verifyTurnstile(token, ip)` calls Cloudflare's
   `siteverify` endpoint with `TURNSTILE_SECRET_KEY`.
 - **`components/security/Turnstile.tsx`** — the client widget. Renders nothing
   when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is unset.

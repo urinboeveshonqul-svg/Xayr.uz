@@ -47,7 +47,8 @@ export function ContactForm() {
         }),
       });
       if (!res.ok) {
-        toast.error(t('contactPage.form.errSend'));
+        const json = await res.json().catch(() => ({}));
+        toast.error(json?.error || t('contactPage.form.errSend'));
         turnstileRef.current?.reset();
         setCaptchaToken(null);
         return;

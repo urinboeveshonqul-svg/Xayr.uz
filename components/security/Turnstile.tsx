@@ -1,10 +1,13 @@
 'use client';
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 // Public site key — safe to expose to the browser (Cloudflare's design).
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+// Kept in sync with TURNSTILE_FAILED_MESSAGE in lib/security/turnstile.ts (that
+// module is server-only, so the literal is duplicated rather than imported).
+const FAILED_MESSAGE = 'Security verification failed. Please try again.';
 
 type TurnstileApi = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
@@ -48,10 +51,15 @@ interface TurnstileProps {
   theme?: 'auto' | 'light' | 'dark';
 }
 
+type WidgetStatus = 'loading' | 'ready' | 'error';
+
 /**
- * Cloudflare Turnstile widget. Renders nothing when NEXT_PUBLIC_TURNSTILE_SITE_KEY
- * is not configured (the server verifier then fails open), so local/dev setups
- * keep working without keys.
+ * Cloudflare Turnstile widget with loading + error states.
+ *
+ * Renders nothing when NEXT_PUBLIC_TURNSTILE_SITE_KEY is not configured (the
+ * server verifier then fails open), so local/dev setups keep working. SSR-safe:
+ * it's a client component, the container is always present in the DOM, and the
+ * initial 'loading' state hydrates identically on server and client.
  */
 export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Turnstile(
   { onVerify, className, theme = 'auto' },
@@ -63,6 +71,10 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
   const onVerifyRef = useRef(onVerify);
   onVerifyRef.current = onVerify;
 
+  const [status, setStatus] = useState<WidgetStatus>('loading');
+  // Bumping this re-runs the render effect (used by the manual "retry" button).
+  const [renderNonce, setRenderNonce] = useState(0);
+
   const reset = useCallback(() => {
     if (window.turnstile && widgetId.current) {
       window.turnstile.reset(widgetId.current);
@@ -73,29 +85,52 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
   useImperativeHandle(ref, () => ({ reset }), [reset]);
 
   useEffect(() => {
-    if (!SITE_KEY) return; // not configured → nothing to render
-    let cancelled = false;
+    if (!SITE_KEY) return;
+    let active = true;
+    setStatus('loading');
 
     loadScript()
       .then(() => {
         const el = containerRef.current;
         const api = window.turnstile;
-        if (cancelled || !el || !api || widgetId.current) return;
-        widgetId.current = api.render(el, {
-          sitekey: SITE_KEY,
-          theme,
-          callback: (token: string) => onVerifyRef.current(token),
-          'expired-callback': () => onVerifyRef.current(null),
-          'error-callback': () => onVerifyRef.current(null),
-        });
+        if (!active || !el || !api) {
+          if (active && !api) setStatus('error');
+          return;
+        }
+        // Clear any prior widget before (re-)rendering into the container.
+        if (widgetId.current) {
+          try {
+            api.remove(widgetId.current);
+          } catch {
+            /* ignore */
+          }
+          widgetId.current = null;
+        }
+        el.innerHTML = '';
+        try {
+          widgetId.current = api.render(el, {
+            sitekey: SITE_KEY,
+            theme,
+            callback: (token: string) => onVerifyRef.current(token),
+            'expired-callback': () => onVerifyRef.current(null),
+            'error-callback': () => {
+              onVerifyRef.current(null);
+              if (active) setStatus('error');
+            },
+          });
+          if (active) setStatus('ready');
+        } catch {
+          if (active) setStatus('error');
+        }
       })
       .catch(() => {
-        // Script blocked/failed — leave token null; the server decides (fails
-        // open when the secret is unset, blocks when configured + no token).
+        // Script blocked/failed — show the error state; the server still decides
+        // (fails open when the secret is unset, blocks when configured + no token).
+        if (active) setStatus('error');
       });
 
     return () => {
-      cancelled = true;
+      active = false;
       if (window.turnstile && widgetId.current) {
         try {
           window.turnstile.remove(widgetId.current);
@@ -105,8 +140,33 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
         widgetId.current = null;
       }
     };
-  }, [theme]);
+  }, [theme, renderNonce]);
 
   if (!SITE_KEY) return null;
-  return <div ref={containerRef} className={className} />;
+
+  return (
+    <div className={className}>
+      {/* The widget mounts here; the container must always exist in the DOM. */}
+      <div ref={containerRef} aria-busy={status === 'loading'} />
+
+      {status === 'loading' && (
+        <p className="mt-1 text-xs text-gray-400" role="status">
+          Verifying you&apos;re human…
+        </p>
+      )}
+
+      {status === 'error' && (
+        <div className="mt-1 flex items-center gap-2" role="alert">
+          <p className="text-xs text-red-500">{FAILED_MESSAGE}</p>
+          <button
+            type="button"
+            onClick={() => setRenderNonce((n) => n + 1)}
+            className="text-xs font-semibold text-brand-600 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+    </div>
+  );
 });
