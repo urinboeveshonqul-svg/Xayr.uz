@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 
 const schema = z.object({
   full_name: z.string().min(2, 'Ism kamida 2 ta belgi bo\'lishi kerak').max(100),
@@ -84,7 +85,7 @@ export function ProfileForm({ profile, email }: ProfileFormProps) {
 
       {/* Full name */}
       <div>
-        <label className="label">To'liq ism *</label>
+        <RequiredLabel>To'liq ism</RequiredLabel>
         <input {...register('full_name')} className="input" placeholder="Ism Familiya" />
         {errors.full_name && (
           <p className="text-red-500 text-xs mt-1">{errors.full_name.message}</p>

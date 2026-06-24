@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 
 export function ResetPasswordForm() {
   const { t, locale } = useI18n();
@@ -76,7 +77,7 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="label">{t('auth.newPassword')} *</label>
+        <RequiredLabel>{t('auth.newPassword')}</RequiredLabel>
         <div className="relative">
           <input
             {...register('password')}
@@ -98,7 +99,7 @@ export function ResetPasswordForm() {
       </div>
 
       <div>
-        <label className="label">{t('auth.confirmPassword')} *</label>
+        <RequiredLabel>{t('auth.confirmPassword')}</RequiredLabel>
         <input
           {...register('confirm_password')}
           type={show ? 'text' : 'password'}

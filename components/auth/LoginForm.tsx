@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 
 export function LoginForm() {
   const { t, locale } = useI18n();
@@ -73,7 +74,7 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="label">{t('auth.emailOrUsername')} *</label>
+        <RequiredLabel>{t('auth.emailOrUsername')}</RequiredLabel>
         <input
           {...register('identifier')}
           type="text"
@@ -85,7 +86,7 @@ export function LoginForm() {
       </div>
 
       <div>
-        <label className="label">{t('auth.password')} *</label>
+        <RequiredLabel>{t('auth.password')}</RequiredLabel>
         <div className="relative">
           <input
             {...register('password')}

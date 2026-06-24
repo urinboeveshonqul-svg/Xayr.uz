@@ -12,6 +12,7 @@ import { useI18n } from '@/components/i18n/I18nProvider';
 import { CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_GALLERY = 5;
@@ -198,7 +199,7 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
 
       {/* Cover image (required) */}
       <div>
-        <label className="label">Muqova rasmi *</label>
+        <RequiredLabel>Muqova rasmi</RequiredLabel>
         <label className="block cursor-pointer">
           <div className={`relative h-48 sm:h-56 rounded-xl border-2 border-dashed transition-colors overflow-hidden ${
             coverError
@@ -264,14 +265,14 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
 
       {/* Title */}
       <div>
-        <label className="label">Sarlavha *</label>
+        <RequiredLabel>Sarlavha</RequiredLabel>
         <input {...register('title')} className="input" placeholder="Kampaniya sarlavhasi" />
         {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
       </div>
 
       {/* Description */}
       <div>
-        <label className="label">Qisqa tavsif *</label>
+        <RequiredLabel>Qisqa tavsif</RequiredLabel>
         <textarea
           {...register('description')}
           rows={3}
@@ -296,7 +297,7 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
       {/* Category + Goal */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="label">Kategoriya *</label>
+          <RequiredLabel>Kategoriya</RequiredLabel>
           <select {...register('category')} className="input">
             {(Object.keys(CATEGORY_CONFIG) as CampaignCategory[]).map((cat) => (
               <option key={cat} value={cat}>
@@ -307,7 +308,7 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
           {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
         </div>
         <div>
-          <label className="label">Maqsad (so&apos;m) *</label>
+          <RequiredLabel>Maqsad (so&apos;m)</RequiredLabel>
           <input
             {...register('goal')}
             type="number"

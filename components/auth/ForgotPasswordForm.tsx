@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { Loader2, MailCheck } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 
 export function ForgotPasswordForm() {
   const { t } = useI18n();
@@ -69,7 +70,7 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="label">{t('auth.email')} *</label>
+        <RequiredLabel>{t('auth.email')}</RequiredLabel>
         <input
           {...register('email')}
           type="email"

@@ -11,6 +11,7 @@ import { useI18n } from '@/components/i18n/I18nProvider';
 import { sanitizeUsernameInput, isValidUsername, displayUsername } from '@/lib/username';
 import { randomUsernames, smartUsernameSuggestions } from '@/lib/username-generator';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
+import { RequiredLabel } from '@/components/ui/RequiredLabel';
 
 type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'short';
 
@@ -129,7 +130,7 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="label">{t('auth.fullName')} *</label>
+        <RequiredLabel>{t('auth.fullName')}</RequiredLabel>
         <input
           {...register('full_name')}
           type="text"
@@ -143,7 +144,7 @@ export function RegisterForm() {
       {/* Username — live availability, friendly guidance */}
       <div>
         <div className="flex items-center justify-between">
-          <label className="label mb-0">{t('auth.username')} *</label>
+          <RequiredLabel className="mb-0">{t('auth.username')}</RequiredLabel>
           {(usernameValue || '').length > 0 && (
             <span className={`text-xs ${(usernameValue || '').length > 30 ? 'text-red-500' : 'text-gray-400'}`}>
               {(usernameValue || '').length}/30
@@ -255,7 +256,7 @@ export function RegisterForm() {
       </div>
 
       <div>
-        <label className="label">{t('auth.email')} *</label>
+        <RequiredLabel>{t('auth.email')}</RequiredLabel>
         <input
           {...register('email')}
           type="email"
@@ -267,7 +268,7 @@ export function RegisterForm() {
       </div>
 
       <div>
-        <label className="label">{t('auth.password')} *</label>
+        <RequiredLabel>{t('auth.password')}</RequiredLabel>
         <div className="relative">
           <input
             {...register('password')}
@@ -289,7 +290,7 @@ export function RegisterForm() {
       </div>
 
       <div>
-        <label className="label">{t('auth.confirmPassword')} *</label>
+        <RequiredLabel>{t('auth.confirmPassword')}</RequiredLabel>
         <div className="relative">
           <input
             {...register('confirm_password')}
