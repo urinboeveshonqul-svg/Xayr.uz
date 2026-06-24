@@ -46,6 +46,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 36 | `campaign-create-email-gate.sql` | Server-side: `campaigns_insert_own` requires a confirmed email (or admin) — superseded by #37 | — |
 | 37 | `campaign-create-kyc-gate.sql` | Campaign create/publish gated on **KYC** (`verification_status='verified'`) instead of email — RLS insert + publish trigger | unverified-KYC insert is denied |
 | 38 | `payment-foundation.sql` | `donations.payment_ref` UNIQUE index + `payment_events` table (idempotency/reconciliation/audit, admin-only read) | `payment_events` exists |
+| 39 | `payment-refund-reversal.sql` | **Refund safety** — `apply_donation` reverses `current_amount`/`donors_count` (floored at 0) when a completed donation becomes refunded/failed, so refunded funds can't be withdrawn. Requires #5. | refund a completed test donation → `current_amount` returns to prior value |
 
 ## Critical notes
 

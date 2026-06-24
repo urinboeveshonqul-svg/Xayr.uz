@@ -391,7 +391,8 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 - `types.ts` — `PaymentProvider` contract (`createPayment`, optional `verifyWebhook`), `PaymentIntent`, `WebhookResult`.
 - `index.ts` — provider registry + `getPaymentProvider()`.
 - `providers/manual.ts` — the only registered provider (records pending, no charge).
-- `confirm.ts` — `confirmDonation()` (service-role, idempotent, amount/currency verified before crediting).
+- `confirm.ts` — `confirmDonation()` (service-role, idempotent; amount **and** currency are **mandatory** and fail closed; a definitive mismatch marks the donation `failed` + alerts admins, never left pending).
+- **Money-loss hardening (2026-06-24, see `docs/payment-security-audit.md`):** M1 webhook signature enforcement (reject on `signatureValid===false`), M2 mandatory amount/currency, M3 refund reversal (`supabase/payment-refund-reversal.sql` — reverses campaign totals + payout availability on refund/fail), M5 mismatch→failed+admin alert. **M4 (migration #5 live in prod) remains UNVERIFIED — run `verify-migrations.sql` before enabling payments.**
 - `helpers.ts` — `createPaymentEvent`, `isDuplicateWebhook`, `markPaymentProcessed`, `validatePaymentAmount`, `validateCurrency`.
 
 **Current flow.** `DonationForm` → `POST /api/donations` → service-role insert as `pending` → `manual` provider returns a `manual_<id>` reference + "coming soon" instructions → `payment_ref` saved. `apply_donation` credits the campaign **only** when a donation reaches `completed`.

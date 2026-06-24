@@ -83,6 +83,34 @@ export async function isDuplicateWebhook(provider: string, providerEventId?: str
 }
 
 /**
+ * Alert every admin in-app about a payment issue (e.g. an amount/currency
+ * mismatch). Uses the service role, so it bypasses RLS to write notifications.
+ * Best-effort: failures here never block webhook processing.
+ */
+export async function notifyAdminsOfPaymentIssue(opts: {
+  title: string;
+  body: string;
+  link?: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: admins } = await admin.from('users').select('id').eq('role', 'admin');
+    if (!admins || admins.length === 0) return;
+    await admin.from('notifications').insert(
+      admins.map((a) => ({
+        user_id: a.id,
+        type: 'general' as const,
+        title: opts.title,
+        body: opts.body,
+        link: opts.link ?? null,
+      }))
+    );
+  } catch (err) {
+    console.error('[payments] notifyAdminsOfPaymentIssue failed:', err);
+  }
+}
+
+/**
  * Finalize a logged event. On success → processed=true; on error → keep
  * processed=false (so a retry can re-process) but record the reason + timestamp.
  */

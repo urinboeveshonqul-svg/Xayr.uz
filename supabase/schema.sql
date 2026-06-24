@@ -224,6 +224,19 @@ begin
            'Kampaniyangizga yangi xayriya tushdi.', '/campaigns/' || c.slug
       from public.campaigns c
      where c.id = new.campaign_id;
+
+  -- Refund safety: reverse the credit when a completed donation leaves
+  -- 'completed' (refunded or failed). Floored at 0, so refunded funds drop out
+  -- of the payout-available balance and can't be withdrawn.
+  elsif tg_op = 'UPDATE'
+        and old.status = 'completed'
+        and new.status is distinct from 'completed' then
+    perform set_config('app.guard_campaign_bypass', 'on', true);
+    update public.campaigns
+       set current_amount = greatest(0, current_amount - old.amount),
+           donors_count   = greatest(0, donors_count - 1)
+     where id = new.campaign_id;
+    perform set_config('app.guard_campaign_bypass', 'off', true);
   end if;
   return new;
 end; $$;
