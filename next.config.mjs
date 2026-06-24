@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -66,4 +68,15 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap with Sentry so the client config is bundled and (when a SENTRY_AUTH_TOKEN
+// is present at build time) source maps are uploaded. Org/project/token come
+// from build-time env only — never committed, never NEXT_PUBLIC. With no token,
+// source-map upload is skipped and the build proceeds normally.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  widenClientFileUpload: true,
+  disableLogger: true,
+});

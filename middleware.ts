@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { defaultLocale, isLocale, type Locale } from '@/i18n/config';
 import { enforceRateLimit, getClientIp, rateLimitHeaders } from '@/lib/rate-limit';
 
@@ -152,6 +153,8 @@ export async function middleware(request: NextRequest) {
 
     return supabaseResponse;
   } catch (err) {
+    // Report middleware failures to Sentry (no-op without a DSN), then fail open.
+    Sentry.captureException(err);
     console.error('[middleware] Supabase session refresh failed — allowing request (fail-open):', err);
     return supabaseResponse;
   }

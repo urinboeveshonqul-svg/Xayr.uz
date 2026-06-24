@@ -200,7 +200,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 5. Platform-level analytics + admin analytics dashboard.
 6. Refund flow (status, trigger, admin UI).
 7. Full-text/fuzzy search upgrade.
-8. Error monitoring (Sentry) + structured logging.
+8. ~~Error monitoring (Sentry)~~ ✅ done — structured logging still pending.
 9. Constant-time webhook secret comparison + share/flag insert rate-limiting.
 
 ### Future Ideas
@@ -350,6 +350,8 @@ Names only — never commit real values. Template: `.env.example`.
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limiting — **secret** | ⏳ Optional (fails open if absent) | `lib/rate-limit.ts` |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile widget (public) | ⏳ Optional (widget hidden if absent) | `components/security/Turnstile.tsx` |
 | `TURNSTILE_SECRET_KEY` | Turnstile server verification — **secret** | ⏳ Optional (verification skipped/fail-open if absent) | `lib/turnstile.ts` |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN (public by design) | ⏳ Optional (SDK inert if absent) | `sentry.*.config.ts` |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` | Sentry source-map upload — **secret**, build-time only | ⏳ Optional (upload skipped if absent) | `next.config.mjs` (`withSentryConfig`) |
 
 > Secrets must never use the `NEXT_PUBLIC_` prefix. Set them in Vercel project env (server scope).
 
@@ -417,6 +419,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 - **Bot protection (Turnstile)** — Cloudflare Turnstile on register, login, password reset, contact, campaign creation, and KYC submission. Always verified server-side (`lib/turnstile.ts`); the client token is never trusted. Fails open only when unconfigured (dev). Setup: `docs/turnstile-setup.md`.
 - **Validation** — Zod on all API inputs; username sanitization/format enforcement; UUID checks.
 - **Security headers** — Set in `next.config.mjs` for all routes: `Content-Security-Policy` (scoped to Supabase REST+realtime, OneSignal SDK/API, Turnstile; `'unsafe-inline'` for Next's inline scripts/styles, `img-src https:`), `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera/mic/geo/payment/topics off), `Strict-Transport-Security` (2y, includeSubDomains, preload). `upgrade-insecure-requests` is production-only.
+- **Error monitoring** — Sentry (`@sentry/nextjs`) tracks frontend, API/server, and middleware errors via `instrumentation.ts` (`onRequestError`), `sentry.{client,server,edge}.config.ts`, and `app/global-error.tsx`. Inert without a DSN. DSN is public; the source-map auth token is a build-time secret. Setup: `docs/sentry-setup.md`.
 - **Secrets** — Service role, OneSignal REST key, webhook secret kept server-only (never `NEXT_PUBLIC_`).
 - **XSS** — User content rendered as text; `dangerouslySetInnerHTML` used only for `JSON.stringify`'d JSON-LD (5 controlled sites).
 
@@ -518,7 +521,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 - [ ] Transactional email (receipts, payout confirmations, contact replies).
 - [ ] Configure OneSignal + Supabase notification webhook (live push).
 - [ ] Constant-time webhook secret compare; restrict auth-callback `next`.
-- [ ] Error monitoring (Sentry).
+- [x] Error monitoring (Sentry) — `docs/sentry-setup.md`.
 - [ ] Submit sitemap to Google Search Console.
 
 ### Optional
@@ -557,7 +560,7 @@ Prioritized; effort sized **Small** (<1d), **Medium** (1–3d), **Large** (3d+).
 | 5 | Transactional email (receipts, payout confirmations, contact replies) | 🟠 High | Medium |
 | 6 | Automated tests: payment idempotency, RLS, donation→credit trigger | 🟠 High | Medium |
 | 7 | Configure OneSignal + Supabase webhook (activate live push) | 🟡 Medium | Small |
-| 8 | Error monitoring (Sentry) + structured logging | 🟡 Medium | Small |
+| 8 | ~~Error monitoring (Sentry)~~ ✅ done (`docs/sentry-setup.md`) + structured logging | 🟡 Medium | Small |
 | 9 | Security hardening: constant-time webhook compare, restrict callback `next`, rate-limit share/flag inserts | 🟡 Medium | Small |
 | 10 | Refund flow (status handling + admin UI) once a gateway exists | 🟡 Medium | Medium |
 

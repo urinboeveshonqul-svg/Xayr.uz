@@ -53,6 +53,10 @@ logs
 .eslintcache
 .turbo
 
+# ---- Sentry (never commit auth token / generated CLI config) ----
+.sentryclirc
+.env.sentry-build-plugin
+
 # ---- OS / editor cruft ----
 .DS_Store
 Thumbs.db
