@@ -289,7 +289,7 @@
     "vPasswordsMatch": "Пароли не совпадают",
     "vNameMin": "Имя должно содержать не менее 2 символов",
     "emailOrUsername": "Эл. почта или имя пользователя",
-    "emailOrUsernamePlaceholder": "email или @username",
+    "emailOrUsernamePlaceholder": "email или имя пользователя",
     "vIdentifier": "Введите эл. почту или имя пользователя",
     "username": "Имя пользователя",
     "usernamePlaceholder": "username",

@@ -289,7 +289,7 @@
     "vPasswordsMatch": "Parollar mos kelmadi",
     "vNameMin": "Ism kamida 2 ta belgi bo'lishi kerak",
     "emailOrUsername": "Email yoki foydalanuvchi nomi",
-    "emailOrUsernamePlaceholder": "email yoki @foydalanuvchi",
+    "emailOrUsernamePlaceholder": "email yoki foydalanuvchi nomi",
     "vIdentifier": "Email yoki foydalanuvchi nomini kiriting",
     "username": "Foydalanuvchi nomi",
     "usernamePlaceholder": "foydalanuvchi",

@@ -289,7 +289,7 @@
     "vPasswordsMatch": "Passwords do not match",
     "vNameMin": "Name must be at least 2 characters",
     "emailOrUsername": "Email or Username",
-    "emailOrUsernamePlaceholder": "email or @username",
+    "emailOrUsernamePlaceholder": "email or username",
     "vIdentifier": "Enter your email or username",
     "username": "Username",
     "usernamePlaceholder": "username",

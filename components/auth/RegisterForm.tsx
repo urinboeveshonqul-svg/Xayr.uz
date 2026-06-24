@@ -201,7 +201,7 @@ export function RegisterForm() {
                 onClick={() => setValue('username', s, { shouldValidate: true })}
                 className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 hover:-translate-y-0.5 active:scale-95 transition-all"
               >
-                @{s}
+                {s}
               </button>
             ))}
           </div>
@@ -230,7 +230,7 @@ export function RegisterForm() {
                   onClick={() => setValue('username', s, { shouldValidate: true })}
                   className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:-translate-y-0.5 active:scale-95 transition-all"
                 >
-                  @{s}
+                  {s}
                 </button>
               ))}
             </div>

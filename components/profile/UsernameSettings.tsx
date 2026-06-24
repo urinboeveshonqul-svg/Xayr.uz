@@ -156,7 +156,7 @@ export function UsernameSettings({
                   onClick={() => setValue(s)}
                   className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 transition-colors"
                 >
-                  @{s}
+                  {s}
                 </button>
               ))}
             </div>
