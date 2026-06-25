@@ -142,7 +142,8 @@
     "trustNoFee": "Transparent Fees",
     "statActive": "Active",
     "campaigns": "Campaigns",
-    "donors": "Donors"
+    "donors": "Donors",
+    "imageAlt": "Xayr community members helping one another — sharing food, building a home, teaching children, and planting trees"
   },
   "stats": {
     "active": "Active campaigns",

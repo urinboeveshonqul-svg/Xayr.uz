@@ -142,7 +142,8 @@
     "trustNoFee": "Shaffof Komissiyalar",
     "statActive": "Faol",
     "campaigns": "Kampaniyalar",
-    "donors": "Xayriyachilar"
+    "donors": "Xayriyachilar",
+    "imageAlt": "Xayr jamiyati a'zolari bir-biriga yordam bermoqda: oziq-ovqat ulashish, uy qurish, bolalarni o'qitish va daraxt ekish"
   },
   "stats": {
     "active": "Faol kampaniyalar",
