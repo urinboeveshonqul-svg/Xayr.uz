@@ -52,6 +52,14 @@ const securityHeaders = [
 
 const nextConfig = {
   images: {
+    // Serve AVIF first (~20-30% smaller than WebP) with a WebP fallback; the
+    // browser picks what it supports. Pure delivery optimization — no markup or
+    // behavior change.
+    formats: ['image/avif', 'image/webp'],
+    // Uploaded images use unique storage paths, so a URL's optimized variant is
+    // effectively immutable — cache it long to cut repeat optimization/CDN cost
+    // (~31 days). Does not affect new uploads (they get new URLs).
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       { protocol: "https", hostname: "tyayyqjxvqarvdkboksr.supabase.co" },
       { protocol: "https", hostname: "images.unsplash.com" },
