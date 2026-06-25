@@ -2,20 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
+
+type Phase = 'checking' | 'ready' | 'invalid';
 
 export function ResetPasswordForm() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [show, setShow] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [phase, setPhase] = useState<Phase>('checking');
 
   const schema = z
     .object({
@@ -34,42 +37,70 @@ export function ResetPasswordForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  // The recovery link must have established a session (via the callback route).
-  // If there is no session, the link is invalid/expired — send the user back.
+  // A valid recovery link establishes a temporary session via /auth/callback.
+  // Confirm it exists; if not, the link is expired/invalid/already-used → show a
+  // friendly error with a way to request a new email (never a blank page or the
+  // homepage). Also listen for a slightly-late recovery/sign-in event.
   useEffect(() => {
     const supabase = createClient();
+    let active = true;
+
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        toast.error(t('auth.resetInvalid'));
-        router.replace(`/${locale}/auth/forgot-password`);
-      } else {
-        setReady(true);
-      }
+      if (!active) return;
+      setPhase(data.user ? 'ready' : 'invalid');
     });
-  }, [router, locale, t]);
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active && session?.user) setPhase('ready');
+    });
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const onSubmit = async (data: FormData) => {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.updateUser({ password: data.password });
-
       if (error) {
         toast.error(error.message);
         return;
       }
 
+      // Invalidate the temporary recovery session, then send to login.
+      await supabase.auth.signOut();
       toast.success(t('auth.passwordUpdated'));
-      router.push(`/${locale}`);
+      router.push(`/${locale}/auth/login`);
       router.refresh();
     } catch {
       toast.error(t('auth.unexpected'));
     }
   };
 
-  if (!ready) {
+  if (phase === 'checking') {
     return (
       <div className="flex justify-center py-8">
         <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+      </div>
+    );
+  }
+
+  // Expired / invalid / already-used recovery link.
+  if (phase === 'invalid') {
+    return (
+      <div className="text-center space-y-4 py-2">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+          <AlertTriangle className="w-7 h-7 text-red-500" />
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-300">{t('auth.resetInvalid')}</p>
+        <Link
+          href={`/${locale}/auth/forgot-password`}
+          className="btn-primary w-full py-3 text-base inline-flex justify-center"
+        >
+          {t('auth.sendReset')}
+        </Link>
       </div>
     );
   }
