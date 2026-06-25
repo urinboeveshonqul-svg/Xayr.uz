@@ -9,6 +9,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
+import { UZ, nationalDigitsFrom, formatNational, isValidNational, toE164 } from '@/lib/phone';
 
 const MAX = 5 * 1024 * 1024;
 type DocType = 'id_front' | 'id_back' | 'selfie';
@@ -27,6 +28,7 @@ export function VerificationWizard({ userId }: { userId: string }) {
   const [legalName, setLegalName] = useState('');
   const [dob, setDob] = useState('');
   const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState(''); // national digits only (9); +998 prepended on submit
   // Steps 2–3 — identity documents + selfie
   const [paths, setPaths] = useState<Record<DocType, string | null>>({ id_front: null, id_back: null, selfie: null });
   const [previews, setPreviews] = useState<Record<DocType, string | null>>({ id_front: null, id_back: null, selfie: null });
@@ -61,6 +63,7 @@ export function VerificationWizard({ userId }: { userId: string }) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           legal_name: legalName, date_of_birth: dob, address,
+          phone: toE164(phone),
           documents: { id_front: paths.id_front, id_back: paths.id_back, selfie: paths.selfie },
           turnstileToken: captchaToken,
         }),
@@ -79,7 +82,7 @@ export function VerificationWizard({ userId }: { userId: string }) {
   };
 
   const canNext =
-    (step === 0 && legalName.trim().length >= 3 && !!dob && address.trim().length >= 5) ||
+    (step === 0 && legalName.trim().length >= 3 && !!dob && address.trim().length >= 5 && isValidNational(phone)) ||
     (step === 1 && !!paths.id_front) ||
     (step === 2 && !!paths.selfie);
 
@@ -134,6 +137,33 @@ export function VerificationWizard({ userId }: { userId: string }) {
             <input type="date" className="input" value={dob} onChange={(e) => setDob(e.target.value)} max={new Date().toISOString().split('T')[0]} /></div>
           <div><label className="label">{t('verify.address')}</label>
             <textarea rows={2} className="input resize-none" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
+          <div>
+            <label className="label" htmlFor="kyc-phone">{t('verify.phone')}</label>
+            <div className="flex">
+              <span
+                className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-semibold select-none"
+                aria-hidden
+              >
+                {UZ.dialCode}
+              </span>
+              <input
+                id="kyc-phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                className="input rounded-l-none"
+                value={formatNational(phone)}
+                onChange={(e) => setPhone(nationalDigitsFrom(e.target.value))}
+                placeholder={UZ.example}
+                aria-describedby="kyc-phone-hint"
+              />
+            </div>
+            <p id="kyc-phone-hint" className="text-xs mt-1 text-gray-400">
+              {phone.length > 0 && !isValidNational(phone)
+                ? <span className="text-red-500">{t('verify.phoneInvalid')}</span>
+                : t('verify.phoneHint')}
+            </p>
+          </div>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyTurnstile, tokenFromBody, TURNSTILE_FAILED_MESSAGE } from '@/lib/security/turnstile';
 import { getClientIp } from '@/lib/rate-limit';
+import { isValidE164 } from '@/lib/phone';
 
 export const runtime = 'nodejs';
 
@@ -11,8 +12,9 @@ const schema = z.object({
   legal_name: z.string().min(3).max(120),
   date_of_birth: z.string().min(8).max(10), // YYYY-MM-DD
   address: z.string().min(5).max(300),
-  // Phone is optional contact info now (no SMS/OTP verification).
-  phone: z.string().max(20).nullable().optional(),
+  // Required Uzbekistan phone in E.164 (+998 + 9 digits). Validated server-side
+  // (never trust the client); for identity/contact/payout — not for login.
+  phone: z.string().refine((v) => isValidE164(v), { message: 'invalid_phone' }),
   documents: z.object({
     id_front: z.string(),
     id_back: z.string().nullable().optional(),
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
       legal_name,
       date_of_birth,
       address,
-      phone: phone?.trim() || null,
+      phone, // E.164, e.g. +998901234567
       status: 'pending',
     })
     .select('id')
@@ -69,7 +71,8 @@ export async function POST(request: Request) {
   ];
   await admin.from('identity_documents').insert(docRows);
 
-  await admin.from('users').update({ verification_status: 'pending' }).eq('id', user.id);
+  // Mirror the verified contact number onto the profile (contact / payout comms).
+  await admin.from('users').update({ verification_status: 'pending', phone }).eq('id', user.id);
 
   return NextResponse.json({ ok: true, requestId: req.id });
 }
