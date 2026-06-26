@@ -756,6 +756,7 @@
     "noDonationsYet": "No donations yet",
     "noUpdatesYet": "No updates yet",
     "availableBalance": "Available to withdraw",
+    "totalWithdrawn": "Total withdrawn",
     "withdrawBtn": "Withdraw funds",
     "requestHistory": "Request history",
     "psPending": "In review",

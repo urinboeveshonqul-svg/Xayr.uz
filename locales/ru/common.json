@@ -756,6 +756,7 @@
     "noDonationsYet": "Пожертвований пока нет",
     "noUpdatesYet": "Новостей пока нет",
     "availableBalance": "Доступно для вывода",
+    "totalWithdrawn": "Всего выведено",
     "withdrawBtn": "Вывести средства",
     "requestHistory": "История запросов",
     "psPending": "На рассмотрении",

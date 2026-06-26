@@ -99,6 +99,10 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
     .filter((r) => COMMITTED.includes(r.status))
     .reduce((sum, r) => sum + r.amount, 0);
   const available = Math.max(0, (campaign.current_amount ?? 0) - committed);
+  // Total successfully withdrawn (gross amounts that have left the balance).
+  const totalWithdrawn = payoutRequests
+    .filter((r) => r.status === 'paid')
+    .reduce((sum, r) => sum + r.amount, 0);
 
   const eventsByReq = new Map<string, typeof payoutEvents>();
   for (const e of payoutEvents) {
@@ -129,6 +133,8 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             campaignId={campaign.id}
             campaignStatus={campaign.status}
             available={available}
+            raised={campaign.current_amount ?? 0}
+            totalWithdrawn={totalWithdrawn}
             isVerified={profile?.verification_status === 'verified'}
             requests={payoutRequestRows}
             locale={loc}

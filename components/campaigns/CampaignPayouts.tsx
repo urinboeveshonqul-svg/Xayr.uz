@@ -50,6 +50,8 @@ export function CampaignPayouts({
   campaignId,
   campaignStatus,
   available,
+  raised,
+  totalWithdrawn,
   isVerified,
   requests,
   locale: _locale,
@@ -57,6 +59,8 @@ export function CampaignPayouts({
   campaignId: string;
   campaignStatus: string;
   available: number;
+  raised: number;
+  totalWithdrawn: number;
   isVerified: boolean;
   requests: CampaignPayoutRow[];
   locale: string;
@@ -138,24 +142,33 @@ export function CampaignPayouts({
   return (
     <section className="mt-8">
       <div className="card p-6">
-        {/* Balance + request action */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-brand-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">{t('dash.availableBalance')}</p>
-              <p className="text-2xl font-black text-gray-900 dark:text-white">{formatMoney(available)} so&apos;m</p>
-            </div>
+        {/* Funds summary: Total Raised · Total Withdrawn · Available Balance */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+            <p className="text-xs text-gray-400">{t('dash.totalRaised')}</p>
+            <p className="text-xl font-black text-gray-900 dark:text-white break-words leading-tight">{formatMoney(raised)} so&apos;m</p>
           </div>
+          <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+            <p className="text-xs text-gray-400">{t('dash.totalWithdrawn')}</p>
+            <p className="text-xl font-black text-gray-900 dark:text-white break-words leading-tight">{formatMoney(totalWithdrawn)} so&apos;m</p>
+          </div>
+          <div className="rounded-2xl bg-brand-50 dark:bg-brand-900/20 p-4">
+            <div className="flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5 text-brand-600" />
+              <p className="text-xs text-brand-700/80 dark:text-brand-400/90">{t('dash.availableBalance')}</p>
+            </div>
+            <p className="text-xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">{formatMoney(available)} so&apos;m</p>
+          </div>
+        </div>
 
+        {/* Request action (the 3% fee is applied per withdrawal — shown in the form). */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
           {canRequest ? (
             <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
               <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
             </button>
           ) : (
-            blockedReason && <p className="text-sm text-gray-400 max-w-xs">{blockedReason}</p>
+            blockedReason && <p className="text-sm text-gray-400 sm:max-w-xs sm:text-right">{blockedReason}</p>
           )}
         </div>
 
