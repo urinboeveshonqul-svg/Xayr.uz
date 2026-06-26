@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendPushToUser } from '@/lib/onesignal';
+import { timingSafeEqual } from '@/lib/security/timing-safe';
 import type { NotificationType } from '@/types';
 
 export const runtime = 'nodejs';
@@ -49,13 +50,15 @@ interface WebhookBody {
 }
 
 export async function POST(request: Request) {
-  // ── Auth: constant header check ─────────────────────────────────────────
+  // ── Auth: constant-time shared-secret check ─────────────────────────────
   const secret = process.env.SUPABASE_WEBHOOK_SECRET;
   if (!secret) {
     // Not configured → refuse rather than run unauthenticated.
     return NextResponse.json({ error: 'not_configured' }, { status: 503 });
   }
-  if (request.headers.get('x-webhook-secret') !== secret) {
+  // timingSafeEqual avoids leaking, via response timing, how many leading bytes
+  // of a guessed secret are correct (and fails closed on a missing/short header).
+  if (!timingSafeEqual(request.headers.get('x-webhook-secret'), secret)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
