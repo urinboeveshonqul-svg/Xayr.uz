@@ -34,7 +34,7 @@ export default async function AdminPayoutsPage({ params }: Props) {
 
     const [{ data: campaigns }, { data: users }, { data: events }] = await Promise.all([
       admin.from('campaigns').select('id, title, slug, current_amount').in('id', campaignIds),
-      admin.from('users').select('id, full_name, email').in('id', userIds),
+      admin.from('users').select('id, full_name, email, username').in('id', userIds),
       admin.from('payout_request_events').select('*').in('request_id', requestIds).order('created_at', { ascending: true }),
     ]);
 
@@ -66,6 +66,7 @@ export default async function AdminPayoutsPage({ params }: Props) {
         campaign_slug: c?.slug ?? null,
         owner_name: u?.full_name ?? null,
         owner_email: u?.email ?? null,
+        owner_username: u?.username ?? null,
         raised,
         available: Math.max(0, raised - (committed.get(r.campaign_id) ?? 0)),
         events: eventsByReq.get(r.id) ?? [],

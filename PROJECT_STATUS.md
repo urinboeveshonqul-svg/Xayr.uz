@@ -305,6 +305,8 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 36 | `campaign-create-email-gate.sql` | Email-gated insert (superseded by #37) | Unknown | 33 |
 | 37 | `campaign-create-kyc-gate.sql` | **KYC-gated** create/publish | Unknown | 2, 36 |
 | 38 | `payment-foundation.sql` | `payment_ref` UNIQUE + `payment_events` | Unknown | 5 |
+| 39 | `payment-refund-reversal.sql` | Refund safety — `apply_donation` reverses campaign totals (floored at 0) on completed→refunded/failed | Unknown | 5 |
+| 40 | `payout-info.sql` | **Secure payout accounts** (`payout_accounts` table, RLS owner+admin) + `payout_requests` snapshot columns; `create_payout_request` sources/snapshots payout info + enforces a configurable minimum; `mark_payout_paid` accepts a payment date | Unknown | payouts.sql, payout-commission.sql |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 

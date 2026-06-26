@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Wallet, Plus, X, Loader2, Clock, Send } from 'lucide-react';
+import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney, timeAgo } from '@/lib/utils';
+import { MIN_WITHDRAWAL, maskCard, cardTypeLabel } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
-import type { PayoutRequest, PayoutRequestEvent, PayoutMethod } from '@/types';
+import type { PayoutRequest, PayoutRequestEvent } from '@/types';
 
 export interface CampaignPayoutRow extends PayoutRequest {
   events: PayoutRequestEvent[];
@@ -39,9 +41,10 @@ const ERR: Record<string, string> = {
   not_campaign_owner:       "Ruxsat yo'q",
   campaign_not_approved:    'Kampaniya tasdiqlanmagan',
   owner_not_verified:       'Hisobingiz tasdiqlanmagan',
+  payout_info_required:     "Avval to'lov ma'lumotlarini kiriting",
   invalid_amount:           "Noto'g'ri miqdor",
+  below_minimum:            `Minimal miqdor ${formatMoney(MIN_WITHDRAWAL)} so'm`,
   invalid_method:           "Noto'g'ri usul",
-  account_details_required: "Hisob ma'lumotlari kiritilishi shart",
   active_request_exists:    "Sizda faol so'rov allaqachon mavjud",
   amount_exceeds_available: "Mablag' yetarli emas",
 };
@@ -53,8 +56,10 @@ export function CampaignPayouts({
   raised,
   totalWithdrawn,
   isVerified,
+  hasPayoutInfo,
+  payoutSummary,
   requests,
-  locale: _locale,
+  locale,
 }: {
   campaignId: string;
   campaignStatus: string;
@@ -62,6 +67,8 @@ export function CampaignPayouts({
   raised: number;
   totalWithdrawn: number;
   isVerified: boolean;
+  hasPayoutInfo: boolean;
+  payoutSummary: string | null;
   requests: CampaignPayoutRow[];
   locale: string;
 }) {
@@ -77,8 +84,6 @@ export function CampaignPayouts({
   };
   const [showForm, setShowForm] = useState(false);
   const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState<PayoutMethod>('bank');
-  const [account, setAccount] = useState('');
   const [notes, setNotes] = useState('');
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -86,13 +91,15 @@ export function CampaignPayouts({
 
   const hasActive = requests.some((r) => ACTIVE.includes(r.status));
   const approved = campaignStatus === 'active' || campaignStatus === 'completed';
-  const canRequest = isVerified && approved && available > 0 && !hasActive;
+  const canRequest = isVerified && hasPayoutInfo && approved && available > 0 && !hasActive;
   const selected = requests.find((r) => r.id === selectedId) ?? null;
 
   const blockedReason = !approved
     ? 'Kampaniya tasdiqlangandan keyin mablag’ yechib olish mumkin'
     : !isVerified
     ? 'Yechish uchun hisobingizni tasdiqlang'
+    : !hasPayoutInfo
+    ? null // handled with a CTA link below
     : hasActive
     ? "Sizda faol so'rov mavjud — natijani kuting"
     : available <= 0
@@ -101,8 +108,6 @@ export function CampaignPayouts({
 
   const resetForm = () => {
     setAmount('');
-    setMethod('bank');
-    setAccount('');
     setNotes('');
     setAgree(false);
     setShowForm(false);
@@ -117,17 +122,17 @@ export function CampaignPayouts({
     e.preventDefault();
     const amt = Math.floor(Number(amount));
     if (!amt || amt <= 0) { toast.error("Noto'g'ri miqdor"); return; }
+    if (amt < MIN_WITHDRAWAL) { toast.error(ERR.below_minimum); return; }
     if (amt > available) { toast.error("Mablag' yetarli emas"); return; }
-    if (!account.trim()) { toast.error("Hisob ma'lumotlari kiritilishi shart"); return; }
     if (!agree) { toast.error("Komissiya shartlarini tasdiqlang"); return; }
 
     setSubmitting(true);
     try {
+      // Payout details (card etc.) are taken from the saved payout account and
+      // snapshotted server-side — the client never sends them here.
       const { error }: { error: PostgrestError | null } = await createClient().rpc('create_payout_request', {
         p_campaign_id: campaignId,
         p_amount: amt,
-        p_method: method,
-        p_account_details: account.trim(),
         p_notes: notes.trim(),
       });
       if (error) { toast.error(ERR[error.message] ?? error.message); return; }
@@ -163,7 +168,12 @@ export function CampaignPayouts({
 
         {/* Request action (the 3% fee is applied per withdrawal — shown in the form). */}
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-          {canRequest ? (
+          {/* Missing payout info → require it before a withdrawal can be requested. */}
+          {isVerified && approved && available > 0 && !hasActive && !hasPayoutInfo ? (
+            <Link href={`/${locale}/profile`} className="btn-primary px-5 py-2.5">
+              <CreditCard className="w-4 h-4" /> To&apos;lov ma&apos;lumotlarini kiriting
+            </Link>
+          ) : canRequest ? (
             <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
               <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
             </button>
@@ -211,35 +221,29 @@ export function CampaignPayouts({
               </button>
             </div>
 
+            {/* Saved payout destination (prefilled; edit in Settings). */}
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm">
+              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-semibold">
+                <CreditCard className="w-4 h-4 text-brand-600" />
+                <span className="break-words">{payoutSummary ?? '—'}</span>
+              </div>
+              <Link href={`/${locale}/profile`} className="text-xs text-brand-600 hover:underline mt-1 inline-block">
+                O&apos;zgartirish
+              </Link>
+            </div>
+
             <div>
-              <label className="label">Miqdor (max {formatMoney(available)} so&apos;m)</label>
+              <label className="label">
+                Miqdor (min {formatMoney(MIN_WITHDRAWAL)} · max {formatMoney(available)} so&apos;m)
+              </label>
               <input
                 type="number"
-                min={1}
+                min={MIN_WITHDRAWAL}
                 max={available}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="input"
                 placeholder="0"
-              />
-            </div>
-
-            <div>
-              <label className="label">Usul</label>
-              <select value={method} onChange={(e) => setMethod(e.target.value as PayoutMethod)} className="input">
-                <option value="bank">Bank o&apos;tkazmasi</option>
-                <option value="card">Karta</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="label">Hisob ma&apos;lumotlari</label>
-              <textarea
-                value={account}
-                onChange={(e) => setAccount(e.target.value)}
-                rows={3}
-                className="input resize-none"
-                placeholder={method === 'bank' ? 'Bank nomi, hisob raqami, MFO...' : 'Karta raqami, egasi...'}
               />
             </div>
 
@@ -315,12 +319,20 @@ export function CampaignPayouts({
             </div>
 
             <div className="text-sm space-y-1.5">
-              <p className="text-gray-500">Usul: <span className="font-semibold text-gray-800 dark:text-gray-200">{selected.method === 'bank' ? 'Bank' : 'Karta'}</span></p>
               <p className="text-gray-500">Komissiya (3%): <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
               <p className="text-gray-500">Sizga to&apos;lanadi: <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">Hisob ma&apos;lumotlari</p>
-                <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words rounded-xl bg-gray-50 dark:bg-gray-800 p-3">{selected.account_details}</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">To&apos;lov ma&apos;lumotlari</p>
+                {selected.snap_card_type ? (
+                  <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm text-gray-800 dark:text-gray-200 space-y-0.5">
+                    <p>{cardTypeLabel(selected.snap_card_type)} · {maskCard(selected.snap_card_number)}</p>
+                    {selected.snap_cardholder_name && <p>{selected.snap_cardholder_name}</p>}
+                    {selected.snap_phone && <p>{selected.snap_phone}</p>}
+                    {selected.snap_bank_name && <p>{selected.snap_bank_name}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words rounded-xl bg-gray-50 dark:bg-gray-800 p-3">{selected.account_details}</p>
+                )}
               </div>
               {selected.notes && (
                 <div>

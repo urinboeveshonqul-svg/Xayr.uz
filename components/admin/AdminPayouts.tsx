@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney, timeAgo } from '@/lib/utils';
+import { formatCard, cardTypeLabel } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { PayoutRequest, PayoutRequestEvent } from '@/types';
 
@@ -17,6 +18,7 @@ export interface PayoutRow extends PayoutRequest {
   campaign_slug: string | null;
   owner_name: string | null;
   owner_email: string | null;
+  owner_username: string | null;
   raised: number;
   available: number;
   events: PayoutRequestEvent[];
@@ -61,6 +63,7 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
   const [filter, setFilter] = useState('pending_review');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const [paidDate, setPaidDate] = useState('');
   const [busy, setBusy] = useState(false);
 
   const visible = useMemo(
@@ -86,7 +89,7 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
     };
   }, [initialRows]);
 
-  const closeDetail = () => { setSelectedId(null); setNote(''); };
+  const closeDetail = () => { setSelectedId(null); setNote(''); setPaidDate(''); };
 
   const finish = (error: PostgrestError | null, okMsg: string) => {
     if (error) { toast.error(ERR[error.message] ?? error.message); return; }
@@ -122,7 +125,12 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
     if (!note.trim()) { toast.error("To'lov ma'lumotnomasi kiritilishi shart"); return; }
     setBusy(true);
     try {
-      const { error } = await createClient().rpc('mark_payout_paid', { p_request_id: r.id, p_reference: note.trim() });
+      const { error } = await createClient().rpc('mark_payout_paid', {
+        p_request_id: r.id,
+        p_reference: note.trim(),
+        // Optional payment date (defaults to now() server-side when omitted).
+        p_paid_at: paidDate ? new Date(paidDate).toISOString() : undefined,
+      });
       finish(error, "To'langan deb belgilandi");
     } finally { setBusy(false); }
   };
@@ -183,7 +191,7 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
                     {r.campaign_title ?? '—'}
                   </p>
                   <p className="text-xs text-gray-400 truncate">
-                    {r.owner_name ?? 'Anonim'}{r.owner_email ? ` · ${r.owner_email}` : ''} · {timeAgo(r.created_at)}
+                    {r.owner_name ?? 'Anonim'}{r.owner_username ? ` · @${r.owner_username}` : ''}{r.owner_email ? ` · ${r.owner_email}` : ''} · {timeAgo(r.created_at)}
                   </p>
                 </div>
                 <div className="flex items-center gap-4 flex-shrink-0">
@@ -265,19 +273,32 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
 
               {/* Owner + method */}
               <div className="text-sm space-y-1.5">
-                <p className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                <p className="flex items-center gap-2 text-gray-600 dark:text-gray-300 flex-wrap">
                   <User className="w-4 h-4 text-gray-400" />
-                  {selected.owner_name ?? 'Anonim'}{selected.owner_email ? ` · ${selected.owner_email}` : ''}
+                  <span className="break-words">
+                    {selected.owner_name ?? 'Anonim'}{selected.owner_username ? ` · @${selected.owner_username}` : ''}{selected.owner_email ? ` · ${selected.owner_email}` : ''}
+                  </span>
                 </p>
                 <p className="text-gray-500">Usul: <span className="font-semibold text-gray-800 dark:text-gray-200">{selected.method === 'bank' ? 'Bank' : 'Karta'}</span></p>
               </div>
 
-              {/* Account details (PII) */}
+              {/* Payout details (PII — owner/admin only). Full card shown for the
+                  manual transfer. Snapshot is immutable even if the user edits later. */}
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Hisob ma&apos;lumotlari</p>
-                <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
-                  {selected.account_details}
-                </p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">To&apos;lov ma&apos;lumotlari</p>
+                {selected.snap_card_type ? (
+                  <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm text-gray-800 dark:text-gray-200 space-y-1.5">
+                    <div className="flex justify-between gap-3"><span className="text-gray-500">Karta turi</span><span className="font-semibold">{cardTypeLabel(selected.snap_card_type)}</span></div>
+                    <div className="flex justify-between gap-3"><span className="text-gray-500">Karta raqami</span><span className="font-mono font-semibold tracking-wider break-all text-right">{formatCard(selected.snap_card_number ?? '')}</span></div>
+                    <div className="flex justify-between gap-3"><span className="text-gray-500">Karta egasi</span><span className="font-semibold break-words text-right">{selected.snap_cardholder_name}</span></div>
+                    <div className="flex justify-between gap-3"><span className="text-gray-500">Telefon</span><span className="font-semibold break-all text-right">{selected.snap_phone}</span></div>
+                    {selected.snap_bank_name && <div className="flex justify-between gap-3"><span className="text-gray-500">Bank</span><span className="font-semibold break-words text-right">{selected.snap_bank_name}</span></div>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
+                    {selected.account_details}
+                  </p>
+                )}
               </div>
 
               {/* Owner notes */}
@@ -317,6 +338,18 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
                     }
                     className="input resize-none text-sm"
                   />
+                  {selected.status === 'approved' && (
+                    <div>
+                      <label className="label text-xs">To&apos;lov sanasi (ixtiyoriy)</label>
+                      <input
+                        type="date"
+                        value={paidDate}
+                        onChange={(e) => setPaidDate(e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        className="input text-sm"
+                      />
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     {(selected.status === 'pending_review' || selected.status === 'info_requested') && (
                       <button onClick={() => approve(selected)} disabled={busy} className="btn-primary px-4 py-2 text-sm">

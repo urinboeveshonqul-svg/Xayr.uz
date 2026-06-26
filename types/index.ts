@@ -29,6 +29,7 @@ export type PayoutStatus =
 export type PayoutEventAction =
   | 'created' | 'approved' | 'rejected' | 'info_requested' | 'paid' | 'cancelled';
 export type PayoutMethod = 'bank' | 'card';
+export type CardType = 'uzcard' | 'humo';
 export type TeamRole = 'owner' | 'manager' | 'editor';
 
 export type Database = {
@@ -666,6 +667,12 @@ export type Database = {
           reviewed_by: string | null;
           admin_note: string | null;
           payout_reference: string | null;
+          // Snapshot of the payout account at request time (immutable history).
+          snap_card_type: CardType | null;
+          snap_card_number: string | null;
+          snap_cardholder_name: string | null;
+          snap_phone: string | null;
+          snap_bank_name: string | null;
           created_at: string;
           updated_at: string;
           reviewed_at: string | null;
@@ -685,6 +692,11 @@ export type Database = {
           reviewed_by?: string | null;
           admin_note?: string | null;
           payout_reference?: string | null;
+          snap_card_type?: CardType | null;
+          snap_card_number?: string | null;
+          snap_cardholder_name?: string | null;
+          snap_phone?: string | null;
+          snap_bank_name?: string | null;
           created_at?: string;
           updated_at?: string;
           reviewed_at?: string | null;
@@ -697,6 +709,40 @@ export type Database = {
           payout_reference?: string | null;
           reviewed_at?: string | null;
           paid_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      payout_accounts: {
+        Row: {
+          user_id: string;
+          full_legal_name: string;
+          phone_number: string;
+          card_type: CardType;
+          card_number: string;
+          cardholder_name: string;
+          bank_name: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          full_legal_name: string;
+          phone_number: string;
+          card_type: CardType;
+          card_number: string;
+          cardholder_name: string;
+          bank_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          full_legal_name?: string;
+          phone_number?: string;
+          card_type?: CardType;
+          card_number?: string;
+          cardholder_name?: string;
+          bank_name?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -856,8 +902,6 @@ export type Database = {
         Args: {
           p_campaign_id: string;
           p_amount: number;
-          p_method: string;
-          p_account_details: string;
           p_notes: string;
         };
         Returns: string;
@@ -875,7 +919,7 @@ export type Database = {
         Returns: undefined;
       };
       mark_payout_paid: {
-        Args: { p_request_id: string; p_reference: string };
+        Args: { p_request_id: string; p_reference: string; p_paid_at?: string };
         Returns: undefined;
       };
     };
@@ -903,6 +947,7 @@ export type PaymentEvent = Row<'payment_events'>;
 export type SavedCampaign = Row<'saved_campaigns'>;
 export type PayoutRequest = Row<'payout_requests'>;
 export type PayoutRequestEvent = Row<'payout_request_events'>;
+export type PayoutAccount = Row<'payout_accounts'>;
 
 // Campaign as consumed by the UI: the row + optionally embedded relations.
 // Queries embed the organizer as `profiles:users(...)` and the category as
