@@ -4,13 +4,28 @@
 
 @layer base {
   * { @apply border-gray-200; }
+  html {
+    scroll-behavior: smooth;
+    /* Stop Android Chrome (and others) from auto-inflating "main content" text
+       on some devices ("font boosting"/text autosizing), which made headings and
+       buttons look oversized and broke spacing INCONSISTENTLY across Android
+       phones. 100% = render text at the authored size; browser zoom and the
+       system font-size accessibility setting still work normally. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   body {
     @apply bg-white text-gray-900;
     font-family: var(--font-inter), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Long Uzbek/Russian/English words (and URLs) wrap instead of overflowing,
+       so headings never clip and narrow phones get no horizontal scroll.
+       overflow-wrap is inherited, so this covers headings/cards/buttons too. It
+       only breaks a word when it would otherwise overflow — normal text is
+       unchanged. */
+    overflow-wrap: break-word;
   }
-  html { scroll-behavior: smooth; }
 
   /* Mobile snappiness: kill the gray tap flash and the legacy tap delay. */
   a, button, [role='button'] {

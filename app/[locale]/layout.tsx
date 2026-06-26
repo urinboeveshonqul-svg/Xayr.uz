@@ -17,6 +17,12 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' }
 // scheme: white in light mode, deep slate in dark. The PWA brand color lives in
 // app/manifest.ts (theme_color #059669).
 export const viewport: Viewport = {
+  // Explicit, correct mobile viewport. A missing/partial viewport is a top cause
+  // of inconsistent scaling + font-boosting on Android. initialScale:1 renders at
+  // device width; zoom stays enabled (no maximumScale/userScalable) so pinch-zoom
+  // and accessibility are preserved.
+  width: 'device-width',
+  initialScale: 1,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0b1220' },
