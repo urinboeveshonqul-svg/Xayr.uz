@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignAnalytics } from '@/components/campaigns/CampaignAnalytics';
 import { CampaignPayouts, type CampaignPayoutRow } from '@/components/campaigns/CampaignPayouts';
+import { cardTypeLabel, maskCard } from '@/lib/payout';
 
 export const metadata: Metadata = { title: 'Kampaniya analitikasi — Xayr' };
 export const dynamic = 'force-dynamic';
@@ -93,6 +94,23 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
     .eq('id', user.id)
     .single();
 
+  // Saved payout account (owner-only via RLS). Only a masked summary is passed
+  // to the client; the full card is snapshotted server-side at request time.
+  let payoutAccount: { card_type: string; card_number: string } | null = null;
+  try {
+    const { data } = await supabase
+      .from('payout_accounts')
+      .select('card_type, card_number')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    payoutAccount = data ?? null;
+  } catch {
+    payoutAccount = null;
+  }
+  const payoutSummary = payoutAccount
+    ? `${cardTypeLabel(payoutAccount.card_type)} · ${maskCard(payoutAccount.card_number)}`
+    : null;
+
   // Mirrors campaign_available_balance(): committed = active + paid.
   const COMMITTED = ['pending_review', 'approved', 'info_requested', 'paid'];
   const committed = payoutRequests
@@ -136,6 +154,8 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             raised={campaign.current_amount ?? 0}
             totalWithdrawn={totalWithdrawn}
             isVerified={profile?.verification_status === 'verified'}
+            hasPayoutInfo={!!payoutAccount}
+            payoutSummary={payoutSummary}
             requests={payoutRequestRows}
             locale={loc}
           />

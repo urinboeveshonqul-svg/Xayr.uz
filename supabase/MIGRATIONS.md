@@ -47,6 +47,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 37 | `campaign-create-kyc-gate.sql` | Campaign create/publish gated on **KYC** (`verification_status='verified'`) instead of email — RLS insert + publish trigger | unverified-KYC insert is denied |
 | 38 | `payment-foundation.sql` | `donations.payment_ref` UNIQUE index + `payment_events` table (idempotency/reconciliation/audit, admin-only read) | `payment_events` exists |
 | 39 | `payment-refund-reversal.sql` | **Refund safety** — `apply_donation` reverses `current_amount`/`donors_count` (floored at 0) when a completed donation becomes refunded/failed, so refunded funds can't be withdrawn. Requires #5. | refund a completed test donation → `current_amount` returns to prior value |
+| 40 | `payout-info.sql` | **Secure payout accounts** — `payout_accounts` table (card details, RLS owner+admin) + snapshot columns on `payout_requests`; `create_payout_request` now sources/snapshots payout info, requires it, and enforces a configurable minimum; `mark_payout_paid` accepts a payment date. Requires payouts.sql + payout-commission.sql. | `payout_accounts` exists; a withdrawal stores `snap_*` |
 
 ## Critical notes
 

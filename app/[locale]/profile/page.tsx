@@ -11,12 +11,13 @@ import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { UsernameSettings } from '@/components/profile/UsernameSettings';
 import { PushSettings } from '@/components/push/PushSettings';
+import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import { toKycStatus } from '@/lib/kyc';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
-import type { CampaignReport } from '@/types';
+import type { CampaignReport, PayoutAccount } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Mening profilim — Xayr',
@@ -75,6 +76,20 @@ export default async function ProfilePage({
     pushPrefs = data ?? null;
   } catch {
     pushPrefs = null;
+  }
+
+  // Saved payout account (null if none yet, or if the payout-info migration
+  // hasn't been applied — the section then lets the user add one).
+  let payoutAccount: PayoutAccount | null = null;
+  try {
+    const { data } = await supabase
+      .from('payout_accounts')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    payoutAccount = data ?? null;
+  } catch {
+    payoutAccount = null;
   }
 
   // Recent donations (latest 5; full history lives at /profile/donations).
@@ -232,6 +247,9 @@ export default async function ProfilePage({
               </div>
             )}
           </div>
+
+          {/* Payout information (card details for withdrawals; RLS owner+admin) */}
+          <PayoutAccountForm userId={user.id} initial={payoutAccount} />
 
           {/* Browser push-notification settings (opt-in + per-category) */}
           <PushSettings userId={user.id} initial={pushPrefs} />
