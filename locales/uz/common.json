@@ -767,7 +767,10 @@
     "psCancelled": "Bekor qilingan",
     "withdrawAmount": "Yechish miqdori",
     "feeRow": "Platforma komissiyasi (3%)",
-    "youReceive": "Sizga to'lanadi"
+    "youReceive": "Sizga to'lanadi",
+    "withdrawInfoTitle": "Pul yechishni ko'rib chiqish",
+    "withdrawInfoDays": "1–3 ish kuni",
+    "withdrawInfoText": "Pul yechib olish so'rovlari odatda {days} ichida ko'rib chiqiladi. Tasdiqlangandan so'ng, mablag'lar KYC vaqtida tasdiqlangan bank kartangizga qo'lda o'tkaziladi. Mablag' tushgach sizga xabarnoma yuboriladi."
   },
   "ux": {
     "navHome": "Asosiy",

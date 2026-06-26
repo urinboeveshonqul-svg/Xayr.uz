@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard } from 'lucide-react';
+import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney, timeAgo } from '@/lib/utils';
@@ -93,6 +93,15 @@ export function CampaignPayouts({
   const approved = campaignStatus === 'active' || campaignStatus === 'completed';
   const canRequest = isVerified && hasPayoutInfo && approved && available > 0 && !hasActive;
   const selected = requests.find((r) => r.id === selectedId) ?? null;
+
+  // Show the processing-info card only when the user can actually act on
+  // withdrawals: eligible to request (verified + approved campaign + funds, even
+  // if payout info is still pending) or has past/active requests to view.
+  const eligibleForWithdrawals =
+    (isVerified && approved && available > 0) || requests.length > 0;
+
+  // Body text carries a {days} placeholder so the day-range can be emphasised.
+  const [infoBefore, infoAfter = ''] = t('dash.withdrawInfoText').split('{days}');
 
   const blockedReason = !approved
     ? 'Kampaniya tasdiqlangandan keyin mablag’ yechib olish mumkin'
@@ -206,6 +215,25 @@ export function CampaignPayouts({
           </div>
         )}
       </div>
+
+      {/* Withdrawal processing info — shown only to users eligible to request/view withdrawals */}
+      {eligibleForWithdrawals && (
+        <div className="mt-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center flex-shrink-0">
+              <Info className="w-4 h-4 text-brand-600" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('dash.withdrawInfoTitle')}</h3>
+              <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                {infoBefore}
+                <strong className="font-semibold text-gray-700 dark:text-gray-300">{t('dash.withdrawInfoDays')}</strong>
+                {infoAfter}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Request form modal */}
       {showForm && (
