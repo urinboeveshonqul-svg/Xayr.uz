@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil, AlertTriangle } from 'lucide-react';
+import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import { MIN_WITHDRAWAL, maskCard, cardTypeLabel } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
-import type { PayoutRequest, PayoutRequestEvent } from '@/types';
+import type { PayoutRequest, PayoutRequestEvent, PayoutAccount } from '@/types';
 
 export interface CampaignPayoutRow extends PayoutRequest {
   events: PayoutRequestEvent[];
@@ -66,6 +66,7 @@ const ERR: Record<string, string> = {
 export function CampaignPayouts({
   campaignId,
   campaignStatus,
+  userId,
   available,
   raised,
   totalWithdrawn,
@@ -78,6 +79,7 @@ export function CampaignPayouts({
 }: {
   campaignId: string;
   campaignStatus: string;
+  userId: string;
   available: number;
   raised: number;
   totalWithdrawn: number;
@@ -104,6 +106,12 @@ export function CampaignPayouts({
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Inline payout-info editor state. The full account is fetched on demand
+  // (RLS-scoped to the owner) so the unmasked card number is never in the
+  // initial page payload — only pulled when the owner actually edits.
+  const [editingPayout, setEditingPayout] = useState(false);
+  const [payoutInitial, setPayoutInitial] = useState<PayoutAccount | null>(null);
+  const [loadingPayout, setLoadingPayout] = useState(false);
 
   const hasActive = requests.some((r) => ACTIVE.includes(r.status));
   const approved = campaignStatus === 'active' || campaignStatus === 'completed';
@@ -119,16 +127,42 @@ export function CampaignPayouts({
   // Body text carries a {days} placeholder so the day-range can be emphasised.
   const [infoBefore, infoAfter = ''] = t('dash.withdrawInfoText').split('{days}');
 
-  // Warn (with an "add payout info" CTA) only when the user is otherwise ready
-  // to withdraw but hasn't saved payout details yet — same gate as the old CTA.
-  const showPayoutWarning = !hasPayoutInfo && isVerified && approved && available > 0 && !hasActive;
+  // Payout-info setup: when the user is otherwise ready to withdraw but hasn't
+  // saved payout details, show the form inline FIRST (in place of the withdraw
+  // action). Same eligibility gate that previously drove the CTA.
+  const showSetupForm = !hasPayoutInfo && isVerified && approved && available > 0 && !hasActive;
+  // The inline payout form is open for first-time setup or an explicit edit.
+  const showPayoutForm = showSetupForm || (hasPayoutInfo && editingPayout);
+
+  // Open the editor for an EXISTING account: fetch the full (unmasked) record so
+  // the form prefills, then mount it. RLS limits this to the owner's own row.
+  const startEditPayout = async () => {
+    setEditingPayout(true);
+    setLoadingPayout(true);
+    try {
+      const { data } = await createClient()
+        .from('payout_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      setPayoutInitial((data as PayoutAccount | null) ?? null);
+    } catch {
+      setPayoutInitial(null);
+    } finally {
+      setLoadingPayout(false);
+    }
+  };
+  const closeEditPayout = () => {
+    setEditingPayout(false);
+    setPayoutInitial(null);
+  };
 
   const blockedReason = !approved
     ? 'Kampaniya tasdiqlangandan keyin mablag’ yechib olish mumkin'
     : !isVerified
     ? 'Yechish uchun hisobingizni tasdiqlang'
     : !hasPayoutInfo
-    ? null // handled by the payout-missing warning card above
+    ? null // handled by the inline payout setup form above
     : hasActive
     ? "Sizda faol so'rov mavjud — natijani kuting"
     : available <= 0
@@ -195,10 +229,29 @@ export function CampaignPayouts({
           </div>
         </div>
 
-        {/* Saved payout destination — read-only; reused for every withdrawal
-            request (the server snapshots it, so card details are never re-entered).
-            When missing, a warning + "add payout info" CTA gates the form. */}
-        {payoutInfo ? (
+        {/* Payout information lives directly in the withdrawal flow:
+            • no account yet (and ready to withdraw) → show the form inline first;
+            • account exists → read-only masked card with an inline Edit;
+            • editing → the same form, prefilled from the on-demand fetch.
+            The server snapshots the account at request time, so card details
+            are never re-entered when withdrawing. */}
+        {showPayoutForm ? (
+          <div className="mt-5">
+            {loadingPayout ? (
+              <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-8 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-brand-600" />
+              </div>
+            ) : (
+              <PayoutAccountForm
+                userId={userId}
+                initial={editingPayout ? payoutInitial : null}
+                embedded
+                onSaved={closeEditPayout}
+                onCancel={editingPayout ? closeEditPayout : undefined}
+              />
+            )}
+          </div>
+        ) : payoutInfo ? (
           <div className="mt-5 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div className="flex items-center gap-2 min-w-0">
@@ -207,12 +260,13 @@ export function CampaignPayouts({
                 </div>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{t('dash.payoutInfoTitle')}</h3>
               </div>
-              <Link
-                href={`/${locale}/profile`}
+              <button
+                type="button"
+                onClick={startEditPayout}
                 className="text-xs font-semibold text-brand-600 hover:underline inline-flex items-center gap-1 flex-shrink-0"
               >
                 <Pencil className="w-3.5 h-3.5" /> {t('dash.payoutEdit')}
-              </Link>
+              </button>
             </div>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
               <div className="min-w-0">
@@ -243,32 +297,21 @@ export function CampaignPayouts({
               )}
             </dl>
           </div>
-        ) : showPayoutWarning ? (
-          <div className="mt-5 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/15 p-4 sm:p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm text-amber-800 dark:text-amber-200">{t('dash.payoutMissingWarning')}</p>
-                <Link href={`/${locale}/profile`} className="btn-primary mt-3 px-5 py-2.5 inline-flex">
-                  <CreditCard className="w-4 h-4" /> {t('dash.payoutAdd')}
-                </Link>
-              </div>
-            </div>
-          </div>
         ) : null}
 
-        {/* Request action (the 3% fee is applied per withdrawal — shown in the form). */}
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-          {canRequest ? (
-            <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
-              <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
-            </button>
-          ) : (
-            blockedReason && <p className="text-sm text-gray-400 sm:max-w-xs sm:text-right">{blockedReason}</p>
-          )}
-        </div>
+        {/* Request action — hidden while the payout form is open. The withdrawal
+            form is only enabled once payout info exists (canRequest). */}
+        {!showPayoutForm && (
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
+            {canRequest ? (
+              <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
+                <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
+              </button>
+            ) : (
+              blockedReason && <p className="text-sm text-gray-400 sm:max-w-xs sm:text-right">{blockedReason}</p>
+            )}
+          </div>
+        )}
 
         {/* Requests list */}
         {requests.length > 0 && (
@@ -328,15 +371,13 @@ export function CampaignPayouts({
               </button>
             </div>
 
-            {/* Saved payout destination (prefilled; edit in Settings). */}
+            {/* Saved payout destination — read-only confirmation (edit it from the
+                payout card on the withdrawal page, not from here). */}
             <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm">
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-semibold">
                 <CreditCard className="w-4 h-4 text-brand-600" />
                 <span className="break-words">{payoutSummary ?? '—'}</span>
               </div>
-              <Link href={`/${locale}/profile`} className="text-xs text-brand-600 hover:underline mt-1 inline-block">
-                O&apos;zgartirish
-              </Link>
             </div>
 
             <div>

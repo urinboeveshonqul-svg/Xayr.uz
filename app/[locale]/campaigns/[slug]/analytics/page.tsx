@@ -172,6 +172,7 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
           <CampaignPayouts
             campaignId={campaign.id}
             campaignStatus={campaign.status}
+            userId={user.id}
             available={available}
             raised={campaign.current_amount ?? 0}
             totalWithdrawn={totalWithdrawn}
