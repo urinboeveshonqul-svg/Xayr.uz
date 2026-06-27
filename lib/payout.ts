@@ -46,3 +46,16 @@ export function maskCard(cardNumber?: string | null): string {
   if (d.length < 4) return '••••';
   return `•••• •••• •••• ${d.slice(-4)}`;
 }
+
+/**
+ * Card mask for the OWNER's read-only payout card: keeps the issuer BIN (first
+ * 4 digits — the public card-scheme prefix, not sensitive) and the last 4,
+ * hiding the middle 8: "8600 **** **** 9012". Creator-facing only; admins still
+ * see the full PAN in the admin payout dashboard. Falls back to maskCard() when
+ * there aren't enough digits to show a BIN.
+ */
+export function maskCardDisplay(cardNumber?: string | null): string {
+  const d = (cardNumber || '').replace(/\D/g, '');
+  if (d.length < 8) return maskCard(cardNumber);
+  return `${d.slice(0, 4)} **** **** ${d.slice(-4)}`;
+}

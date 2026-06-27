@@ -11,6 +11,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
+import { safeNextPath } from '@/lib/security/redirect';
 
 export function LoginForm() {
   const { t, locale } = useI18n();
@@ -61,10 +62,11 @@ export function LoginForm() {
       }
 
       toast.success(t('auth.loginSuccess'));
-      // `next` is a bare (locale-less) path from middleware; prefix the locale
-      // so the redirect lands directly without an extra middleware hop.
-      const next = searchParams.get('next');
-      router.push(next ? `/${locale}${next}` : `/${locale}`);
+      // `next` is a bare (locale-less) path from middleware; validate it (reject
+      // open-redirect targets) then prefix the locale so the redirect lands
+      // directly without an extra middleware hop.
+      const next = safeNextPath(searchParams.get('next'));
+      router.push(next === '/' ? `/${locale}` : `/${locale}${next}`);
       router.refresh();
     } catch {
       toast.error(t('auth.unexpected'));

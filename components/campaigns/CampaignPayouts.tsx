@@ -1,19 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard } from 'lucide-react';
+import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import { MIN_WITHDRAWAL, maskCard, cardTypeLabel } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
-import type { PayoutRequest, PayoutRequestEvent } from '@/types';
+import type { PayoutRequest, PayoutRequestEvent, PayoutAccount } from '@/types';
 
 export interface CampaignPayoutRow extends PayoutRequest {
   events: PayoutRequestEvent[];
+}
+
+/**
+ * Masked, client-safe projection of the saved payout account. Built server-side
+ * (see the analytics page) so the full card number is NEVER serialized to the
+ * creator's browser — only the BIN+last4 mask is.
+ */
+export interface PayoutInfoDisplay {
+  fullLegalName: string;
+  phone: string;
+  cardType: string;
+  cardMasked: string;
+  cardholderName: string;
+  bankName: string | null;
 }
 
 const ACTIVE = ['pending_review', 'approved', 'info_requested'];
@@ -52,23 +66,27 @@ const ERR: Record<string, string> = {
 export function CampaignPayouts({
   campaignId,
   campaignStatus,
+  userId,
   available,
   raised,
   totalWithdrawn,
   isVerified,
   hasPayoutInfo,
   payoutSummary,
+  payoutInfo,
   requests,
   locale,
 }: {
   campaignId: string;
   campaignStatus: string;
+  userId: string;
   available: number;
   raised: number;
   totalWithdrawn: number;
   isVerified: boolean;
   hasPayoutInfo: boolean;
   payoutSummary: string | null;
+  payoutInfo: PayoutInfoDisplay | null;
   requests: CampaignPayoutRow[];
   locale: string;
 }) {
@@ -88,18 +106,63 @@ export function CampaignPayouts({
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Inline payout-info editor state. The full account is fetched on demand
+  // (RLS-scoped to the owner) so the unmasked card number is never in the
+  // initial page payload — only pulled when the owner actually edits.
+  const [editingPayout, setEditingPayout] = useState(false);
+  const [payoutInitial, setPayoutInitial] = useState<PayoutAccount | null>(null);
+  const [loadingPayout, setLoadingPayout] = useState(false);
 
   const hasActive = requests.some((r) => ACTIVE.includes(r.status));
   const approved = campaignStatus === 'active' || campaignStatus === 'completed';
   const canRequest = isVerified && hasPayoutInfo && approved && available > 0 && !hasActive;
   const selected = requests.find((r) => r.id === selectedId) ?? null;
 
+  // Show the processing-info card only when the user can actually act on
+  // withdrawals: eligible to request (verified + approved campaign + funds, even
+  // if payout info is still pending) or has past/active requests to view.
+  const eligibleForWithdrawals =
+    (isVerified && approved && available > 0) || requests.length > 0;
+
+  // Body text carries a {days} placeholder so the day-range can be emphasised.
+  const [infoBefore, infoAfter = ''] = t('dash.withdrawInfoText').split('{days}');
+
+  // Payout-info setup: when the user is otherwise ready to withdraw but hasn't
+  // saved payout details, show the form inline FIRST (in place of the withdraw
+  // action). Same eligibility gate that previously drove the CTA.
+  const showSetupForm = !hasPayoutInfo && isVerified && approved && available > 0 && !hasActive;
+  // The inline payout form is open for first-time setup or an explicit edit.
+  const showPayoutForm = showSetupForm || (hasPayoutInfo && editingPayout);
+
+  // Open the editor for an EXISTING account: fetch the full (unmasked) record so
+  // the form prefills, then mount it. RLS limits this to the owner's own row.
+  const startEditPayout = async () => {
+    setEditingPayout(true);
+    setLoadingPayout(true);
+    try {
+      const { data } = await createClient()
+        .from('payout_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      setPayoutInitial((data as PayoutAccount | null) ?? null);
+    } catch {
+      setPayoutInitial(null);
+    } finally {
+      setLoadingPayout(false);
+    }
+  };
+  const closeEditPayout = () => {
+    setEditingPayout(false);
+    setPayoutInitial(null);
+  };
+
   const blockedReason = !approved
     ? 'Kampaniya tasdiqlangandan keyin mablag’ yechib olish mumkin'
     : !isVerified
     ? 'Yechish uchun hisobingizni tasdiqlang'
     : !hasPayoutInfo
-    ? null // handled with a CTA link below
+    ? null // handled by the inline payout setup form above
     : hasActive
     ? "Sizda faol so'rov mavjud — natijani kuting"
     : available <= 0
@@ -166,21 +229,89 @@ export function CampaignPayouts({
           </div>
         </div>
 
-        {/* Request action (the 3% fee is applied per withdrawal — shown in the form). */}
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-          {/* Missing payout info → require it before a withdrawal can be requested. */}
-          {isVerified && approved && available > 0 && !hasActive && !hasPayoutInfo ? (
-            <Link href={`/${locale}/profile`} className="btn-primary px-5 py-2.5">
-              <CreditCard className="w-4 h-4" /> To&apos;lov ma&apos;lumotlarini kiriting
-            </Link>
-          ) : canRequest ? (
-            <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
-              <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
-            </button>
-          ) : (
-            blockedReason && <p className="text-sm text-gray-400 sm:max-w-xs sm:text-right">{blockedReason}</p>
-          )}
-        </div>
+        {/* Payout information lives directly in the withdrawal flow:
+            • no account yet (and ready to withdraw) → show the form inline first;
+            • account exists → read-only masked card with an inline Edit;
+            • editing → the same form, prefilled from the on-demand fetch.
+            The server snapshots the account at request time, so card details
+            are never re-entered when withdrawing. */}
+        {showPayoutForm ? (
+          <div className="mt-5">
+            {loadingPayout ? (
+              <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-8 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-brand-600" />
+              </div>
+            ) : (
+              <PayoutAccountForm
+                userId={userId}
+                initial={editingPayout ? payoutInitial : null}
+                embedded
+                onSaved={closeEditPayout}
+                onCancel={editingPayout ? closeEditPayout : undefined}
+              />
+            )}
+          </div>
+        ) : payoutInfo ? (
+          <div className="mt-5 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-4 h-4 text-brand-600" />
+                </div>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{t('dash.payoutInfoTitle')}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={startEditPayout}
+                className="text-xs font-semibold text-brand-600 hover:underline inline-flex items-center gap-1 flex-shrink-0"
+              >
+                <Pencil className="w-3.5 h-3.5" /> {t('dash.payoutEdit')}
+              </button>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutLegalName')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.fullLegalName}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutPhone')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.phone}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutCardType')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white">{cardTypeLabel(payoutInfo.cardType)}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutCardNumber')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words tracking-wider tabular-nums">{payoutInfo.cardMasked}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutCardholder')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.cardholderName}</dd>
+              </div>
+              {payoutInfo.bankName && (
+                <div className="min-w-0">
+                  <dt className="text-xs text-gray-400">{t('dash.payoutBank')}</dt>
+                  <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.bankName}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        ) : null}
+
+        {/* Request action — hidden while the payout form is open. The withdrawal
+            form is only enabled once payout info exists (canRequest). */}
+        {!showPayoutForm && (
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
+            {canRequest ? (
+              <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
+                <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
+              </button>
+            ) : (
+              blockedReason && <p className="text-sm text-gray-400 sm:max-w-xs sm:text-right">{blockedReason}</p>
+            )}
+          </div>
+        )}
 
         {/* Requests list */}
         {requests.length > 0 && (
@@ -207,6 +338,25 @@ export function CampaignPayouts({
         )}
       </div>
 
+      {/* Withdrawal processing info — shown only to users eligible to request/view withdrawals */}
+      {eligibleForWithdrawals && (
+        <div className="mt-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center flex-shrink-0">
+              <Info className="w-4 h-4 text-brand-600" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">{t('dash.withdrawInfoTitle')}</h3>
+              <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                {infoBefore}
+                <strong className="font-semibold text-gray-700 dark:text-gray-300">{t('dash.withdrawInfoDays')}</strong>
+                {infoAfter}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Request form modal */}
       {showForm && (
         <div
@@ -221,15 +371,13 @@ export function CampaignPayouts({
               </button>
             </div>
 
-            {/* Saved payout destination (prefilled; edit in Settings). */}
+            {/* Saved payout destination — read-only confirmation (edit it from the
+                payout card on the withdrawal page, not from here). */}
             <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm">
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-semibold">
                 <CreditCard className="w-4 h-4 text-brand-600" />
                 <span className="break-words">{payoutSummary ?? '—'}</span>
               </div>
-              <Link href={`/${locale}/profile`} className="text-xs text-brand-600 hover:underline mt-1 inline-block">
-                O&apos;zgartirish
-              </Link>
             </div>
 
             <div>

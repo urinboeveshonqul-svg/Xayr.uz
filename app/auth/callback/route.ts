@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
+import { safeNextPath } from '@/lib/security/redirect';
 
 /**
  * Single auth callback for OAuth, email confirmation, and PASSWORD RECOVERY —
@@ -28,9 +29,9 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') as EmailOtpType | null;
   const oauthError = searchParams.get('error');
 
-  const rawNext = searchParams.get('next') ?? '/';
-  // Internal relative paths only (no open redirects).
-  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
+  // Internal relative paths only — rejects external/protocol-relative/backslash/
+  // control-char targets and falls back to '/' (see lib/security/redirect).
+  const next = safeNextPath(searchParams.get('next'));
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

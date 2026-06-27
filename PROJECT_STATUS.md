@@ -4,7 +4,7 @@
 > Generated from a direct read of the codebase. Reflects only what is actually
 > implemented — no aspirational or invented features.
 >
-> **Last synced:** 2026-06-21
+> **Last synced:** 2026-06-26
 > **Branch:** main · **Latest commit at sync:** `e3af6b1` (payment foundation — idempotency, verification, reconciliation)
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
@@ -151,8 +151,8 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **Status:** ✅ Complete. Rate-limited at the middleware layer; RBAC re-verified server-side on each route.
 
 ### Payouts
-- **What:** Creator requests a withdrawal (bank/card) against available balance; 3% platform commission computed; admin state machine (`pending_review → approved → paid`, plus `info_requested`/`rejected`/`cancelled`); full event log.
-- **Where:** `components/campaigns/CampaignPayouts.tsx`, `components/admin/AdminPayouts.tsx`, `app/[locale]/admin/payouts/page.tsx`. RPCs: `create_payout_request`, `approve_payout_request`, `reject_payout_request`, `request_payout_info`, `mark_payout_paid`, `campaign_available_balance`. Tables: `payout_requests`, `payout_request_events`.
+- **What:** Creator requests a withdrawal (bank/card) against available balance; 3% platform commission computed; admin state machine (`pending_review → approved → paid`, plus `info_requested`/`rejected`/`cancelled`); full event log. **Payout information is managed entirely inside the withdrawal workflow** (it was removed from the Profile page): no account yet → the `PayoutAccountForm` shows inline first; account exists → a **read-only masked card** (legal name, phone, card type, masked card `8600 **** **** 9012`, cardholder, bank) with an inline **Edit** (same form, no page change). Saving reveals the card and enables the withdraw button below it; the request snapshots the account server-side, so card details are never re-entered. The full card number is masked for creators (BIN + last 4) and never serialized to the page payload — the unmasked record is fetched on demand (RLS owner-only) just for the edit form; admins still see the full PAN in the admin payout dashboard.
+- **Where:** `components/campaigns/CampaignPayouts.tsx` (hosts the inline `components/profile/PayoutAccountForm.tsx` via its `embedded`/`onSaved`/`onCancel` props), `components/admin/AdminPayouts.tsx`, `app/[locale]/admin/payouts/page.tsx`. Masked projection built in `app/[locale]/campaigns/[slug]/analytics/page.tsx`; masking helper `maskCardDisplay` in `lib/payout.ts`. RPCs: `create_payout_request`, `approve_payout_request`, `reject_payout_request`, `request_payout_info`, `mark_payout_paid`, `campaign_available_balance`. Tables: `payout_requests`, `payout_request_events`, `payout_accounts`.
 - **Status:** ✅ Code-complete; ⚠️ functionally meaningless until donations actually complete (depends on payments).
 
 ### Contact
@@ -421,6 +421,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 - **Rate limiting** — Upstash sliding-window via the shared `enforceRateLimit` / `rateLimitOr429` helpers (`lib/rate-limit.ts`); fails open if Redis is unavailable. Buckets: login, signup, reset (password reset), donation, campaign (creation), contact, search, notifications, admin, views. Search + notifications are limited at the middleware layer (prefetch-excluded; search only when a `q` query is present) since they have no API route; admin routes/pages are limited in middleware.
 - **Bot protection (Turnstile)** — Cloudflare Turnstile on register, login, password reset, contact, campaign creation, and KYC submission. Always verified server-side (`lib/security/turnstile.ts`); the client token is never trusted. Fails open only when unconfigured (dev). Setup: `docs/turnstile-setup.md`.
 - **Validation** — Zod on all API inputs; username sanitization/format enforcement; UUID checks.
+- **Webhook & redirect hardening** — The push webhook's shared secret is compared in **constant time** (`crypto.timingSafeEqual`, `lib/security/timing-safe.ts`), closing a timing side-channel. Post-auth redirect targets (`next`) pass through a single `safeNextPath()` guard (`lib/security/redirect.ts`) that rejects external / protocol-relative / backslash-smuggled / control-char paths and falls back to `/` — used by the auth callback **and** the login form. The payment webhook already fails closed on `signatureValid === false` and dedupes replays by `provider_event_id`.
 - **Security headers** — Set in `next.config.mjs` for all routes: `Content-Security-Policy` (scoped to Supabase REST+realtime, OneSignal SDK/API, Turnstile; `'unsafe-inline'` for Next's inline scripts/styles, `img-src https:`), `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera/mic/geo/payment/topics off), `Strict-Transport-Security` (2y, includeSubDomains, preload). `upgrade-insecure-requests` is production-only.
 - **Error monitoring** — Sentry (`@sentry/nextjs`) tracks frontend, API/server, and middleware errors via `instrumentation.ts` (`onRequestError`), `sentry.{client,server,edge}.config.ts`, and `app/global-error.tsx`. Inert without a DSN. DSN is public; the source-map auth token is a build-time secret. Setup: `docs/sentry-setup.md`.
 - **Secrets** — Service role, OneSignal REST key, webhook secret kept server-only (never `NEXT_PUBLIC_`).
@@ -431,9 +432,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 |---|---|
 | 🔴 | Broad `SELECT` on `public.users` exposes `email`/`phone`/`rejection_reason` to anyone with the anon key (PII enumeration). See `docs/rls-audit.md` F1 — needs a coordinated schema+app fix (public-safe view / PII split), not a blind change. |
 | ⚠️ | Live RLS unverified — biggest real risk if migration #5 (and others) aren't applied in prod. |
-| 🟡 | Push webhook secret compared with `!==` (not constant-time). |
 | 🟡 | `campaign_shares` / `campaign_flags` allow anonymous/auth insert → analytics/spam inflation. |
-| 🟡 | Auth callback redirects to `${origin}${next}` without restricting `next` to relative paths. |
 
 ---
 
@@ -489,10 +488,10 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 | 🟠 High | No automated tests; CI = typecheck + build only | repo-wide | Add tests for payment idempotency, RLS, donation trigger. |
 | 🟡 Medium | No transactional email (receipts, payout confirmations, contact replies) | — | Integrate an email provider. |
 | 🔴 Critical | Broad `SELECT` on `public.users` leaks `email`/`phone`/`rejection_reason` (PII enumeration via anon key) | `supabase/schema.sql` `users_select_all` | Public-safe profile view or split PII into own-row-RLS table; see `docs/rls-audit.md` F1. |
-| 🟡 Low | Push webhook secret compare not constant-time | `app/api/push/notify/route.ts:58` | Use `crypto.timingSafeEqual`. |
 | 🟡 Low | `campaign_shares` / `campaign_flags` insert inflation | flag/share insert paths | Rate-limit or server-throttle. |
-| 🟡 Low | Auth callback `next` not restricted to relative paths | `app/auth/callback/route.ts:27` | Allow only paths matching `^/[^/]`. |
 | 🟡 Low | Hardcoded Uzbek strings in some components/API errors bypass i18n | `components/donations/DonationForm.tsx`, various API routes | Move into dictionaries. |
+| ✅ Fixed | ~~Push webhook secret compare not constant-time~~ → `crypto.timingSafeEqual` (`lib/security/timing-safe.ts`) | `app/api/push/notify/route.ts` | Done. |
+| ✅ Fixed | ~~Auth callback `next` not restricted to relative paths~~ → centralized `safeNextPath()` guard | `lib/security/redirect.ts`, `app/auth/callback/route.ts`, `components/auth/LoginForm.tsx` | Done. |
 
 ---
 
@@ -523,7 +522,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 - [ ] Add automated tests (payment idempotency, RLS, donation→credit).
 - [ ] Transactional email (receipts, payout confirmations, contact replies).
 - [ ] Configure OneSignal + Supabase notification webhook (live push).
-- [ ] Constant-time webhook secret compare; restrict auth-callback `next`.
+- [x] Constant-time webhook secret compare; restrict auth-callback `next` (`lib/security/{timing-safe,redirect}.ts`).
 - [x] Error monitoring (Sentry) — `docs/sentry-setup.md`.
 - [ ] Submit sitemap to Google Search Console.
 
@@ -564,7 +563,7 @@ Prioritized; effort sized **Small** (<1d), **Medium** (1–3d), **Large** (3d+).
 | 6 | Automated tests: payment idempotency, RLS, donation→credit trigger | 🟠 High | Medium |
 | 7 | Configure OneSignal + Supabase webhook (activate live push) | 🟡 Medium | Small |
 | 8 | ~~Error monitoring (Sentry)~~ ✅ done (`docs/sentry-setup.md`) + structured logging | 🟡 Medium | Small |
-| 9 | Security hardening: constant-time webhook compare, restrict callback `next`, rate-limit share/flag inserts | 🟡 Medium | Small |
+| 9 | Security hardening: ~~constant-time webhook compare, restrict callback `next`~~ ✅ done; rate-limit share/flag inserts remains | 🟡 Medium | Small |
 | 10 | Refund flow (status handling + admin UI) once a gateway exists | 🟡 Medium | Medium |
 
 ---

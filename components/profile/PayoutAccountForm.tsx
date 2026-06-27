@@ -11,16 +11,28 @@ import { CARD_TYPES, cardDigits, formatCard, isValidCard } from '@/lib/payout';
 import type { PayoutAccount, CardType } from '@/types';
 
 /**
- * Settings → Payout information. One payout account per user (upsert into
- * payout_accounts; RLS scopes to the owner). The withdrawal form prefills from
- * this and snapshots it at request time. Never collects CVV/PIN/expiry.
+ * Payout information. One payout account per user (upsert into payout_accounts;
+ * RLS scopes to the owner). Lives inline on the withdrawal page; the request
+ * snapshots it server-side. Never collects CVV/PIN/expiry.
+ *
+ * Reuse hooks:
+ *   • embedded  — drop the standalone `card` chrome so it nests cleanly inside
+ *                 the withdrawal section's panel.
+ *   • onSaved   — called after a successful save (parent closes the editor).
+ *   • onCancel  — when provided, renders a Cancel button (edit mode).
  */
 export function PayoutAccountForm({
   userId,
   initial,
+  embedded = false,
+  onSaved,
+  onCancel,
 }: {
   userId: string;
   initial: PayoutAccount | null;
+  embedded?: boolean;
+  onSaved?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
 
@@ -63,13 +75,14 @@ export function PayoutAccountForm({
       }
       toast.success("To'lov ma'lumotlari saqlandi");
       router.refresh();
+      onSaved?.();
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="card p-5 mb-6">
+    <div className={embedded ? 'rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4 sm:p-5' : 'card p-5 mb-6'}>
       <div className="flex items-center gap-2 mb-4">
         <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center flex-shrink-0">
           <CreditCard className="w-4 h-4 text-brand-600" />
@@ -177,10 +190,17 @@ export function PayoutAccountForm({
           to&apos;lovni amalga oshiruvchi adminga ko&apos;rinadi.
         </p>
 
-        <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto px-6 py-2.5">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Saqlash
-        </button>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2">
+          {onCancel && (
+            <button type="button" onClick={onCancel} className="btn-ghost w-full sm:w-auto px-6 py-2.5">
+              Bekor qilish
+            </button>
+          )}
+          <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto px-6 py-2.5">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Saqlash
+          </button>
+        </div>
       </form>
     </div>
   );
