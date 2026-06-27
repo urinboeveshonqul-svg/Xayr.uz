@@ -191,7 +191,7 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                   {c.status === 'active' && action(view, MessagesSquare, t('dash.updateLbl'))}
                   {(c.status === 'active' || c.status === 'completed') &&
                     action(`${view}/analytics`, BarChart3, t('dash.analyticsLbl'))}
-                  {c.status === 'active' && action(`${view}/analytics`, Wallet, t('dash.withdrawLbl'))}
+                  {c.status === 'active' && action(`${view}/withdraw`, Wallet, t('dash.withdrawLbl'))}
                   {c.status === 'completed' && action(view, CheckCircle2, t('dash.reportLbl'))}
                   {c.status === 'rejected' && (
                     <button

@@ -1,13 +1,13 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { Wallet } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { isLocale } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignAnalytics } from '@/components/campaigns/CampaignAnalytics';
-import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
-import { cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
-import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
 export const metadata: Metadata = { title: 'Kampaniya analitikasi — Xayr' };
 export const dynamic = 'force-dynamic';
@@ -19,6 +19,7 @@ interface Props {
 export default async function CampaignAnalyticsPage({ params }: Props) {
   const { locale, slug } = await params;
   const loc = isLocale(locale) ? locale : 'uz';
+  const dict = await getDictionary(loc);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -74,87 +75,6 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
     chart.push({ label: String(d.getDate()), total: byDay.get(key) ?? 0 });
   }
 
-  // ── Withdrawal / payout data (owner-only; RLS scopes reads to the owner) ──
-  const { data: payoutRows } = await supabase
-    .from('payout_requests')
-    .select('*')
-    .eq('campaign_id', campaign.id)
-    .order('created_at', { ascending: false });
-  const payoutRequests = payoutRows ?? [];
-
-  const { data: payoutEventRows } = await supabase
-    .from('payout_request_events')
-    .select('*')
-    .in('request_id', payoutRequests.map((r) => r.id))
-    .order('created_at', { ascending: true });
-  const payoutEvents = payoutEventRows ?? [];
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('verification_status')
-    .eq('id', user.id)
-    .single();
-
-  // Saved payout account (owner-only via RLS). The full card number is NEVER
-  // serialized to the client — only masked display fields are passed; the full
-  // card is snapshotted server-side at request time.
-  let payoutAccount: {
-    full_legal_name: string;
-    phone_number: string;
-    card_type: string;
-    card_number: string;
-    cardholder_name: string;
-    bank_name: string | null;
-  } | null = null;
-  try {
-    const { data } = await supabase
-      .from('payout_accounts')
-      .select('full_legal_name, phone_number, card_type, card_number, cardholder_name, bank_name')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    payoutAccount = data ?? null;
-  } catch {
-    payoutAccount = null;
-  }
-  const payoutSummary = payoutAccount
-    ? `${cardTypeLabel(payoutAccount.card_type)} · ${maskCard(payoutAccount.card_number)}`
-    : null;
-
-  // Masked, client-safe projection for the read-only payout card. The card is
-  // masked here (BIN + last 4) so the full PAN stays server-side.
-  const payoutInfo: PayoutInfoDisplay | null = payoutAccount
-    ? {
-        fullLegalName: payoutAccount.full_legal_name,
-        phone: `${UZ.dialCode} ${formatNational(nationalDigitsFrom(payoutAccount.phone_number))}`,
-        cardType: payoutAccount.card_type,
-        cardMasked: maskCardDisplay(payoutAccount.card_number),
-        cardholderName: payoutAccount.cardholder_name,
-        bankName: payoutAccount.bank_name,
-      }
-    : null;
-
-  // Mirrors campaign_available_balance(): committed = active + paid.
-  const COMMITTED = ['pending_review', 'approved', 'info_requested', 'paid'];
-  const committed = payoutRequests
-    .filter((r) => COMMITTED.includes(r.status))
-    .reduce((sum, r) => sum + r.amount, 0);
-  const available = Math.max(0, (campaign.current_amount ?? 0) - committed);
-  // Total successfully withdrawn (gross amounts that have left the balance).
-  const totalWithdrawn = payoutRequests
-    .filter((r) => r.status === 'paid')
-    .reduce((sum, r) => sum + r.amount, 0);
-
-  const eventsByReq = new Map<string, typeof payoutEvents>();
-  for (const e of payoutEvents) {
-    const arr = eventsByReq.get(e.request_id) ?? [];
-    arr.push(e);
-    eventsByReq.set(e.request_id, arr);
-  }
-  const payoutRequestRows: CampaignPayoutRow[] = payoutRequests.map((r) => ({
-    ...r,
-    events: eventsByReq.get(r.id) ?? [],
-  }));
-
   return (
     <>
       <Navbar />
@@ -169,20 +89,18 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             locale={loc}
           />
 
-          <CampaignPayouts
-            campaignId={campaign.id}
-            campaignStatus={campaign.status}
-            userId={user.id}
-            available={available}
-            raised={campaign.current_amount ?? 0}
-            totalWithdrawn={totalWithdrawn}
-            isVerified={profile?.verification_status === 'verified'}
-            hasPayoutInfo={!!payoutAccount}
-            payoutSummary={payoutSummary}
-            payoutInfo={payoutInfo}
-            requests={payoutRequestRows}
-            locale={loc}
-          />
+          {/* Withdrawals (and payout information) live on their own dedicated
+              page — they intentionally do NOT appear here. This is just a link. */}
+          {(campaign.status === 'active' || campaign.status === 'completed') && (
+            <div className="mt-6">
+              <Link
+                href={`/${loc}/campaigns/${slug}/withdraw`}
+                className="btn-primary px-5 py-2.5 inline-flex"
+              >
+                <Wallet className="w-4 h-4" /> {dict.dash.withdrawBtn}
+              </Link>
+            </div>
+          )}
         </div>
       </main>
       <Footer />
