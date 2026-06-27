@@ -151,8 +151,8 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **Status:** ✅ Complete. Rate-limited at the middleware layer; RBAC re-verified server-side on each route.
 
 ### Payouts
-- **What:** Creator requests a withdrawal (bank/card) against available balance; 3% platform commission computed; admin state machine (`pending_review → approved → paid`, plus `info_requested`/`rejected`/`cancelled`); full event log.
-- **Where:** `components/campaigns/CampaignPayouts.tsx`, `components/admin/AdminPayouts.tsx`, `app/[locale]/admin/payouts/page.tsx`. RPCs: `create_payout_request`, `approve_payout_request`, `reject_payout_request`, `request_payout_info`, `mark_payout_paid`, `campaign_available_balance`. Tables: `payout_requests`, `payout_request_events`.
+- **What:** Creator requests a withdrawal (bank/card) against available balance; 3% platform commission computed; admin state machine (`pending_review → approved → paid`, plus `info_requested`/`rejected`/`cancelled`); full event log. The withdrawal section shows a **read-only payout-info card** (legal name, phone, card type, masked card `8600 **** **** 9012`, cardholder, bank) with an "Edit"/"Add" CTA to Settings; the form is gated until payout info exists and auto-uses the saved account (card details are snapshotted server-side, never re-entered). The full card number is masked for creators (BIN + last 4) and never serialized to the client; admins still see the full PAN.
+- **Where:** `components/campaigns/CampaignPayouts.tsx`, `components/admin/AdminPayouts.tsx`, `app/[locale]/admin/payouts/page.tsx`. Masked projection built in `app/[locale]/campaigns/[slug]/analytics/page.tsx`; masking helper `maskCardDisplay` in `lib/payout.ts`. RPCs: `create_payout_request`, `approve_payout_request`, `reject_payout_request`, `request_payout_info`, `mark_payout_paid`, `campaign_available_balance`. Tables: `payout_requests`, `payout_request_events`, `payout_accounts`.
 - **Status:** ✅ Code-complete; ⚠️ functionally meaningless until donations actually complete (depends on payments).
 
 ### Contact

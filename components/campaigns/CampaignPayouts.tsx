@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info } from 'lucide-react';
+import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney, timeAgo } from '@/lib/utils';
@@ -14,6 +14,20 @@ import type { PayoutRequest, PayoutRequestEvent } from '@/types';
 
 export interface CampaignPayoutRow extends PayoutRequest {
   events: PayoutRequestEvent[];
+}
+
+/**
+ * Masked, client-safe projection of the saved payout account. Built server-side
+ * (see the analytics page) so the full card number is NEVER serialized to the
+ * creator's browser — only the BIN+last4 mask is.
+ */
+export interface PayoutInfoDisplay {
+  fullLegalName: string;
+  phone: string;
+  cardType: string;
+  cardMasked: string;
+  cardholderName: string;
+  bankName: string | null;
 }
 
 const ACTIVE = ['pending_review', 'approved', 'info_requested'];
@@ -58,6 +72,7 @@ export function CampaignPayouts({
   isVerified,
   hasPayoutInfo,
   payoutSummary,
+  payoutInfo,
   requests,
   locale,
 }: {
@@ -69,6 +84,7 @@ export function CampaignPayouts({
   isVerified: boolean;
   hasPayoutInfo: boolean;
   payoutSummary: string | null;
+  payoutInfo: PayoutInfoDisplay | null;
   requests: CampaignPayoutRow[];
   locale: string;
 }) {
@@ -103,12 +119,16 @@ export function CampaignPayouts({
   // Body text carries a {days} placeholder so the day-range can be emphasised.
   const [infoBefore, infoAfter = ''] = t('dash.withdrawInfoText').split('{days}');
 
+  // Warn (with an "add payout info" CTA) only when the user is otherwise ready
+  // to withdraw but hasn't saved payout details yet — same gate as the old CTA.
+  const showPayoutWarning = !hasPayoutInfo && isVerified && approved && available > 0 && !hasActive;
+
   const blockedReason = !approved
     ? 'Kampaniya tasdiqlangandan keyin mablag’ yechib olish mumkin'
     : !isVerified
     ? 'Yechish uchun hisobingizni tasdiqlang'
     : !hasPayoutInfo
-    ? null // handled with a CTA link below
+    ? null // handled by the payout-missing warning card above
     : hasActive
     ? "Sizda faol so'rov mavjud — natijani kuting"
     : available <= 0
@@ -175,14 +195,73 @@ export function CampaignPayouts({
           </div>
         </div>
 
+        {/* Saved payout destination — read-only; reused for every withdrawal
+            request (the server snapshots it, so card details are never re-entered).
+            When missing, a warning + "add payout info" CTA gates the form. */}
+        {payoutInfo ? (
+          <div className="mt-5 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-4 h-4 text-brand-600" />
+                </div>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{t('dash.payoutInfoTitle')}</h3>
+              </div>
+              <Link
+                href={`/${locale}/profile`}
+                className="text-xs font-semibold text-brand-600 hover:underline inline-flex items-center gap-1 flex-shrink-0"
+              >
+                <Pencil className="w-3.5 h-3.5" /> {t('dash.payoutEdit')}
+              </Link>
+            </div>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutLegalName')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.fullLegalName}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutPhone')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.phone}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutCardType')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white">{cardTypeLabel(payoutInfo.cardType)}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutCardNumber')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words tracking-wider tabular-nums">{payoutInfo.cardMasked}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-400">{t('dash.payoutCardholder')}</dt>
+                <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.cardholderName}</dd>
+              </div>
+              {payoutInfo.bankName && (
+                <div className="min-w-0">
+                  <dt className="text-xs text-gray-400">{t('dash.payoutBank')}</dt>
+                  <dd className="text-sm font-semibold text-gray-900 dark:text-white break-words">{payoutInfo.bankName}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        ) : showPayoutWarning ? (
+          <div className="mt-5 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/15 p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-amber-800 dark:text-amber-200">{t('dash.payoutMissingWarning')}</p>
+                <Link href={`/${locale}/profile`} className="btn-primary mt-3 px-5 py-2.5 inline-flex">
+                  <CreditCard className="w-4 h-4" /> {t('dash.payoutAdd')}
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {/* Request action (the 3% fee is applied per withdrawal — shown in the form). */}
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-          {/* Missing payout info → require it before a withdrawal can be requested. */}
-          {isVerified && approved && available > 0 && !hasActive && !hasPayoutInfo ? (
-            <Link href={`/${locale}/profile`} className="btn-primary px-5 py-2.5">
-              <CreditCard className="w-4 h-4" /> To&apos;lov ma&apos;lumotlarini kiriting
-            </Link>
-          ) : canRequest ? (
+          {canRequest ? (
             <button onClick={() => setShowForm(true)} className="btn-primary px-5 py-2.5">
               <Plus className="w-4 h-4" /> {t('dash.withdrawBtn')}
             </button>

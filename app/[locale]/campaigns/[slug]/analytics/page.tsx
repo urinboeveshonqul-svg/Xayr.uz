@@ -5,8 +5,9 @@ import { isLocale } from '@/i18n/config';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignAnalytics } from '@/components/campaigns/CampaignAnalytics';
-import { CampaignPayouts, type CampaignPayoutRow } from '@/components/campaigns/CampaignPayouts';
-import { cardTypeLabel, maskCard } from '@/lib/payout';
+import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
+import { cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
+import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
 export const metadata: Metadata = { title: 'Kampaniya analitikasi — Xayr' };
 export const dynamic = 'force-dynamic';
@@ -94,13 +95,21 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
     .eq('id', user.id)
     .single();
 
-  // Saved payout account (owner-only via RLS). Only a masked summary is passed
-  // to the client; the full card is snapshotted server-side at request time.
-  let payoutAccount: { card_type: string; card_number: string } | null = null;
+  // Saved payout account (owner-only via RLS). The full card number is NEVER
+  // serialized to the client — only masked display fields are passed; the full
+  // card is snapshotted server-side at request time.
+  let payoutAccount: {
+    full_legal_name: string;
+    phone_number: string;
+    card_type: string;
+    card_number: string;
+    cardholder_name: string;
+    bank_name: string | null;
+  } | null = null;
   try {
     const { data } = await supabase
       .from('payout_accounts')
-      .select('card_type, card_number')
+      .select('full_legal_name, phone_number, card_type, card_number, cardholder_name, bank_name')
       .eq('user_id', user.id)
       .maybeSingle();
     payoutAccount = data ?? null;
@@ -109,6 +118,19 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
   }
   const payoutSummary = payoutAccount
     ? `${cardTypeLabel(payoutAccount.card_type)} · ${maskCard(payoutAccount.card_number)}`
+    : null;
+
+  // Masked, client-safe projection for the read-only payout card. The card is
+  // masked here (BIN + last 4) so the full PAN stays server-side.
+  const payoutInfo: PayoutInfoDisplay | null = payoutAccount
+    ? {
+        fullLegalName: payoutAccount.full_legal_name,
+        phone: `${UZ.dialCode} ${formatNational(nationalDigitsFrom(payoutAccount.phone_number))}`,
+        cardType: payoutAccount.card_type,
+        cardMasked: maskCardDisplay(payoutAccount.card_number),
+        cardholderName: payoutAccount.cardholder_name,
+        bankName: payoutAccount.bank_name,
+      }
     : null;
 
   // Mirrors campaign_available_balance(): committed = active + paid.
@@ -156,6 +178,7 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             isVerified={profile?.verification_status === 'verified'}
             hasPayoutInfo={!!payoutAccount}
             payoutSummary={payoutSummary}
+            payoutInfo={payoutInfo}
             requests={payoutRequestRows}
             locale={loc}
           />
