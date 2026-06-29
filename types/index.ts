@@ -20,6 +20,13 @@ export type CampaignStatus =
   | 'draft' | 'pending' | 'active' | 'rejected' | 'completed' | 'paused'
   // Archive states (campaign-expiration.sql): reached its deadline, or withdrawn.
   | 'expired' | 'funded' | 'cancelled';
+
+// Completion report moderation (completion-reports-v2.sql).
+export type ReportStatus = 'pending' | 'approved' | 'changes_requested' | 'rejected';
+export type BeneficiaryStatus =
+  | 'successfully_completed' | 'ongoing_recovery' | 'project_finished' | 'project_delayed' | 'other';
+export interface FundBreakdownItem { category: string; description: string; amount: number; }
+export interface TimelineItem { label: string; date: string }
 export type CampaignCategory =
   | 'medical' | 'education' | 'disaster' | 'community'
   | 'environment' | 'animal' | 'sport' | 'other';
@@ -320,6 +327,17 @@ export type Database = {
           message: string;
           images: string[];
           documents: string[];
+          status: ReportStatus;
+          beneficiary_status: BeneficiaryStatus | null;
+          fund_breakdown: FundBreakdownItem[];
+          timeline: TimelineItem[];
+          videos: string[];
+          before_images: string[];
+          after_images: string[];
+          admin_feedback: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          submitted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -331,6 +349,12 @@ export type Database = {
           message: string;
           images?: string[];
           documents?: string[];
+          beneficiary_status?: BeneficiaryStatus | null;
+          fund_breakdown?: FundBreakdownItem[];
+          timeline?: TimelineItem[];
+          videos?: string[];
+          before_images?: string[];
+          after_images?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -339,6 +363,12 @@ export type Database = {
           message?: string;
           images?: string[];
           documents?: string[];
+          beneficiary_status?: BeneficiaryStatus | null;
+          fund_breakdown?: FundBreakdownItem[];
+          timeline?: TimelineItem[];
+          videos?: string[];
+          before_images?: string[];
+          after_images?: string[];
           updated_at?: string;
         };
         Relationships: [];
@@ -1001,6 +1031,14 @@ export type Database = {
           previous_deadline: string | null;
           new_deadline: string;
         }[];
+      };
+      review_completion_report: {
+        Args: { p_id: string; p_action: string; p_feedback?: string };
+        Returns: undefined;
+      };
+      campaign_total_withdrawn: {
+        Args: { p_campaign_id: string };
+        Returns: number;
       };
     };
     Enums: { [_ in never]: never };

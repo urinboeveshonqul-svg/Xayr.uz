@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Megaphone, Users, ShieldCheck, Flag, Wallet, Mail, HandCoins, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Users, ShieldCheck, Flag, Wallet, Mail, HandCoins, CalendarClock, CheckCircle2 } from 'lucide-react';
 import { isLocale } from '@/i18n/config';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
@@ -17,6 +17,7 @@ export function AdminNav() {
     { href: `/${locale}/admin`, match: '/admin', label: t('admin.navOverview'), icon: LayoutDashboard },
     { href: `/${locale}/admin/campaigns`, match: '/admin/campaigns', label: t('admin.navCampaigns'), icon: Megaphone },
     { href: `/${locale}/admin/extensions`, match: '/admin/extensions', label: t('admin.navExtensions'), icon: CalendarClock },
+    { href: `/${locale}/admin/reports`, match: '/admin/reports', label: t('admin.navReports'), icon: CheckCircle2 },
     { href: `/${locale}/admin/donations`, match: '/admin/donations', label: t('admin.navDonations'), icon: HandCoins },
     { href: `/${locale}/admin/verifications`, match: '/admin/verifications', label: t('admin.navVerifications'), icon: ShieldCheck },
     { href: `/${locale}/admin/users`, match: '/admin/users', label: t('admin.navUsers'), icon: Users },
