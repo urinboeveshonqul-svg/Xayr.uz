@@ -33,9 +33,13 @@ const STATUS_CLS: Record<string, string> = {
   paused:    'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
   rejected:  'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
   completed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  expired:   'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
+  funded:    'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
+  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
 };
 
-const FILTER_VALUES: (CampaignStatus | 'all')[] = ['all', 'active', 'pending', 'completed', 'rejected'];
+// Campaign History filters: active discovery first, then the archive states.
+const FILTER_VALUES: (CampaignStatus | 'all')[] = ['all', 'active', 'expired', 'funded', 'completed', 'cancelled', 'pending', 'rejected'];
 
 export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[]; locale: string }) {
   const router = useRouter();
@@ -52,12 +56,18 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
     paused: t('dash.stPaused'),
     rejected: t('dash.stRejected'),
     completed: t('dash.stCompleted'),
+    expired: t('dash.stExpired'),
+    funded: t('dash.stFunded'),
+    cancelled: t('dash.stCancelled'),
   };
   const filterLabel: Record<string, string> = {
     all: t('dash.filterAll'),
     active: t('dash.stActive'),
-    pending: t('dash.stPending'),
+    expired: t('dash.stExpired'),
+    funded: t('dash.stFunded'),
     completed: t('dash.stCompleted'),
+    cancelled: t('dash.stCancelled'),
+    pending: t('dash.stPending'),
     rejected: t('dash.stRejected'),
   };
 
@@ -189,9 +199,9 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                   {(c.status === 'active' || c.status === 'pending' || c.status === 'rejected' || c.status === 'draft') &&
                     action(`${view}/edit`, Pencil, t('dash.edit'))}
                   {c.status === 'active' && action(view, MessagesSquare, t('dash.updateLbl'))}
-                  {(c.status === 'active' || c.status === 'completed') &&
+                  {['active', 'completed', 'expired', 'funded'].includes(c.status) &&
                     action(`${view}/analytics`, BarChart3, t('dash.analyticsLbl'))}
-                  {c.status === 'active' && action(`${view}/withdraw`, Wallet, t('dash.withdrawLbl'))}
+                  {['active', 'funded'].includes(c.status) && action(`${view}/withdraw`, Wallet, t('dash.withdrawLbl'))}
                   {c.status === 'completed' && action(view, CheckCircle2, t('dash.reportLbl'))}
                   {c.status === 'rejected' && (
                     <button

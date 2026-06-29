@@ -91,7 +91,7 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
 
           {/* Withdrawals (and payout information) live on their own dedicated
               page — they intentionally do NOT appear here. This is just a link. */}
-          {(campaign.status === 'active' || campaign.status === 'completed') && (
+          {['active', 'completed', 'funded'].includes(campaign.status) && (
             <div className="mt-6">
               <Link
                 href={`/${loc}/campaigns/${slug}/withdraw`}

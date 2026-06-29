@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
-  ChevronLeft, Zap, CheckCircle, Send, Facebook, Link2, MessageCircle
+  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, Send, Facebook, Link2, MessageCircle
 } from 'lucide-react';
-import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
+import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Gallery } from '@/components/ui/Gallery';
 import { Avatar } from '@/components/ui/Avatar';
@@ -57,6 +57,11 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   const pct = getProgress(campaign.current_amount, campaign.goal_amount);
   const days = daysLeft(campaign.deadline);
   const cat = CATEGORY_CONFIG[campaign.categories?.slug ?? 'other'];
+
+  // Donations are closed once the campaign is archived or past its deadline.
+  // "Successfully Funded" when the goal was met, otherwise "Campaign Ended".
+  const ended = isCampaignEnded(campaign.status, campaign.deadline);
+  const goalReached = isGoalReached(campaign.current_amount, campaign.goal_amount);
 
   // Cover + additional images, deduped — one gallery for everything.
   const galleryImages = [
@@ -254,8 +259,27 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
               </div>
             </div>
 
-            {/* Donate button */}
-            {!showDonation ? (
+            {/* Donate button — replaced by an "ended" notice once the campaign is
+                archived or past its deadline (donations are disabled). */}
+            {ended ? (
+              <div
+                className={`rounded-2xl p-4 text-center ${
+                  goalReached
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40'
+                    : 'bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800'
+                }`}
+              >
+                {goalReached ? (
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto mb-2" />
+                ) : (
+                  <CalendarX className="w-7 h-7 text-gray-400 mx-auto mb-2" />
+                )}
+                <p className={`text-sm font-bold ${goalReached ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                  {goalReached ? t('detail.fundedTitle') : t('detail.endedTitle')}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{t('detail.endedNote')}</p>
+              </div>
+            ) : !showDonation ? (
               <button
                 onClick={() => setShowDonation(true)}
                 className="btn-primary w-full text-base py-4 min-h-[56px] lg:min-h-0 lg:py-3"
@@ -380,7 +404,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
 
       {/* Mobile sticky donate bar — sits above the bottom nav; hides while the
           donation form is open. Desktop unchanged (lg:hidden). */}
-      {showSticky && !showDonation && (
+      {showSticky && !showDonation && !ended && (
         <div className="lg:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 px-3 pb-2 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 p-3 flex items-center gap-3">
             <div className="min-w-0 flex-1">

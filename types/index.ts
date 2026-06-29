@@ -16,7 +16,10 @@ export type Json =
 
 export type UserRole = 'user' | 'admin';
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
-export type CampaignStatus = 'draft' | 'pending' | 'active' | 'rejected' | 'completed' | 'paused';
+export type CampaignStatus =
+  | 'draft' | 'pending' | 'active' | 'rejected' | 'completed' | 'paused'
+  // Archive states (campaign-expiration.sql): reached its deadline, or withdrawn.
+  | 'expired' | 'funded' | 'cancelled';
 export type CampaignCategory =
   | 'medical' | 'education' | 'disaster' | 'community'
   | 'environment' | 'animal' | 'sport' | 'other';
@@ -921,6 +924,10 @@ export type Database = {
       mark_payout_paid: {
         Args: { p_request_id: string; p_reference: string; p_paid_at?: string };
         Returns: undefined;
+      };
+      expire_due_campaigns: {
+        Args: Record<string, never>;
+        Returns: number;
       };
     };
     Enums: { [_ in never]: never };

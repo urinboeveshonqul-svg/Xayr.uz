@@ -4,7 +4,7 @@
 > Generated from a direct read of the codebase. Reflects only what is actually
 > implemented — no aspirational or invented features.
 >
-> **Last synced:** 2026-06-26
+> **Last synced:** 2026-06-29
 > **Branch:** main · **Latest commit at sync:** `e3af6b1` (payment foundation — idempotency, verification, reconciliation)
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
@@ -75,6 +75,11 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **What:** Create/edit campaigns (title, description, story, goal, category, images, urgent flag, deadline, location), draft→pending→active lifecycle, resubmit after rejection, owner-only field editing.
 - **Where:** `app/[locale]/campaigns/{create,[slug],[slug]/edit}/*`, `components/campaigns/{CreateCampaignForm,EditCampaignForm,CampaignDetail,CampaignKycGate}.tsx`. Protected columns (`status`, `current_amount`, `donors_count`, `views`) enforced by `guard_campaign_protected_fields` trigger.
 - **Status:** ✅ Complete. Creation is gated on `verification_status='verified'` (KYC) at the RLS layer (`campaign-create-kyc-gate.sql`).
+
+### Campaign Expiration & Archive (Phase 1)
+- **What:** At its deadline a campaign is auto-archived — `funded` (goal reached) or `expired` (not). Archived campaigns drop out of all active discovery (homepage/featured/trending/listings/category/search/recommended — every one pins `status='active'`) but **keep their public URL + SEO** (RLS widened so `completed`/`expired`/`funded` stay anon-readable; detail pages stay indexable). The detail page hides Donate and shows **"Successfully Funded"** / **"Campaign Ended"** + "This campaign has ended."; the donations API also rejects a past deadline. Owner dashboard + admin manager gain `expired`/`funded`/`cancelled` filters (Campaign History). Owner is notified on expiry/funding. Donations, analytics, and history are never deleted.
+- **Where:** `supabase/campaign-expiration.sql` (statuses + `campaigns_select_public` widen + `expire_due_campaigns()` + expiry notification trigger), `app/api/cron/expire-campaigns/route.ts` + `vercel.json` cron (daily), `lib/utils.ts` (`isCampaignEnded`/`isGoalReached`/`STATUS_CONFIG`), `components/campaigns/CampaignDetail.tsx`, `app/api/donations/route.ts`, `components/profile/MyCampaigns.tsx`, `components/admin/AdminCampaignsManager.tsx`.
+- **Status:** ✅ Phase 1 code-complete (pending migration #41 applied + `CRON_SECRET` set). ⏳ Phase 2 (owner-requested **extension** → admin approve/reject → reactivation) not yet built.
 
 ### Donations
 - **What:** Donation modal with preset/custom amounts, anonymous toggle, optional message. Server creates a **pending** record; client can never set status.

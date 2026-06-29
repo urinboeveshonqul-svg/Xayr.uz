@@ -14,7 +14,9 @@ export interface TeamInfo {
   role: TeamRole;
 }
 
-const STATUS_VALUES: (CampaignStatus | 'all')[] = ['all', 'pending', 'active', 'paused', 'rejected', 'completed'];
+const STATUS_VALUES: (CampaignStatus | 'all')[] = [
+  'all', 'pending', 'active', 'paused', 'rejected', 'completed', 'expired', 'funded', 'cancelled',
+];
 
 const STATUS_BADGE: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
@@ -22,6 +24,9 @@ const STATUS_BADGE: Record<string, string> = {
   paused: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
   rejected: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
   completed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  expired: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
+  funded: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
+  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 };
 
 interface Props {
@@ -40,6 +45,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
   const statusLabel: Record<string, string> = {
     all: t('admin.stAll'), pending: t('admin.stPending'), active: t('admin.stActive'),
     paused: t('admin.stPaused'), rejected: t('admin.stRejected'), completed: t('admin.stCompleted'),
+    expired: t('admin.stExpired'), funded: t('admin.stFunded'), cancelled: t('admin.stCancelled'),
   };
   const roleLabel: Record<TeamRole, string> = {
     owner: t('admin.roleOwner'), manager: t('admin.roleManager'), editor: t('admin.roleEditor'),

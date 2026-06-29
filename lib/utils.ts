@@ -77,4 +77,26 @@ export const STATUS_CONFIG = {
   rejected:  { label: 'Rad etilgan',  color: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' },
   completed: { label: 'Yakunlangan',  color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' },
   paused:    { label: 'To\'xtatilgan',color: 'bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400' },
+  expired:   { label: 'Muddati tugagan',   color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' },
+  funded:    { label: 'Moliyalashtirilgan', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' },
+  cancelled: { label: 'Bekor qilingan',    color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' },
 } as const;
+
+/** Archived/terminal statuses — the campaign is no longer collecting donations. */
+export const ENDED_STATUSES = ['expired', 'funded', 'completed', 'cancelled'] as const;
+
+/**
+ * True when a campaign can no longer accept donations — either it is in an
+ * archived/terminal status, or its deadline has passed (even if the nightly
+ * expire sweep hasn't flipped the status yet). Used to gate the donate UI.
+ */
+export function isCampaignEnded(status: string, deadline: string | null): boolean {
+  if ((ENDED_STATUSES as readonly string[]).includes(status)) return true;
+  if (deadline && new Date(deadline).getTime() < Date.now()) return true;
+  return false;
+}
+
+/** True when the campaign reached (or exceeded) its goal. */
+export function isGoalReached(raised: number, goal: number): boolean {
+  return goal > 0 && raised >= goal;
+}

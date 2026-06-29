@@ -48,6 +48,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 38 | `payment-foundation.sql` | `donations.payment_ref` UNIQUE index + `payment_events` table (idempotency/reconciliation/audit, admin-only read) | `payment_events` exists |
 | 39 | `payment-refund-reversal.sql` | **Refund safety** — `apply_donation` reverses `current_amount`/`donors_count` (floored at 0) when a completed donation becomes refunded/failed, so refunded funds can't be withdrawn. Requires #5. | refund a completed test donation → `current_amount` returns to prior value |
 | 40 | `payout-info.sql` | **Secure payout accounts** — `payout_accounts` table (card details, RLS owner+admin) + snapshot columns on `payout_requests`; `create_payout_request` now sources/snapshots payout info, requires it, and enforces a configurable minimum; `mark_payout_paid` accepts a payment date. Requires payouts.sql + payout-commission.sql. | `payout_accounts` exists; a withdrawal stores `snap_*` |
+| 41 | `campaign-expiration.sql` | **Campaign expiration & archive** — adds `expired`/`funded`/`cancelled` statuses; widens `campaigns_select_public` so archived campaigns (`completed`/`expired`/`funded`) stay publicly readable (URLs + SEO keep working); `expire_due_campaigns()` flips active+past-deadline campaigns → `funded` (goal met) / `expired` (not met) using the guard-bypass pattern; owner notification trigger for expiry/funding. Drives the daily Vercel cron `/api/cron/expire-campaigns`. | new statuses accepted; `select public.expire_due_campaigns();` runs |
 
 ## Critical notes
 
@@ -63,3 +64,10 @@ been run degrade gracefully in the app but stay **inactive** until applied.
   them. Until a gateway (or an admin confirmation tool) is added, completed
   donations can only be created by updating `donations.status` with the
   service role.
+- **#41 (`campaign-expiration.sql`) needs a scheduler** to flip due campaigns.
+  The app ships a Vercel Cron (`vercel.json` → `/api/cron/expire-campaigns`,
+  daily) — set a `CRON_SECRET` env var so the endpoint authenticates the
+  scheduled call. Alternatively, enable `pg_cron` and use the commented
+  `cron.schedule(...)` snippet at the bottom of the migration. Until a scheduler
+  runs, statuses still flip lazily-enough for correctness because the donation
+  API and the donate UI both treat a past deadline as ended regardless.
