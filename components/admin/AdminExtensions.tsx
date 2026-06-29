@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Loader2, Check, X, CalendarClock, ExternalLink } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney } from '@/lib/utils';
 import type { CampaignExtensionRequest } from '@/types';
@@ -51,11 +50,24 @@ export function AdminExtensions({ initialRows, locale }: { initialRows: Extensio
     cancelled: t('admin.extStCancelled'),
   };
 
+  // Approve/reject go through the server route (not a direct RPC) so an approval
+  // can revalidate the cached homepage — the reactivated campaign rejoins
+  // featured/trending immediately, with no user action.
+  const post = async (payload: { action: 'approve' | 'reject'; requestId: string; reason?: string }) => {
+    const res = await fetch('/api/admin/extensions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: res.ok, error: json.error };
+  };
+
   const approve = async (id: string) => {
     setBusyId(id);
     try {
-      const { error } = await createClient().rpc('approve_campaign_extension', { p_request_id: id });
-      if (error) { toast.error(error.message); return; }
+      const { ok, error } = await post({ action: 'approve', requestId: id });
+      if (!ok) { toast.error(error ?? 'Error'); return; }
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'approved' } : r)));
       toast.success(t('admin.extApproved'));
     } finally {
@@ -69,8 +81,8 @@ export function AdminExtensions({ initialRows, locale }: { initialRows: Extensio
     if (!reason.trim()) { toast.error(t('admin.extReasonRequired')); return; }
     setBusyId(id);
     try {
-      const { error } = await createClient().rpc('reject_campaign_extension', { p_request_id: id, p_note: reason.trim() });
-      if (error) { toast.error(error.message); return; }
+      const { ok, error } = await post({ action: 'reject', requestId: id, reason: reason.trim() });
+      if (!ok) { toast.error(error ?? 'Error'); return; }
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'rejected', admin_note: reason.trim() } : r)));
       toast.success(t('admin.extRejected'));
     } finally {
