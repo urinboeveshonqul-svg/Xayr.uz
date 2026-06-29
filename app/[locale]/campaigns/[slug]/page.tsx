@@ -213,6 +213,24 @@ export default async function CampaignDetailPage({ params }: Props) {
   const extended = (campaign.extension_count ?? 0) > 0;
   const extensions = extended ? await getExtensionHistory(campaign.id) : [];
 
+  // Owner-only: a pending extension request keeps the campaign expired but the
+  // donate area should say "under review" instead of the generic ended notice.
+  let pendingExtension = false;
+  if (isOwner && campaign.status === 'expired') {
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from('campaign_extension_requests')
+        .select('id')
+        .eq('campaign_id', campaign.id)
+        .eq('status', 'pending')
+        .maybeSingle();
+      pendingExtension = !!data;
+    } catch {
+      pendingExtension = false;
+    }
+  }
+
   return (
     <>
       {/* Per-campaign structured data (BreadcrumbList + WebPage + DonateAction) */}
@@ -224,7 +242,7 @@ export default async function CampaignDetailPage({ params }: Props) {
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <ViewTracker campaignId={campaign.id} />
-          <CampaignDetail campaign={campaign} donors={donors} />
+          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} />
 
           <div className="max-w-5xl mx-auto">
             {/* Public lifecycle timeline — shown when the campaign was extended */}

@@ -208,7 +208,7 @@ export type Database = {
           previous_deadline: string | null;
           reason: string | null;
           reason_category: string | null;
-          status: 'pending' | 'approved' | 'rejected';
+          status: 'pending' | 'approved' | 'rejected' | 'cancelled';
           admin_note: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
@@ -223,7 +223,7 @@ export type Database = {
           previous_deadline?: string | null;
           reason?: string | null;
           reason_category?: string | null;
-          status?: 'pending' | 'approved' | 'rejected';
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
           admin_note?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
@@ -231,7 +231,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          status?: 'pending' | 'approved' | 'rejected';
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
           admin_note?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
@@ -984,6 +984,10 @@ export type Database = {
       };
       reject_campaign_extension: {
         Args: { p_request_id: string; p_note: string };
+        Returns: undefined;
+      };
+      cancel_campaign_extension: {
+        Args: { p_request_id: string };
         Returns: undefined;
       };
       close_campaign: {

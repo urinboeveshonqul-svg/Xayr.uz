@@ -44,7 +44,7 @@ create table if not exists public.campaign_extension_requests (
   reason             text,
   reason_category    text,
   status             text        not null default 'pending'
-                       check (status in ('pending','approved','rejected')),
+                       check (status in ('pending','approved','rejected','cancelled')),
   admin_note         text,
   reviewed_by        uuid        references public.users(id) on delete set null,
   reviewed_at        timestamptz,
@@ -59,6 +59,12 @@ alter table public.campaign_extension_requests add column if not exists reason_c
 alter table public.campaign_extension_requests drop constraint if exists cext_reason_category_check;
 alter table public.campaign_extension_requests add constraint cext_reason_category_check
   check (reason_category is null or reason_category in ('treatment','construction','emergency','other'));
+
+-- Widen the status check for DBs whose table predates the 'cancelled' state
+-- (owner can cancel a pending request before an admin reviews it).
+alter table public.campaign_extension_requests drop constraint if exists campaign_extension_requests_status_check;
+alter table public.campaign_extension_requests add constraint campaign_extension_requests_status_check
+  check (status in ('pending','approved','rejected','cancelled'));
 
 create index if not exists idx_cext_campaign on public.campaign_extension_requests (campaign_id);
 create index if not exists idx_cext_status   on public.campaign_extension_requests (status, created_at desc);
@@ -210,6 +216,29 @@ begin
     from public.campaigns c where c.id = v_campaign;
 end; $$;
 
+-- ── 5b. Owner cancels their OWN pending request (before an admin reviews it) ─
+-- The campaign was never reactivated by the request, so nothing else changes —
+-- the request just moves pending → cancelled, freeing the owner to submit a new
+-- one (and releasing the one-pending-per-campaign unique index).
+create or replace function public.cancel_campaign_extension(p_request_id uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_owner  uuid;
+  v_status text;
+begin
+  if auth.uid() is null then raise exception 'auth_required'; end if;
+  select user_id, status into v_owner, v_status
+    from public.campaign_extension_requests where id = p_request_id for update;
+  if not found then raise exception 'request_not_found'; end if;
+  if v_owner <> auth.uid() then raise exception 'not_campaign_owner'; end if;
+  if v_status <> 'pending' then raise exception 'invalid_transition'; end if;
+
+  update public.campaign_extension_requests
+     set status = 'cancelled'
+   where id = p_request_id;
+end; $$;
+
 -- ── 6. Owner manually closes a goal-reached active campaign → funded ─────────
 create or replace function public.close_campaign(p_campaign_id uuid)
 returns void
@@ -249,6 +278,7 @@ $$;
 grant execute on function public.request_campaign_extension(uuid, timestamptz, text, text) to authenticated;
 grant execute on function public.approve_campaign_extension(uuid)                           to authenticated;
 grant execute on function public.reject_campaign_extension(uuid, text)                      to authenticated;
+grant execute on function public.cancel_campaign_extension(uuid)                            to authenticated;
 grant execute on function public.close_campaign(uuid)                                       to authenticated;
 grant execute on function public.get_campaign_extension_history(uuid)                       to anon, authenticated;
 

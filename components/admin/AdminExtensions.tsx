@@ -36,6 +36,7 @@ const STATUS_BADGE: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
   approved: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
   rejected: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
 };
 
 export function AdminExtensions({ initialRows, locale }: { initialRows: ExtensionRow[]; locale: string }) {
@@ -47,6 +48,7 @@ export function AdminExtensions({ initialRows, locale }: { initialRows: Extensio
     pending: t('admin.extStPending'),
     approved: t('admin.extStApproved'),
     rejected: t('admin.extStRejected'),
+    cancelled: t('admin.extStCancelled'),
   };
 
   const approve = async (id: string) => {

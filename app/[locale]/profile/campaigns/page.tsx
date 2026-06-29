@@ -4,7 +4,7 @@ import { Megaphone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { MyCampaigns, type MyCampaignRow } from '@/components/profile/MyCampaigns';
+import { MyCampaigns, type MyCampaignRow, type MyExtensionRequest } from '@/components/profile/MyCampaigns';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 
@@ -35,6 +35,23 @@ export default async function MyCampaignsPage({
 
   const campaigns: MyCampaignRow[] = data ?? [];
 
+  // Owner's extension requests (RLS scopes to their own rows). Grouped by
+  // campaign, newest first, so each card can show status + cancel + audit trail.
+  // Degrades gracefully to {} if the extension migration hasn't been applied.
+  const extensions: Record<string, MyExtensionRequest[]> = {};
+  try {
+    const { data: extData } = await supabase
+      .from('campaign_extension_requests')
+      .select('id, campaign_id, status, requested_deadline, previous_deadline, reason, reason_category, admin_note, created_at, reviewed_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    for (const r of (extData ?? []) as MyExtensionRequest[]) {
+      (extensions[r.campaign_id] ??= []).push(r);
+    }
+  } catch {
+    // table not present yet — leave extensions empty
+  }
+
   return (
     <>
       <Navbar />
@@ -50,7 +67,7 @@ export default async function MyCampaignsPage({
             </div>
           </div>
 
-          <MyCampaigns campaigns={campaigns} locale={lng} />
+          <MyCampaigns campaigns={campaigns} locale={lng} extensions={extensions} />
         </div>
       </main>
       <Footer />

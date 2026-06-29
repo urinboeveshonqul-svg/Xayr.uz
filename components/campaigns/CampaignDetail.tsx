@@ -23,9 +23,11 @@ import type { Campaign, Donor } from '@/types';
 interface CampaignDetailProps {
   campaign: Campaign;
   donors: Donor[];
+  /** Owner-only: a pending extension request → show "under review" when ended. */
+  pendingExtension?: boolean;
 }
 
-export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, donors, pendingExtension = false }: CampaignDetailProps) {
   const { t, locale } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -267,23 +269,30 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
             {/* Donate button — replaced by an "ended" notice once the campaign is
                 archived or past its deadline (donations are disabled). */}
             {ended ? (
-              <div
-                className={`rounded-2xl p-4 text-center ${
-                  goalReached
-                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40'
-                    : 'bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800'
-                }`}
-              >
-                {goalReached ? (
-                  <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto mb-2" />
-                ) : (
-                  <CalendarX className="w-7 h-7 text-gray-400 mx-auto mb-2" />
-                )}
-                <p className={`text-sm font-bold ${goalReached ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
-                  {goalReached ? t('detail.fundedTitle') : t('detail.endedTitle')}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">{t('detail.endedNote')}</p>
-              </div>
+              pendingExtension ? (
+                <div className="rounded-2xl p-4 text-center bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-900/40">
+                  <Clock className="w-7 h-7 text-amber-500 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{t('detail.underReview')}</p>
+                </div>
+              ) : (
+                <div
+                  className={`rounded-2xl p-4 text-center ${
+                    goalReached
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40'
+                      : 'bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800'
+                  }`}
+                >
+                  {goalReached ? (
+                    <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto mb-2" />
+                  ) : (
+                    <CalendarX className="w-7 h-7 text-gray-400 mx-auto mb-2" />
+                  )}
+                  <p className={`text-sm font-bold ${goalReached ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                    {goalReached ? t('detail.fundedTitle') : t('detail.endedTitle')}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{t('detail.endedNote')}</p>
+                </div>
+              )
             ) : !showDonation ? (
               <button
                 onClick={() => setShowDonation(true)}
