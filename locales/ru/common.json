@@ -216,7 +216,11 @@
     "urgent": "Срочно",
     "allCampaigns": "Все кампании",
     "found": "кампаний найдено",
-    "extendedBadge": "Продлена"
+    "extendedBadge": "Продлена",
+    "expiredBadge": "Истекла",
+    "fundedBadge": "Профинансирована",
+    "endedOn": "Завершена",
+    "donationsClosed": "Пожертвования больше не принимаются"
   },
   "categories": {
     "medical": "Медицина",
@@ -465,7 +469,7 @@
     "anonymous": "Аноним",
     "fundedTitle": "Успешно профинансирована",
     "endedTitle": "Кампания завершена",
-    "endedNote": "Эта кампания завершена.",
+    "endedNote": "Эта кампания больше не принимает пожертвования.",
     "underReview": "Запрос на продление на рассмотрении.",
     "timelineTitle": "Хронология кампании",
     "tlCreated": "Создана",

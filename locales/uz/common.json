@@ -216,7 +216,11 @@
     "urgent": "Shoshilinch",
     "allCampaigns": "Barcha kampaniyalar",
     "found": "ta kampaniya topildi",
-    "extendedBadge": "Uzaytirilgan"
+    "extendedBadge": "Uzaytirilgan",
+    "expiredBadge": "Muddati tugagan",
+    "fundedBadge": "Moliyalashtirilgan",
+    "endedOn": "Tugadi",
+    "donationsClosed": "Endi xayriya qabul qilinmaydi"
   },
   "categories": {
     "medical": "Tibbiyot",
@@ -465,7 +469,7 @@
     "anonymous": "Anonim",
     "fundedTitle": "Muvaffaqiyatli moliyalashtirildi",
     "endedTitle": "Kampaniya yakunlandi",
-    "endedNote": "Bu kampaniya yakunlandi.",
+    "endedNote": "Bu kampaniya endi xayriya qabul qilmaydi.",
     "underReview": "Pul yig'ish muddatini uzaytirish so'rovi ko'rib chiqilmoqda.",
     "timelineTitle": "Kampaniya vaqt jadvali",
     "tlCreated": "Yaratildi",

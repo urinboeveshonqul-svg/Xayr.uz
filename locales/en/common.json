@@ -216,7 +216,11 @@
     "urgent": "Urgent",
     "allCampaigns": "All campaigns",
     "found": "campaigns found",
-    "extendedBadge": "Extended"
+    "extendedBadge": "Extended",
+    "expiredBadge": "Expired",
+    "fundedBadge": "Funded",
+    "endedOn": "Ended",
+    "donationsClosed": "No longer accepting donations"
   },
   "categories": {
     "medical": "Medical",
@@ -465,7 +469,7 @@
     "anonymous": "Anonymous",
     "fundedTitle": "Successfully Funded",
     "endedTitle": "Campaign Ended",
-    "endedNote": "This campaign has ended.",
+    "endedNote": "This campaign is no longer accepting donations.",
     "underReview": "Extension request under review.",
     "timelineTitle": "Campaign Timeline",
     "tlCreated": "Created",
