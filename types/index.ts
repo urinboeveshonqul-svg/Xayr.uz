@@ -27,6 +27,9 @@ export type BeneficiaryStatus =
   | 'successfully_completed' | 'ongoing_recovery' | 'project_finished' | 'project_delayed' | 'other';
 export interface FundBreakdownItem { category: string; description: string; amount: number; }
 export interface TimelineItem { label: string; date: string }
+
+// Donor name visibility on the public donor feed (guest-donations.sql).
+export type NameDisplay = 'full' | 'first' | 'anonymous';
 export type CampaignCategory =
   | 'medical' | 'education' | 'disaster' | 'community'
   | 'environment' | 'animal' | 'sport' | 'other';
@@ -257,6 +260,10 @@ export type Database = {
           status: DonationStatus;
           payment_method: PaymentMethod | null;
           payment_ref: string | null;
+          donor_name: string | null;
+          donor_email: string | null;
+          donor_phone: string | null;
+          name_display: NameDisplay;
           created_at: string;
         };
         Insert: {
@@ -269,6 +276,10 @@ export type Database = {
           status?: DonationStatus;
           payment_method?: PaymentMethod | null;
           payment_ref?: string | null;
+          donor_name?: string | null;
+          donor_email?: string | null;
+          donor_phone?: string | null;
+          name_display?: NameDisplay;
           created_at?: string;
         };
         Update: {
@@ -281,6 +292,10 @@ export type Database = {
           status?: DonationStatus;
           payment_method?: PaymentMethod | null;
           payment_ref?: string | null;
+          donor_name?: string | null;
+          donor_email?: string | null;
+          donor_phone?: string | null;
+          name_display?: NameDisplay;
           created_at?: string;
         };
         Relationships: [];
