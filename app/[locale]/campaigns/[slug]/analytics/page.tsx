@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Wallet } from 'lucide-react';
+import { Wallet, CalendarClock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
+import { formatMoney } from '@/lib/utils';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignAnalytics } from '@/components/campaigns/CampaignAnalytics';
@@ -27,7 +28,7 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
 
   const { data: campaign } = await supabase
     .from('campaigns')
-    .select('id, user_id, title, slug, goal_amount, current_amount, donors_count, views, status, deadline, created_at')
+    .select('id, user_id, title, slug, goal_amount, current_amount, donors_count, views, status, deadline, created_at, original_deadline, extension_count')
     .eq('slug', slug)
     .single();
 
@@ -75,6 +76,25 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
     chart.push({ label: String(d.getDate()), total: byDay.get(key) ?? 0 });
   }
 
+  // Extension analytics (only for campaigns that were actually extended). The
+  // "before/after" split uses the original end date as the boundary.
+  const extended = (campaign.extension_count ?? 0) > 0;
+  const orig = campaign.original_deadline;
+  const boundary = orig ? new Date(orig).getTime() : 0;
+  let beforeCount = 0, beforeAmount = 0, afterCount = 0, afterAmount = 0;
+  if (extended && boundary) {
+    for (const d of chartRows ?? []) {
+      const ts = new Date(d.created_at).getTime();
+      if (ts <= boundary) { beforeCount++; beforeAmount += d.amount ?? 0; }
+      else { afterCount++; afterAmount += d.amount ?? 0; }
+    }
+  }
+  const daysExtended =
+    orig && campaign.deadline
+      ? Math.max(0, Math.round((new Date(campaign.deadline).getTime() - boundary) / 86400000))
+      : 0;
+  const dd = dict.dash;
+
   return (
     <>
       <Navbar />
@@ -88,6 +108,46 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             shareStats={shareRows ?? []}
             locale={loc}
           />
+
+          {/* Extension analytics — original/current end date, count, days, and
+              donations split before vs after the original deadline. */}
+          {extended && (
+            <div className="card p-6 mt-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <CalendarClock className="w-5 h-5 text-brand-600" /> {dd.extAnTitle}
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnOriginalEnd}</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white break-words">{orig ? new Date(orig).toLocaleDateString(loc) : '—'}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnCurrentEnd}</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white break-words">{campaign.deadline ? new Date(campaign.deadline).toLocaleDateString(loc) : '—'}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnCount}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white">{campaign.extension_count ?? 0}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnDaysExtended}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white">{daysExtended}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnBefore}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white break-words">{formatMoney(beforeAmount)} so&apos;m</p>
+                  <p className="text-xs text-gray-400">{beforeCount} {dd.extAnDonations}</p>
+                </div>
+                <div className="rounded-2xl bg-brand-50 dark:bg-brand-900/20 p-4">
+                  <p className="text-xs text-brand-700/80 dark:text-brand-400/90">{dd.extAnAfter}</p>
+                  <p className="text-lg font-black text-brand-700 dark:text-brand-400 break-words">{formatMoney(afterAmount)} so&apos;m</p>
+                  <p className="text-xs text-gray-400">{afterCount} {dd.extAnDonations}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Withdrawals (and payout information) live on their own dedicated
               page — they intentionally do NOT appear here. This is just a link. */}

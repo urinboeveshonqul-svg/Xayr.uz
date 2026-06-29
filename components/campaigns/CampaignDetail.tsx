@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
-  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, Send, Facebook, Link2, MessageCircle
+  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, CalendarClock, Send, Facebook, Link2, MessageCircle
 } from 'lucide-react';
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -69,11 +69,16 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   ];
 
   const badges = (
-    <div className="absolute top-4 left-4 flex gap-2 z-10">
+    <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
       <span className={`badge ${cat.color}`}><cat.Icon className="w-3.5 h-3.5" /> {cat.label}</span>
       {campaign.is_urgent && (
         <span className="badge bg-red-500 text-white">
           <Zap className="w-3 h-3" /> {t('ux.urgent')}
+        </span>
+      )}
+      {(campaign.extension_count ?? 0) > 0 && (
+        <span className="badge bg-blue-600 text-white">
+          <CalendarClock className="w-3 h-3" /> {t('campaign.extendedBadge')}
         </span>
       )}
     </div>

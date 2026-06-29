@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Users, AlertCircle, Star } from 'lucide-react';
+import { Heart, Users, AlertCircle, Star, CalendarClock } from 'lucide-react';
 import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { SaveButton } from '@/components/campaigns/SaveButton';
@@ -98,6 +98,12 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
           {featured && !urgent && !campaign.is_urgent && (
             <div className="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
               <Star className="w-3 h-3 fill-current" /> {t('home.featuredBadge')}
+            </div>
+          )}
+
+          {(campaign.extension_count ?? 0) > 0 && (
+            <div className="px-3 py-1.5 bg-blue-600 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
+              <CalendarClock className="w-3 h-3" /> {t('campaign.extendedBadge')}
             </div>
           )}
         </div>

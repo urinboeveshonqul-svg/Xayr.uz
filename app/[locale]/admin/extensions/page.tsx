@@ -28,7 +28,7 @@ export default async function AdminExtensionsPage({ params }: Props) {
     const userIds = [...new Set(requests.map((r) => r.user_id))];
 
     const [{ data: campaigns }, { data: users }] = await Promise.all([
-      admin.from('campaigns').select('id, title, slug, goal_amount, current_amount').in('id', campaignIds),
+      admin.from('campaigns').select('id, title, slug, goal_amount, current_amount, extension_count').in('id', campaignIds),
       admin.from('users').select('id, full_name, email').in('id', userIds),
     ]);
 
@@ -46,6 +46,7 @@ export default async function AdminExtensionsPage({ params }: Props) {
         owner_email: u?.email ?? null,
         goal_amount: c?.goal_amount ?? 0,
         current_amount: c?.current_amount ?? 0,
+        extension_count: c?.extension_count ?? 0,
       };
     });
   }

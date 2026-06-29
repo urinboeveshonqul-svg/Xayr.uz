@@ -49,7 +49,16 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
   // Extend-campaign modal (expired + under-goal campaigns only).
   const [extendFor, setExtendFor] = useState<MyCampaignRow | null>(null);
   const [extendDate, setExtendDate] = useState('');
+  const [extendCategory, setExtendCategory] = useState('treatment');
+  const [extendReason, setExtendReason] = useState('');
   const [extendBusy, setExtendBusy] = useState(false);
+
+  const openExtend = (c: MyCampaignRow) => {
+    setExtendFor(c);
+    setExtendDate('');
+    setExtendCategory('treatment');
+    setExtendReason('');
+  };
 
   const visible = campaigns.filter((c) => filter === 'all' || c.status === filter);
 
@@ -63,6 +72,7 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
       pending_exists: t('dash.extErrPending'),
       invalid_deadline: t('dash.extErrInvalid'),
       deadline_too_far: t('dash.extErrTooFar'),
+      reason_required: t('dash.extReasonNeeded'),
     };
     return k[code] ?? t('dash.extErrGeneric');
   };
@@ -70,6 +80,7 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
   const submitExtend = async () => {
     if (!extendFor) return;
     if (!extendDate) { toast.error(t('dash.extPickDate')); return; }
+    if (!extendReason.trim()) { toast.error(t('dash.extReasonNeeded')); return; }
     // End of the chosen day, in the user's local time, as an absolute instant.
     const iso = new Date(`${extendDate}T23:59:59`).toISOString();
     setExtendBusy(true);
@@ -77,14 +88,29 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
       const { error } = await createClient().rpc('request_campaign_extension', {
         p_campaign_id: extendFor.id,
         p_new_deadline: iso,
+        p_reason: extendReason.trim(),
+        p_reason_category: extendCategory,
       });
       if (error) { toast.error(extErrMsg(error.message)); return; }
       toast.success(t('dash.extRequested'));
       setExtendFor(null);
-      setExtendDate('');
       router.refresh();
     } finally {
       setExtendBusy(false);
+    }
+  };
+
+  // Owner manually closes a goal-reached active campaign → Funded (archive).
+  const closeCampaign = async (c: MyCampaignRow) => {
+    if (!confirm(t('dash.closeConfirm'))) return;
+    setBusyId(c.id);
+    try {
+      const { error } = await createClient().rpc('close_campaign', { p_campaign_id: c.id });
+      if (error) { toast.error(error.message); return; }
+      toast.success(t('dash.closedOk'));
+      router.refresh();
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -241,6 +267,17 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                   {['active', 'completed', 'expired', 'funded'].includes(c.status) &&
                     action(`${view}/analytics`, BarChart3, t('dash.analyticsLbl'))}
                   {['active', 'funded'].includes(c.status) && action(`${view}/withdraw`, Wallet, t('dash.withdrawLbl'))}
+                  {/* Manually close a goal-reached active campaign → Funded. */}
+                  {c.status === 'active' && c.current_amount >= c.goal_amount && (
+                    <button
+                      onClick={() => closeCampaign(c)}
+                      disabled={busyId === c.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-60"
+                    >
+                      {busyId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      {t('dash.closeBtn')}
+                    </button>
+                  )}
                   {c.status === 'completed' && action(view, CheckCircle2, t('dash.reportLbl'))}
                   {c.status === 'rejected' && (
                     <button
@@ -255,7 +292,7 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                   {/* Extend: only an expired campaign that didn't reach its goal. */}
                   {c.status === 'expired' && c.current_amount < c.goal_amount && (
                     <button
-                      onClick={() => { setExtendFor(c); setExtendDate(''); }}
+                      onClick={() => openExtend(c)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors"
                     >
                       <CalendarPlus className="w-3.5 h-3.5" /> {t('dash.extendBtn')}
@@ -302,6 +339,25 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                 className="input"
               />
               <p className="text-xs text-gray-400 mt-1">{t('dash.extendMaxNote')}</p>
+            </div>
+            <div>
+              <label className="label">{t('dash.extReasonCat')}</label>
+              <select value={extendCategory} onChange={(e) => setExtendCategory(e.target.value)} className="input">
+                <option value="treatment">{t('dash.extCatTreatment')}</option>
+                <option value="construction">{t('dash.extCatConstruction')}</option>
+                <option value="emergency">{t('dash.extCatEmergency')}</option>
+                <option value="other">{t('dash.extCatOther')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">{t('dash.extReasonLabel')}</label>
+              <textarea
+                value={extendReason}
+                onChange={(e) => setExtendReason(e.target.value)}
+                rows={3}
+                className="input resize-none"
+                placeholder={t('dash.extReasonPlaceholder')}
+              />
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setExtendFor(null)} className="btn-ghost px-4 py-2 text-sm">{t('dash.extendCancel')}</button>

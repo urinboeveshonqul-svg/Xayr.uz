@@ -146,6 +146,7 @@ export type Database = {
           views: number;
           rejection_reason: string | null;
           extension_count: number;
+          original_deadline: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -169,6 +170,7 @@ export type Database = {
           views?: number;
           rejection_reason?: string | null;
           extension_count?: number;
+          original_deadline?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -204,6 +206,8 @@ export type Database = {
           user_id: string;
           requested_deadline: string;
           previous_deadline: string | null;
+          reason: string | null;
+          reason_category: string | null;
           status: 'pending' | 'approved' | 'rejected';
           admin_note: string | null;
           reviewed_by: string | null;
@@ -217,6 +221,8 @@ export type Database = {
           user_id: string;
           requested_deadline: string;
           previous_deadline?: string | null;
+          reason?: string | null;
+          reason_category?: string | null;
           status?: 'pending' | 'approved' | 'rejected';
           admin_note?: string | null;
           reviewed_by?: string | null;
@@ -969,7 +975,7 @@ export type Database = {
         Returns: number;
       };
       request_campaign_extension: {
-        Args: { p_campaign_id: string; p_new_deadline: string };
+        Args: { p_campaign_id: string; p_new_deadline: string; p_reason: string; p_reason_category: string };
         Returns: string;
       };
       approve_campaign_extension: {
@@ -979,6 +985,18 @@ export type Database = {
       reject_campaign_extension: {
         Args: { p_request_id: string; p_note: string };
         Returns: undefined;
+      };
+      close_campaign: {
+        Args: { p_campaign_id: string };
+        Returns: undefined;
+      };
+      get_campaign_extension_history: {
+        Args: { p_campaign_id: string };
+        Returns: {
+          approved_at: string | null;
+          previous_deadline: string | null;
+          new_deadline: string;
+        }[];
       };
     };
     Enums: { [_ in never]: never };
