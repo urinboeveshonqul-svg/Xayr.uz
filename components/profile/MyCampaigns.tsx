@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   Megaphone, Eye, Pencil, BarChart3, Wallet, MessagesSquare, RefreshCw, Loader2,
-  PlusCircle, Users, TrendingUp, CheckCircle2,
+  PlusCircle, Users, TrendingUp, CheckCircle2, CalendarPlus, X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
@@ -46,8 +46,47 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
   const { t } = useI18n();
   const [filter, setFilter] = useState<CampaignStatus | 'all'>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Extend-campaign modal (expired + under-goal campaigns only).
+  const [extendFor, setExtendFor] = useState<MyCampaignRow | null>(null);
+  const [extendDate, setExtendDate] = useState('');
+  const [extendBusy, setExtendBusy] = useState(false);
 
   const visible = campaigns.filter((c) => filter === 'all' || c.status === filter);
+
+  // Map the RPC's exception codes to friendly, localized messages.
+  const extErrMsg = (code: string): string => {
+    const k: Record<string, string> = {
+      owner_not_verified: t('dash.extErrKyc'),
+      not_expired: t('dash.extErrNotExpired'),
+      goal_reached: t('dash.extErrGoal'),
+      max_extensions: t('dash.extErrMax'),
+      pending_exists: t('dash.extErrPending'),
+      invalid_deadline: t('dash.extErrInvalid'),
+      deadline_too_far: t('dash.extErrTooFar'),
+    };
+    return k[code] ?? t('dash.extErrGeneric');
+  };
+
+  const submitExtend = async () => {
+    if (!extendFor) return;
+    if (!extendDate) { toast.error(t('dash.extPickDate')); return; }
+    // End of the chosen day, in the user's local time, as an absolute instant.
+    const iso = new Date(`${extendDate}T23:59:59`).toISOString();
+    setExtendBusy(true);
+    try {
+      const { error } = await createClient().rpc('request_campaign_extension', {
+        p_campaign_id: extendFor.id,
+        p_new_deadline: iso,
+      });
+      if (error) { toast.error(extErrMsg(error.message)); return; }
+      toast.success(t('dash.extRequested'));
+      setExtendFor(null);
+      setExtendDate('');
+      router.refresh();
+    } finally {
+      setExtendBusy(false);
+    }
+  };
 
   const statusLabel: Record<string, string> = {
     draft: t('dash.stDraft'),
@@ -213,6 +252,15 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                       {t('dash.resubmit')}
                     </button>
                   )}
+                  {/* Extend: only an expired campaign that didn't reach its goal. */}
+                  {c.status === 'expired' && c.current_amount < c.goal_amount && (
+                    <button
+                      onClick={() => { setExtendFor(c); setExtendDate(''); }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors"
+                    >
+                      <CalendarPlus className="w-3.5 h-3.5" /> {t('dash.extendBtn')}
+                    </button>
+                  )}
                 </div>
 
                 {c.status === 'rejected' && (
@@ -225,6 +273,43 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
               </article>
             );
           })}
+        </div>
+      )}
+
+      {/* Extend-campaign modal */}
+      {extendFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          onClick={(e) => { if (e.target === e.currentTarget) setExtendFor(null); }}
+        >
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-4 animate-pop">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 dark:text-white">{t('dash.extendTitle')}</h3>
+              <button type="button" onClick={() => setExtendFor(null)} className="text-gray-400 hover:text-gray-600" aria-label={t('dash.extendClose')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 break-words">{extendFor.title}</p>
+            <p className="text-sm text-gray-500">{t('dash.extendHint')}</p>
+            <div>
+              <label className="label">{t('dash.extendNewDate')}</label>
+              <input
+                type="date"
+                value={extendDate}
+                min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                max={new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)}
+                onChange={(e) => setExtendDate(e.target.value)}
+                className="input"
+              />
+              <p className="text-xs text-gray-400 mt-1">{t('dash.extendMaxNote')}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setExtendFor(null)} className="btn-ghost px-4 py-2 text-sm">{t('dash.extendCancel')}</button>
+              <button type="button" onClick={submitExtend} disabled={extendBusy} className="btn-primary px-5 py-2 text-sm">
+                {extendBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {t('dash.extendSubmit')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

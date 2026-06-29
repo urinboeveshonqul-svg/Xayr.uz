@@ -145,6 +145,7 @@ export type Database = {
           donors_count: number;
           views: number;
           rejection_reason: string | null;
+          extension_count: number;
           created_at: string;
           updated_at: string;
         };
@@ -167,6 +168,7 @@ export type Database = {
           donors_count?: number;
           views?: number;
           rejection_reason?: string | null;
+          extension_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -189,7 +191,44 @@ export type Database = {
           donors_count?: number;
           views?: number;
           rejection_reason?: string | null;
+          extension_count?: number;
           created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      campaign_extension_requests: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          user_id: string;
+          requested_deadline: string;
+          previous_deadline: string | null;
+          status: 'pending' | 'approved' | 'rejected';
+          admin_note: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          user_id: string;
+          requested_deadline: string;
+          previous_deadline?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          admin_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: 'pending' | 'approved' | 'rejected';
+          admin_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -929,6 +968,18 @@ export type Database = {
         Args: Record<string, never>;
         Returns: number;
       };
+      request_campaign_extension: {
+        Args: { p_campaign_id: string; p_new_deadline: string };
+        Returns: string;
+      };
+      approve_campaign_extension: {
+        Args: { p_request_id: string };
+        Returns: undefined;
+      };
+      reject_campaign_extension: {
+        Args: { p_request_id: string; p_note: string };
+        Returns: undefined;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -955,6 +1006,7 @@ export type SavedCampaign = Row<'saved_campaigns'>;
 export type PayoutRequest = Row<'payout_requests'>;
 export type PayoutRequestEvent = Row<'payout_request_events'>;
 export type PayoutAccount = Row<'payout_accounts'>;
+export type CampaignExtensionRequest = Row<'campaign_extension_requests'>;
 
 // Campaign as consumed by the UI: the row + optionally embedded relations.
 // Queries embed the organizer as `profiles:users(...)` and the category as
