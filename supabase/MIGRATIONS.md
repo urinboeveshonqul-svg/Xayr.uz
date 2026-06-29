@@ -49,8 +49,7 @@ been run degrade gracefully in the app but stay **inactive** until applied.
 | 39 | `payment-refund-reversal.sql` | **Refund safety** — `apply_donation` reverses `current_amount`/`donors_count` (floored at 0) when a completed donation becomes refunded/failed, so refunded funds can't be withdrawn. Requires #5. | refund a completed test donation → `current_amount` returns to prior value |
 | 40 | `payout-info.sql` | **Secure payout accounts** — `payout_accounts` table (card details, RLS owner+admin) + snapshot columns on `payout_requests`; `create_payout_request` now sources/snapshots payout info, requires it, and enforces a configurable minimum; `mark_payout_paid` accepts a payment date. Requires payouts.sql + payout-commission.sql. | `payout_accounts` exists; a withdrawal stores `snap_*` |
 | 41 | `campaign-expiration.sql` | **Campaign expiration & archive** — adds `expired`/`funded`/`cancelled` statuses; widens `campaigns_select_public` so archived campaigns (`completed`/`expired`/`funded`) stay publicly readable (URLs + SEO keep working); `expire_due_campaigns()` flips active+past-deadline campaigns → `funded` (goal met) / `expired` (not met) using the guard-bypass pattern; owner notification trigger for expiry/funding. Drives the daily Vercel cron `/api/cron/expire-campaigns`. | new statuses accepted; `select public.expire_due_campaigns();` runs |
-| 42 | `campaign-extensions.sql` | **Campaign extension workflow** — `campaigns.extension_count` + `campaign_extension_requests` table (RLS read own/admin, writes via definer fns); `request_campaign_extension()` (verified owner of an expired, under-goal campaign; ≤30 days; ≤2 extensions), `approve_campaign_extension()` (reactivates → `active` + new deadline + notify), `reject_campaign_extension()` (notify with reason). Requires #41. | `campaign_extension_requests` exists; approve flips status back to `active` |
-| 43 | `campaign-extension-details.sql` | **Extension reason, timeline & manual close** — adds `reason`/`reason_category` to extension requests (required reason; `request_campaign_extension` re-created with the extra args); `campaigns.original_deadline` (captured on first extension); approve now **notifies previous donors** (resume) + captures original deadline; `close_campaign()` (owner closes a goal-reached active campaign → `funded`); `get_campaign_extension_history()` (anon-readable timeline, dates only). Requires #42. | request stores a reason; `get_campaign_extension_history(id)` returns approved rows |
+| 42 | `campaign-extensions.sql` | **Campaign extension workflow (self-contained)** — `campaigns.extension_count` + `original_deadline`; creates the `campaign_extension_requests` table (RLS read own/admin, writes via definer fns) **with** `reason`/`reason_category`; `request_campaign_extension(uuid,timestamptz,text,text)` (verified owner of an expired, under-goal campaign; reason required; ≤30 days; ≤2 extensions), `approve_campaign_extension()` (reactivates → `active` + new deadline, captures `original_deadline`, notifies owner **and previous donors**), `reject_campaign_extension()` (notify with reason), `close_campaign()` (owner closes a goal-reached active campaign → `funded`), `get_campaign_extension_history()` (anon-readable timeline, dates only). Requires #41. Idempotent on fresh **and** older DBs. | `campaign_extension_requests` exists; approve flips status back to `active` |
 
 ## Critical notes
 
@@ -66,6 +65,14 @@ been run degrade gracefully in the app but stay **inactive** until applied.
   them. Until a gateway (or an admin confirmation tool) is added, completed
   donations can only be created by updating `donations.status` with the
   service role.
+- **#42 was consolidated.** An earlier split put the extension details in
+  `campaign-extension-details.sql`, which sorts **before** `campaign-extensions.sql`
+  alphabetically (`-` < `s` after `campaign-extension`) — so a folder-order run
+  applied the `ALTER`s before the `CREATE TABLE` and failed with
+  `42P01 relation "public.campaign_extension_requests" does not exist`. Everything
+  now lives in the single self-contained `campaign-extensions.sql`; the details
+  file was removed. Just (re-)run `campaign-extensions.sql` — it is idempotent and
+  creates the table plus all columns/functions.
 - **#41 (`campaign-expiration.sql`) needs a scheduler** to flip due campaigns.
   The app ships a Vercel Cron (`vercel.json` → `/api/cron/expire-campaigns`,
   daily) — set a `CRON_SECRET` env var so the endpoint authenticates the
