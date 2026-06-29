@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
-  ChevronLeft, Zap, CheckCircle, Send, Facebook, Link2, MessageCircle
+  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, CalendarClock, Send, Facebook, Link2, MessageCircle
 } from 'lucide-react';
-import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo } from '@/lib/utils';
+import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Gallery } from '@/components/ui/Gallery';
 import { Avatar } from '@/components/ui/Avatar';
@@ -23,9 +23,11 @@ import type { Campaign, Donor } from '@/types';
 interface CampaignDetailProps {
   campaign: Campaign;
   donors: Donor[];
+  /** Owner-only: a pending extension request → show "under review" when ended. */
+  pendingExtension?: boolean;
 }
 
-export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, donors, pendingExtension = false }: CampaignDetailProps) {
   const { t, locale } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -58,17 +60,27 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
   const days = daysLeft(campaign.deadline);
   const cat = CATEGORY_CONFIG[campaign.categories?.slug ?? 'other'];
 
+  // Donations are closed once the campaign is archived or past its deadline.
+  // "Successfully Funded" when the goal was met, otherwise "Campaign Ended".
+  const ended = isCampaignEnded(campaign.status, campaign.deadline);
+  const goalReached = isGoalReached(campaign.current_amount, campaign.goal_amount);
+
   // Cover + additional images, deduped — one gallery for everything.
   const galleryImages = [
     ...new Set([campaign.image_url, ...(campaign.images ?? [])].filter((s): s is string => !!s)),
   ];
 
   const badges = (
-    <div className="absolute top-4 left-4 flex gap-2 z-10">
+    <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
       <span className={`badge ${cat.color}`}><cat.Icon className="w-3.5 h-3.5" /> {cat.label}</span>
       {campaign.is_urgent && (
         <span className="badge bg-red-500 text-white">
           <Zap className="w-3 h-3" /> {t('ux.urgent')}
+        </span>
+      )}
+      {(campaign.extension_count ?? 0) > 0 && (
+        <span className="badge bg-blue-600 text-white">
+          <CalendarClock className="w-3 h-3" /> {t('campaign.extendedBadge')}
         </span>
       )}
     </div>
@@ -254,8 +266,34 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
               </div>
             </div>
 
-            {/* Donate button */}
-            {!showDonation ? (
+            {/* Donate button — replaced by an "ended" notice once the campaign is
+                archived or past its deadline (donations are disabled). */}
+            {ended ? (
+              pendingExtension ? (
+                <div className="rounded-2xl p-4 text-center bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-900/40">
+                  <Clock className="w-7 h-7 text-amber-500 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{t('detail.underReview')}</p>
+                </div>
+              ) : (
+                <div
+                  className={`rounded-2xl p-4 text-center ${
+                    goalReached
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40'
+                      : 'bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800'
+                  }`}
+                >
+                  {goalReached ? (
+                    <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto mb-2" />
+                  ) : (
+                    <CalendarX className="w-7 h-7 text-gray-400 mx-auto mb-2" />
+                  )}
+                  <p className={`text-sm font-bold ${goalReached ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                    {goalReached ? t('detail.fundedTitle') : t('detail.endedTitle')}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{t('detail.endedNote')}</p>
+                </div>
+              )
+            ) : !showDonation ? (
               <button
                 onClick={() => setShowDonation(true)}
                 className="btn-primary w-full text-base py-4 min-h-[56px] lg:min-h-0 lg:py-3"
@@ -380,7 +418,7 @@ export function CampaignDetail({ campaign, donors }: CampaignDetailProps) {
 
       {/* Mobile sticky donate bar — sits above the bottom nav; hides while the
           donation form is open. Desktop unchanged (lg:hidden). */}
-      {showSticky && !showDonation && (
+      {showSticky && !showDonation && !ended && (
         <div className="lg:hidden fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 px-3 pb-2 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 p-3 flex items-center gap-3">
             <div className="min-w-0 flex-1">

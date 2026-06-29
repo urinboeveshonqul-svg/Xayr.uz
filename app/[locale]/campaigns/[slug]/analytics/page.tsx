@@ -1,13 +1,14 @@
 import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { Wallet, CalendarClock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { isLocale } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
+import { formatMoney } from '@/lib/utils';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignAnalytics } from '@/components/campaigns/CampaignAnalytics';
-import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
-import { cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
-import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
 export const metadata: Metadata = { title: 'Kampaniya analitikasi — Xayr' };
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ interface Props {
 export default async function CampaignAnalyticsPage({ params }: Props) {
   const { locale, slug } = await params;
   const loc = isLocale(locale) ? locale : 'uz';
+  const dict = await getDictionary(loc);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -26,7 +28,7 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
 
   const { data: campaign } = await supabase
     .from('campaigns')
-    .select('id, user_id, title, slug, goal_amount, current_amount, donors_count, views, status, deadline, created_at')
+    .select('id, user_id, title, slug, goal_amount, current_amount, donors_count, views, status, deadline, created_at, original_deadline, extension_count')
     .eq('slug', slug)
     .single();
 
@@ -74,86 +76,24 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
     chart.push({ label: String(d.getDate()), total: byDay.get(key) ?? 0 });
   }
 
-  // ── Withdrawal / payout data (owner-only; RLS scopes reads to the owner) ──
-  const { data: payoutRows } = await supabase
-    .from('payout_requests')
-    .select('*')
-    .eq('campaign_id', campaign.id)
-    .order('created_at', { ascending: false });
-  const payoutRequests = payoutRows ?? [];
-
-  const { data: payoutEventRows } = await supabase
-    .from('payout_request_events')
-    .select('*')
-    .in('request_id', payoutRequests.map((r) => r.id))
-    .order('created_at', { ascending: true });
-  const payoutEvents = payoutEventRows ?? [];
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('verification_status')
-    .eq('id', user.id)
-    .single();
-
-  // Saved payout account (owner-only via RLS). The full card number is NEVER
-  // serialized to the client — only masked display fields are passed; the full
-  // card is snapshotted server-side at request time.
-  let payoutAccount: {
-    full_legal_name: string;
-    phone_number: string;
-    card_type: string;
-    card_number: string;
-    cardholder_name: string;
-    bank_name: string | null;
-  } | null = null;
-  try {
-    const { data } = await supabase
-      .from('payout_accounts')
-      .select('full_legal_name, phone_number, card_type, card_number, cardholder_name, bank_name')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    payoutAccount = data ?? null;
-  } catch {
-    payoutAccount = null;
+  // Extension analytics (only for campaigns that were actually extended). The
+  // "before/after" split uses the original end date as the boundary.
+  const extended = (campaign.extension_count ?? 0) > 0;
+  const orig = campaign.original_deadline;
+  const boundary = orig ? new Date(orig).getTime() : 0;
+  let beforeCount = 0, beforeAmount = 0, afterCount = 0, afterAmount = 0;
+  if (extended && boundary) {
+    for (const d of chartRows ?? []) {
+      const ts = new Date(d.created_at).getTime();
+      if (ts <= boundary) { beforeCount++; beforeAmount += d.amount ?? 0; }
+      else { afterCount++; afterAmount += d.amount ?? 0; }
+    }
   }
-  const payoutSummary = payoutAccount
-    ? `${cardTypeLabel(payoutAccount.card_type)} · ${maskCard(payoutAccount.card_number)}`
-    : null;
-
-  // Masked, client-safe projection for the read-only payout card. The card is
-  // masked here (BIN + last 4) so the full PAN stays server-side.
-  const payoutInfo: PayoutInfoDisplay | null = payoutAccount
-    ? {
-        fullLegalName: payoutAccount.full_legal_name,
-        phone: `${UZ.dialCode} ${formatNational(nationalDigitsFrom(payoutAccount.phone_number))}`,
-        cardType: payoutAccount.card_type,
-        cardMasked: maskCardDisplay(payoutAccount.card_number),
-        cardholderName: payoutAccount.cardholder_name,
-        bankName: payoutAccount.bank_name,
-      }
-    : null;
-
-  // Mirrors campaign_available_balance(): committed = active + paid.
-  const COMMITTED = ['pending_review', 'approved', 'info_requested', 'paid'];
-  const committed = payoutRequests
-    .filter((r) => COMMITTED.includes(r.status))
-    .reduce((sum, r) => sum + r.amount, 0);
-  const available = Math.max(0, (campaign.current_amount ?? 0) - committed);
-  // Total successfully withdrawn (gross amounts that have left the balance).
-  const totalWithdrawn = payoutRequests
-    .filter((r) => r.status === 'paid')
-    .reduce((sum, r) => sum + r.amount, 0);
-
-  const eventsByReq = new Map<string, typeof payoutEvents>();
-  for (const e of payoutEvents) {
-    const arr = eventsByReq.get(e.request_id) ?? [];
-    arr.push(e);
-    eventsByReq.set(e.request_id, arr);
-  }
-  const payoutRequestRows: CampaignPayoutRow[] = payoutRequests.map((r) => ({
-    ...r,
-    events: eventsByReq.get(r.id) ?? [],
-  }));
+  const daysExtended =
+    orig && campaign.deadline
+      ? Math.max(0, Math.round((new Date(campaign.deadline).getTime() - boundary) / 86400000))
+      : 0;
+  const dd = dict.dash;
 
   return (
     <>
@@ -169,20 +109,58 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             locale={loc}
           />
 
-          <CampaignPayouts
-            campaignId={campaign.id}
-            campaignStatus={campaign.status}
-            userId={user.id}
-            available={available}
-            raised={campaign.current_amount ?? 0}
-            totalWithdrawn={totalWithdrawn}
-            isVerified={profile?.verification_status === 'verified'}
-            hasPayoutInfo={!!payoutAccount}
-            payoutSummary={payoutSummary}
-            payoutInfo={payoutInfo}
-            requests={payoutRequestRows}
-            locale={loc}
-          />
+          {/* Extension analytics — original/current end date, count, days, and
+              donations split before vs after the original deadline. */}
+          {extended && (
+            <div className="card p-6 mt-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <CalendarClock className="w-5 h-5 text-brand-600" /> {dd.extAnTitle}
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnOriginalEnd}</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white break-words">{orig ? new Date(orig).toLocaleDateString(loc) : '—'}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnCurrentEnd}</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white break-words">{campaign.deadline ? new Date(campaign.deadline).toLocaleDateString(loc) : '—'}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnCount}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white">{campaign.extension_count ?? 0}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnDaysExtended}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white">{daysExtended}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <p className="text-xs text-gray-400">{dd.extAnBefore}</p>
+                  <p className="text-lg font-black text-gray-900 dark:text-white break-words">{formatMoney(beforeAmount)} so&apos;m</p>
+                  <p className="text-xs text-gray-400">{beforeCount} {dd.extAnDonations}</p>
+                </div>
+                <div className="rounded-2xl bg-brand-50 dark:bg-brand-900/20 p-4">
+                  <p className="text-xs text-brand-700/80 dark:text-brand-400/90">{dd.extAnAfter}</p>
+                  <p className="text-lg font-black text-brand-700 dark:text-brand-400 break-words">{formatMoney(afterAmount)} so&apos;m</p>
+                  <p className="text-xs text-gray-400">{afterCount} {dd.extAnDonations}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Withdrawals (and payout information) live on their own dedicated
+              page — they intentionally do NOT appear here. This is just a link. */}
+          {['active', 'completed', 'funded'].includes(campaign.status) && (
+            <div className="mt-6">
+              <Link
+                href={`/${loc}/campaigns/${slug}/withdraw`}
+                className="btn-primary px-5 py-2.5 inline-flex"
+              >
+                <Wallet className="w-4 h-4" /> {dict.dash.withdrawBtn}
+              </Link>
+            </div>
+          )}
         </div>
       </main>
       <Footer />

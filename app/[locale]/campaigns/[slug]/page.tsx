@@ -9,6 +9,7 @@ import { buildCampaignJsonLd } from '@/lib/campaign-jsonld';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
+import { CampaignTimeline, type TimelineExtension } from '@/components/campaigns/CampaignTimeline';
 import { ViewTracker } from '@/components/campaigns/ViewTracker';
 import { CompletionReportForm } from '@/components/campaigns/CompletionReportForm';
 import { CompletionReports } from '@/components/campaigns/CompletionReports';
@@ -113,6 +114,17 @@ async function getReports(campaignId: string): Promise<CampaignReport[]> {
   }
 }
 
+// Public, non-sensitive extension timeline (dates only — never the reason).
+async function getExtensionHistory(campaignId: string): Promise<TimelineExtension[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.rpc('get_campaign_extension_history', { p_campaign_id: campaignId });
+    return (data ?? []).map((e) => ({ approved_at: e.approved_at, new_deadline: e.new_deadline }));
+  } catch {
+    return [];
+  }
+}
+
 async function getSimilar(campaign: Campaign): Promise<Campaign[]> {
   if (!campaign.category_id) return [];
   try {
@@ -197,6 +209,28 @@ export default async function CampaignDetailPage({ params }: Props) {
 
   const jsonLd = buildCampaignJsonLd(campaign, loc);
 
+  // Public timeline only when the campaign was actually extended.
+  const extended = (campaign.extension_count ?? 0) > 0;
+  const extensions = extended ? await getExtensionHistory(campaign.id) : [];
+
+  // Owner-only: a pending extension request keeps the campaign expired but the
+  // donate area should say "under review" instead of the generic ended notice.
+  let pendingExtension = false;
+  if (isOwner && campaign.status === 'expired') {
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from('campaign_extension_requests')
+        .select('id')
+        .eq('campaign_id', campaign.id)
+        .eq('status', 'pending')
+        .maybeSingle();
+      pendingExtension = !!data;
+    } catch {
+      pendingExtension = false;
+    }
+  }
+
   return (
     <>
       {/* Per-campaign structured data (BreadcrumbList + WebPage + DonateAction) */}
@@ -208,9 +242,19 @@ export default async function CampaignDetailPage({ params }: Props) {
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <ViewTracker campaignId={campaign.id} />
-          <CampaignDetail campaign={campaign} donors={donors} />
+          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} />
 
           <div className="max-w-5xl mx-auto">
+            {/* Public lifecycle timeline — shown when the campaign was extended */}
+            {extended && (
+              <CampaignTimeline
+                createdAt={campaign.created_at}
+                status={campaign.status}
+                extensions={extensions}
+                locale={loc}
+              />
+            )}
+
             {/* Owner-only entry point to the analytics dashboard */}
             {isOwner && (
               <Link

@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Users, AlertCircle, Star } from 'lucide-react';
-import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
+import { Heart, Users, AlertCircle, Star, CalendarClock, CalendarX, CheckCircle2, Ban } from 'lucide-react';
+import { formatMoney, CATEGORY_CONFIG, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { SaveButton } from '@/components/campaigns/SaveButton';
 import { Avatar } from '@/components/ui/Avatar';
@@ -57,6 +57,14 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
 
   const donors = campaign.total_donations ?? campaign.donors_count ?? 0;
 
+  // Expired/funded campaigns can still appear in personal collections (Saved /
+  // Recently Viewed). The card stays clickable (open the page, read the story,
+  // share) but the donate CTA is replaced by a disabled "Expired" / "Funded".
+  const ended = isCampaignEnded(campaign.status, campaign.deadline);
+  const goalReached = isGoalReached(raised, campaign.goal_amount ?? 0);
+  const endDate = campaign.deadline ? new Date(campaign.deadline).toLocaleDateString(locale) : null;
+  const endedLabel = goalReached ? t('campaign.fundedBadge') : t('campaign.expiredBadge');
+
   return (
     <Link
       href={`/${locale}/campaigns/${campaign.slug}`}
@@ -98,6 +106,19 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
           {featured && !urgent && !campaign.is_urgent && (
             <div className="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
               <Star className="w-3 h-3 fill-current" /> {t('home.featuredBadge')}
+            </div>
+          )}
+
+          {(campaign.extension_count ?? 0) > 0 && (
+            <div className="px-3 py-1.5 bg-blue-600 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
+              <CalendarClock className="w-3 h-3" /> {t('campaign.extendedBadge')}
+            </div>
+          )}
+
+          {ended && (
+            <div className={`px-3 py-1.5 rounded-full text-xs font-black shadow-lg flex items-center gap-1 text-white ${goalReached ? 'bg-emerald-600' : 'bg-gray-700'}`}>
+              {goalReached ? <CheckCircle2 className="w-3 h-3" /> : <CalendarX className="w-3 h-3" />}
+              {endedLabel}
             </div>
           )}
         </div>
@@ -162,11 +183,32 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
           </div>
         </div>
 
-        {/* CTA (decorative — whole card is the link) */}
-        <span className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold text-sm group-hover:shadow-lg group-hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2">
-          <Heart className="w-4 h-4" />
-          {t('buttons.donateNow')}
-        </span>
+        {/* End date — surfaced on ended cards (Saved / Recently Viewed). */}
+        {ended && endDate && (
+          <p className="text-xs text-gray-500 flex items-center gap-1">
+            <CalendarX className="w-3.5 h-3.5 flex-shrink-0" /> {t('campaign.endedOn')} {endDate}
+          </p>
+        )}
+
+        {/* CTA (decorative — whole card is the link). Ended campaigns show a
+            disabled "Expired"/"Funded" pill instead of Donate; the reason is
+            announced for assistive tech and never hidden. */}
+        {ended ? (
+          <span
+            aria-disabled="true"
+            aria-label={t('campaign.donationsClosed')}
+            title={t('campaign.donationsClosed')}
+            className="w-full py-3 px-4 bg-gray-200 text-gray-500 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed"
+          >
+            <Ban className="w-4 h-4" />
+            {endedLabel}
+          </span>
+        ) : (
+          <span className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold text-sm group-hover:shadow-lg group-hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2">
+            <Heart className="w-4 h-4" />
+            {t('buttons.donateNow')}
+          </span>
+        )}
       </div>
     </Link>
   );

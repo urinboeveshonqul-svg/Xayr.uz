@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: campaign, error: cErr } = await admin
     .from('campaigns')
-    .select('id, title, status')
+    .select('id, title, status, deadline')
     .eq('id', campaignId)
     .single();
 
@@ -58,6 +58,11 @@ export async function POST(request: Request) {
   }
   if (campaign.status !== 'active') {
     return NextResponse.json({ error: 'Campaign is not active' }, { status: 409 });
+  }
+  // Reject donations to a campaign whose deadline has passed, even if the nightly
+  // expire sweep hasn't flipped its status to 'expired'/'funded' yet.
+  if (campaign.deadline && new Date(campaign.deadline).getTime() < Date.now()) {
+    return NextResponse.json({ error: 'Campaign has ended' }, { status: 409 });
   }
 
   // 4) Create the transaction record server-side. Status is ALWAYS 'pending'

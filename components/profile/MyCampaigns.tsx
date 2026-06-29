@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   Megaphone, Eye, Pencil, BarChart3, Wallet, MessagesSquare, RefreshCw, Loader2,
-  PlusCircle, Users, TrendingUp, CheckCircle2,
+  PlusCircle, Users, TrendingUp, CheckCircle2, CalendarPlus, X, Clock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
@@ -26,6 +26,29 @@ export interface MyCampaignRow {
   created_at: string;
 }
 
+export type ExtRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+/** Owner-visible extension-request audit row (their own requests, newest first). */
+export interface MyExtensionRequest {
+  id: string;
+  campaign_id: string;
+  status: ExtRequestStatus;
+  requested_deadline: string;
+  previous_deadline: string | null;
+  reason: string | null;
+  reason_category: string | null;
+  admin_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+const EXT_STATUS_CLS: Record<string, string> = {
+  pending:   'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+  approved:  'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+  rejected:  'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+};
+
 const STATUS_CLS: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
   pending:   'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
@@ -33,17 +56,115 @@ const STATUS_CLS: Record<string, string> = {
   paused:    'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
   rejected:  'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
   completed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  expired:   'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
+  funded:    'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
+  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
 };
 
-const FILTER_VALUES: (CampaignStatus | 'all')[] = ['all', 'active', 'pending', 'completed', 'rejected'];
+// Campaign History filters: active discovery first, then the archive states.
+const FILTER_VALUES: (CampaignStatus | 'all')[] = ['all', 'active', 'expired', 'funded', 'completed', 'cancelled', 'pending', 'rejected'];
 
-export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[]; locale: string }) {
+export function MyCampaigns({
+  campaigns,
+  locale,
+  extensions = {},
+}: {
+  campaigns: MyCampaignRow[];
+  locale: string;
+  extensions?: Record<string, MyExtensionRequest[]>;
+}) {
   const router = useRouter();
   const { t } = useI18n();
   const [filter, setFilter] = useState<CampaignStatus | 'all'>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Extend-campaign modal (expired + under-goal campaigns only).
+  const [extendFor, setExtendFor] = useState<MyCampaignRow | null>(null);
+  const [extendDate, setExtendDate] = useState('');
+  const [extendCategory, setExtendCategory] = useState('treatment');
+  const [extendReason, setExtendReason] = useState('');
+  const [extendBusy, setExtendBusy] = useState(false);
+
+  const openExtend = (c: MyCampaignRow) => {
+    setExtendFor(c);
+    setExtendDate('');
+    setExtendCategory('treatment');
+    setExtendReason('');
+  };
 
   const visible = campaigns.filter((c) => filter === 'all' || c.status === filter);
+
+  // Map the RPC's exception codes to friendly, localized messages.
+  const extErrMsg = (code: string): string => {
+    const k: Record<string, string> = {
+      owner_not_verified: t('dash.extErrKyc'),
+      not_expired: t('dash.extErrNotExpired'),
+      goal_reached: t('dash.extErrGoal'),
+      max_extensions: t('dash.extErrMax'),
+      pending_exists: t('dash.extErrPending'),
+      invalid_deadline: t('dash.extErrInvalid'),
+      deadline_too_far: t('dash.extErrTooFar'),
+      reason_required: t('dash.extReasonNeeded'),
+    };
+    return k[code] ?? t('dash.extErrGeneric');
+  };
+
+  const submitExtend = async () => {
+    if (!extendFor) return;
+    if (!extendDate) { toast.error(t('dash.extPickDate')); return; }
+    if (!extendReason.trim()) { toast.error(t('dash.extReasonNeeded')); return; }
+    // End of the chosen day, in the user's local time, as an absolute instant.
+    const iso = new Date(`${extendDate}T23:59:59`).toISOString();
+    setExtendBusy(true);
+    try {
+      const { error } = await createClient().rpc('request_campaign_extension', {
+        p_campaign_id: extendFor.id,
+        p_new_deadline: iso,
+        p_reason: extendReason.trim(),
+        p_reason_category: extendCategory,
+      });
+      if (error) { toast.error(extErrMsg(error.message)); return; }
+      toast.success(t('dash.extRequested'));
+      setExtendFor(null);
+      router.refresh();
+    } finally {
+      setExtendBusy(false);
+    }
+  };
+
+  // Owner manually closes a goal-reached active campaign → Funded (archive).
+  const closeCampaign = async (c: MyCampaignRow) => {
+    if (!confirm(t('dash.closeConfirm'))) return;
+    setBusyId(c.id);
+    try {
+      const { error } = await createClient().rpc('close_campaign', { p_campaign_id: c.id });
+      if (error) { toast.error(error.message); return; }
+      toast.success(t('dash.closedOk'));
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // Owner cancels their own PENDING extension request (campaign stays expired).
+  const cancelExtension = async (campaignId: string, requestId: string) => {
+    if (!confirm(t('dash.extCancelConfirm'))) return;
+    setBusyId(campaignId);
+    try {
+      const { error } = await createClient().rpc('cancel_campaign_extension', { p_request_id: requestId });
+      if (error) { toast.error(error.message); return; }
+      toast.success(t('dash.extCancelledOk'));
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const extStatusLabel: Record<string, string> = {
+    pending: t('dash.extStPending'),
+    approved: t('dash.extStApproved'),
+    rejected: t('dash.extStRejected'),
+    cancelled: t('dash.extStCancelled'),
+  };
 
   const statusLabel: Record<string, string> = {
     draft: t('dash.stDraft'),
@@ -52,12 +173,18 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
     paused: t('dash.stPaused'),
     rejected: t('dash.stRejected'),
     completed: t('dash.stCompleted'),
+    expired: t('dash.stExpired'),
+    funded: t('dash.stFunded'),
+    cancelled: t('dash.stCancelled'),
   };
   const filterLabel: Record<string, string> = {
     all: t('dash.filterAll'),
     active: t('dash.stActive'),
-    pending: t('dash.stPending'),
+    expired: t('dash.stExpired'),
+    funded: t('dash.stFunded'),
     completed: t('dash.stCompleted'),
+    cancelled: t('dash.stCancelled'),
+    pending: t('dash.stPending'),
     rejected: t('dash.stRejected'),
   };
 
@@ -153,6 +280,9 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
             const stLabel = statusLabel[c.status] ?? statusLabel.pending;
             const pct = getProgress(c.current_amount, c.goal_amount);
             const view = `/${locale}/campaigns/${c.slug}`;
+            const reqs = extensions[c.id] ?? [];
+            const pendingReq = reqs.find((r) => r.status === 'pending') ?? null;
+            const approvedCount = reqs.filter((r) => r.status === 'approved').length;
             return (
               <article key={c.id} className="card p-4">
                 <div className="flex gap-4">
@@ -189,9 +319,20 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                   {(c.status === 'active' || c.status === 'pending' || c.status === 'rejected' || c.status === 'draft') &&
                     action(`${view}/edit`, Pencil, t('dash.edit'))}
                   {c.status === 'active' && action(view, MessagesSquare, t('dash.updateLbl'))}
-                  {(c.status === 'active' || c.status === 'completed') &&
+                  {['active', 'completed', 'expired', 'funded'].includes(c.status) &&
                     action(`${view}/analytics`, BarChart3, t('dash.analyticsLbl'))}
-                  {c.status === 'active' && action(`${view}/analytics`, Wallet, t('dash.withdrawLbl'))}
+                  {['active', 'funded'].includes(c.status) && action(`${view}/withdraw`, Wallet, t('dash.withdrawLbl'))}
+                  {/* Manually close a goal-reached active campaign → Funded. */}
+                  {c.status === 'active' && c.current_amount >= c.goal_amount && (
+                    <button
+                      onClick={() => closeCampaign(c)}
+                      disabled={busyId === c.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-60"
+                    >
+                      {busyId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      {t('dash.closeBtn')}
+                    </button>
+                  )}
                   {c.status === 'completed' && action(view, CheckCircle2, t('dash.reportLbl'))}
                   {c.status === 'rejected' && (
                     <button
@@ -203,7 +344,34 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                       {t('dash.resubmit')}
                     </button>
                   )}
+                  {/* Extend (or cancel a pending request) — expired, under-goal. */}
+                  {c.status === 'expired' && c.current_amount < c.goal_amount && (
+                    pendingReq ? (
+                      <button
+                        onClick={() => cancelExtension(c.id, pendingReq.id)}
+                        disabled={busyId === c.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-60"
+                      >
+                        {busyId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                        {t('dash.extCancelRequest')}
+                      </button>
+                    ) : approvedCount < 2 ? (
+                      <button
+                        onClick={() => openExtend(c)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors"
+                      >
+                        <CalendarPlus className="w-3.5 h-3.5" /> {t('dash.extendBtn')}
+                      </button>
+                    ) : null
+                  )}
                 </div>
+
+                {/* Pending extension → the campaign stays expired while under review. */}
+                {pendingReq && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {t('dash.extUnderReview')}
+                  </p>
+                )}
 
                 {c.status === 'rejected' && (
                   <p className="text-xs text-red-500 mt-2">
@@ -212,9 +380,86 @@ export function MyCampaigns({ campaigns, locale }: { campaigns: MyCampaignRow[];
                       : t('dash.rejectedHint')}
                   </p>
                 )}
+
+                {/* Extension-request audit trail (owner-visible; never deleted). */}
+                {reqs.length > 0 && (
+                  <div className="mt-3 border-t border-gray-100 dark:border-gray-800 pt-2 space-y-2">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t('dash.extHistoryTitle')}</p>
+                    {reqs.map((r) => (
+                      <div key={r.id} className="text-xs">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`badge ${EXT_STATUS_CLS[r.status] ?? ''}`}>{extStatusLabel[r.status] ?? r.status}</span>
+                          <span className="text-gray-400">
+                            {new Date(r.created_at).toLocaleDateString(locale)} → {new Date(r.requested_deadline).toLocaleDateString(locale)}
+                          </span>
+                        </div>
+                        {r.reason && <p className="text-gray-500 mt-0.5 break-words">{r.reason}</p>}
+                        {r.status === 'rejected' && r.admin_note && (
+                          <p className="text-red-500 mt-0.5 break-words">{t('dash.rejectedReason')}: {r.admin_note}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </article>
             );
           })}
+        </div>
+      )}
+
+      {/* Extend-campaign modal */}
+      {extendFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+          onClick={(e) => { if (e.target === e.currentTarget) setExtendFor(null); }}
+        >
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-4 animate-pop">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 dark:text-white">{t('dash.extendTitle')}</h3>
+              <button type="button" onClick={() => setExtendFor(null)} className="text-gray-400 hover:text-gray-600" aria-label={t('dash.extendClose')}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 break-words">{extendFor.title}</p>
+            <p className="text-sm text-gray-500">{t('dash.extendHint')}</p>
+            <div>
+              <label className="label">{t('dash.extendNewDate')}</label>
+              <input
+                type="date"
+                value={extendDate}
+                min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                max={new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)}
+                onChange={(e) => setExtendDate(e.target.value)}
+                className="input"
+              />
+              <p className="text-xs text-gray-400 mt-1">{t('dash.extendMaxNote')}</p>
+            </div>
+            <div>
+              <label className="label">{t('dash.extReasonCat')}</label>
+              <select value={extendCategory} onChange={(e) => setExtendCategory(e.target.value)} className="input">
+                <option value="treatment">{t('dash.extCatTreatment')}</option>
+                <option value="construction">{t('dash.extCatConstruction')}</option>
+                <option value="emergency">{t('dash.extCatEmergency')}</option>
+                <option value="other">{t('dash.extCatOther')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">{t('dash.extReasonLabel')}</label>
+              <textarea
+                value={extendReason}
+                onChange={(e) => setExtendReason(e.target.value)}
+                rows={3}
+                className="input resize-none"
+                placeholder={t('dash.extReasonPlaceholder')}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setExtendFor(null)} className="btn-ghost px-4 py-2 text-sm">{t('dash.extendCancel')}</button>
+              <button type="button" onClick={submitExtend} disabled={extendBusy} className="btn-primary px-5 py-2 text-sm">
+                {extendBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {t('dash.extendSubmit')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

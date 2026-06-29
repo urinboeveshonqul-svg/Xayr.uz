@@ -114,7 +114,7 @@ export function CampaignPayouts({
   const [loadingPayout, setLoadingPayout] = useState(false);
 
   const hasActive = requests.some((r) => ACTIVE.includes(r.status));
-  const approved = campaignStatus === 'active' || campaignStatus === 'completed';
+  const approved = campaignStatus === 'active' || campaignStatus === 'completed' || campaignStatus === 'funded';
   const canRequest = isVerified && hasPayoutInfo && approved && available > 0 && !hasActive;
   const selected = requests.find((r) => r.id === selectedId) ?? null;
 
