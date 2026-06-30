@@ -123,7 +123,7 @@ create policy snapshots_select_admin on public.financial_snapshots for select
 create or replace function public.generate_financial_snapshot(p_date date default current_date)
 returns boolean
 language plpgsql security definer set search_path = public as $$
-declare v_end timestamptz := (p_date + 1)::timestamptz; v_created boolean;
+declare v_end timestamptz := (p_date + 1)::timestamptz; v_created integer;
 begin
   insert into public.financial_snapshots as fs (
     snapshot_date, total_donations, donation_count, total_withdrawn, pending_withdrawals,
