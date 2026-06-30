@@ -1,6 +1,9 @@
 'use client';
 
-import { useEffect, useRef, type ComponentType } from 'react';
+import {
+  useEffect, useRef, useState,
+  type ComponentType, type TouchEvent as ReactTouchEvent,
+} from 'react';
 import Link from 'next/link';
 import {
   X, ShieldCheck, Lock, Wallet, ClipboardCheck, Percent, EyeOff, Flag,
@@ -21,9 +24,10 @@ export interface TrustStats {
 type IconType = ComponentType<{ className?: string }>;
 
 /**
- * "Why Trust XAYR?" — the trust & transparency explainer. Bottom-sheet on mobile,
- * centered modal on desktop (same pattern as ShareModal). Loaded lazily by
- * WhyTrustButton so its weight stays out of the homepage's initial bundle.
+ * "Why Trust XAYR?" — the trust & transparency explainer. Full-width bottom-sheet
+ * on mobile (swipe-down to close), centered modal on desktop (same pattern as
+ * ShareModal). Loaded lazily by WhyTrustButton so its weight stays out of the
+ * homepage's initial bundle.
  */
 export default function WhyTrustModal({
   stats,
@@ -35,6 +39,11 @@ export default function WhyTrustModal({
   const { t, ta, locale } = useI18n();
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+
+  // Swipe-down-to-close (mobile). Tracked only on the header/handle so it never
+  // competes with scrolling inside the body.
+  const [dragY, setDragY] = useState(0);
+  const dragStart = useRef<number | null>(null);
 
   // Esc to close, focus trap (Tab cycling), initial focus, scroll lock, and
   // focus restoration to the trigger on close.
@@ -74,6 +83,20 @@ export default function WhyTrustModal({
       previouslyFocused?.focus?.();
     };
   }, [onClose]);
+
+  const onDragStart = (e: ReactTouchEvent<HTMLDivElement>) => {
+    dragStart.current = e.touches[0].clientY;
+  };
+  const onDragMove = (e: ReactTouchEvent<HTMLDivElement>) => {
+    if (dragStart.current === null) return;
+    const dy = e.touches[0].clientY - dragStart.current;
+    if (dy > 0) setDragY(dy); // only downward drags
+  };
+  const onDragEnd = () => {
+    if (dragY > 90) onClose();
+    dragStart.current = null;
+    setDragY(0);
+  };
 
   const sections: {
     Icon: IconType;
@@ -135,33 +158,47 @@ export default function WhyTrustModal({
         aria-modal="true"
         aria-labelledby="trust-modal-title"
         aria-describedby="trust-modal-sub"
-        className="w-full sm:max-w-2xl bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl animate-pop flex flex-col max-h-[92vh] sm:max-h-[88vh]"
+        className="w-full sm:max-w-2xl bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl animate-pop overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[88vh]"
+        style={{
+          transform: dragY ? `translateY(${dragY}px)` : undefined,
+          transition: dragStart.current === null ? 'transform 0.2s ease-out' : 'none',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header (sticky) */}
-        <div className="flex items-start justify-between gap-4 px-5 sm:px-7 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
-          <div>
-            <h2 id="trust-modal-title" className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-green-600 flex-shrink-0" aria-hidden="true" />
-              {t('trust.title')}
-            </h2>
-            <p id="trust-modal-sub" className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              {t('trust.subtitle')}
-            </p>
+        {/* Drag handle + header = the swipe-down-to-close zone on mobile (kept off
+            the scrollable body so the gesture never conflicts with scrolling). */}
+        <div onTouchStart={onDragStart} onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
+          <div className="sm:hidden pt-3 pb-1 flex justify-center" aria-hidden="true">
+            <span className="w-10 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
           </div>
-          <button
-            ref={closeRef}
-            onClick={onClose}
-            aria-label={t('ux.close')}
-            className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
+          <div className="flex items-start justify-between gap-3 px-4 sm:px-7 pt-3 sm:pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="min-w-0">
+              <h2
+                id="trust-modal-title"
+                className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight flex items-start gap-2"
+              >
+                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 mt-0.5 text-green-600 flex-shrink-0" aria-hidden="true" />
+                <span className="min-w-0">{t('trust.title')}</span>
+              </h2>
+              <p id="trust-modal-sub" className="mt-1.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                {t('trust.subtitle')}
+              </p>
+            </div>
+            <button
+              ref={closeRef}
+              onClick={onClose}
+              aria-label={t('ux.close')}
+              className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <X className="w-5 h-5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
-        {/* Scrollable body */}
+        {/* Scrollable body — flex-1 + min-h-0 lets it shrink and scroll inside the
+            sheet; overscroll-contain stops scroll chaining to the page behind. */}
         <div
-          className="overflow-y-auto px-5 sm:px-7 py-5 space-y-4"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-7 py-5 space-y-4"
           style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
         >
           {/* Trust indicators — real platform data only; hidden when nothing is available */}
@@ -172,8 +209,8 @@ export default function WhyTrustModal({
             >
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-4">
                 {indicators.map((ind, i) => (
-                  <div key={i} className="text-center">
-                    <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white break-words">
+                  <div key={i} className="text-center min-w-0">
+                    <div className="text-base sm:text-xl font-black text-gray-900 dark:text-white leading-tight break-words">
                       {ind.money ? `${formatMoney(ind.value)} so'm` : ind.value.toLocaleString('uz-UZ')}
                     </div>
                     <div className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-semibold mt-0.5">
@@ -189,13 +226,13 @@ export default function WhyTrustModal({
           {sections.map(({ Icon, title, intro, points, outro }, i) => (
             <section
               key={i}
-              className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/30 p-5"
+              className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/30 p-4 sm:p-5"
             >
-              <h3 className="font-black text-gray-900 dark:text-white mb-2.5 flex items-center gap-2.5">
+              <h3 className="font-black text-gray-900 dark:text-white mb-2.5 flex items-center gap-2.5 min-w-0">
                 <span className="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-5 h-5 text-green-600" aria-hidden="true" />
                 </span>
-                {title}
+                <span className="min-w-0">{title}</span>
               </h3>
               {intro && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3">{intro}</p>
@@ -205,7 +242,7 @@ export default function WhyTrustModal({
                   {points.map((point, j) => (
                     <li key={j} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
                       <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                      <span>{point}</span>
+                      <span className="min-w-0">{point}</span>
                     </li>
                   ))}
                 </ul>
@@ -217,18 +254,18 @@ export default function WhyTrustModal({
           ))}
 
           {/* CTA */}
-          <section className="rounded-2xl border border-green-100 dark:border-green-900/30 bg-green-50/60 dark:bg-green-900/10 p-5 text-center">
+          <section className="rounded-2xl border border-green-100 dark:border-green-900/30 bg-green-50/60 dark:bg-green-900/10 p-4 sm:p-5 text-center">
             <p className="font-black text-gray-900 dark:text-white mb-4">{t('trust.ctaTitle')}</p>
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2.5 sm:justify-center">
               {ctas.map(({ href, label, Icon }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-green-500 hover:text-green-600 transition-colors"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-3 sm:py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-green-500 hover:text-green-600 transition-colors"
                 >
-                  <Icon className="w-4 h-4" aria-hidden="true" />
+                  <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                   {label}
-                  <ArrowRight className="w-4 h-4 opacity-60" aria-hidden="true" />
+                  <ArrowRight className="w-4 h-4 opacity-60 flex-shrink-0" aria-hidden="true" />
                 </Link>
               ))}
             </div>

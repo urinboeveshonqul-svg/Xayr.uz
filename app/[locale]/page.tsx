@@ -184,7 +184,7 @@ export default async function HomePage({
         <section className="py-16 lg:py-20 bg-white border-b border-gray-100">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             {/* Small, secondary trust trigger — opens the "Why Trust XAYR?" modal (lazy) */}
-            <div className="flex justify-center mb-10 lg:mb-12">
+            <div className="flex justify-center px-4 mb-8 lg:mb-12">
               <WhyTrustButton stats={trustStats} />
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
