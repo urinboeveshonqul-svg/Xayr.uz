@@ -215,6 +215,10 @@ $$;
 grant execute on function public.reconciliation_report() to service_role;
 
 -- ── 5. Extend public stats (add avg + largest) ──────────────────────────────
+-- Was created with 7 output columns in #45; adding avg/largest changes the
+-- return type, and CREATE OR REPLACE cannot change a function's return type, so
+-- drop first (idempotent). Grants are re-applied below after recreation.
+drop function if exists public.public_financial_stats();
 create or replace function public.public_financial_stats()
 returns table (
   total_donations    bigint,
