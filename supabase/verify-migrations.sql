@@ -2,7 +2,7 @@
 -- XAYR — Migration verification (READ-ONLY)
 -- ============================================================
 -- Paste into Supabase Dashboard -> SQL Editor and Run. Changes NOTHING — it only
--- inspects the catalog and reports which of the 44 runbook migrations
+-- inspects the catalog and reports which of the 45 runbook migrations
 -- (supabase/MIGRATIONS.md) are applied to THIS database.
 --
 -- Object names are taken verbatim from the migration files, so a ❌ means the
@@ -203,7 +203,17 @@ with raw(mig, feature, label, present) as (values
 
   -- 44 — guest donations
   (44, 'guest donations',        'col donations.donor_name',        exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='donor_name')),
-  (44, 'guest donations',        'col donations.name_display',      exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='name_display'))
+  (44, 'guest donations',        'col donations.name_display',      exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='name_display')),
+
+  -- 45 — financial ledger, summary & integrity
+  (45, 'financial ledger',       'table financial_ledger',          (to_regclass('public.financial_ledger') is not null)),
+  (45, 'financial ledger',       'view financial_summary',          (to_regclass('public.financial_summary') is not null)),
+  (45, 'financial ledger',       'fn public_financial_stats',       exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='public_financial_stats')),
+  (45, 'financial ledger',       'fn check_financial_integrity',    exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='check_financial_integrity')),
+  (45, 'financial ledger',       'fn campaign_financials',          exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='campaign_financials')),
+  (45, 'financial ledger',       'fn record_ledger_adjustment',     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='record_ledger_adjustment')),
+  (45, 'financial ledger',       'trigger trg_ledger_on_donation',  exists(select 1 from pg_trigger where tgname='trg_ledger_on_donation' and not tgisinternal)),
+  (45, 'financial ledger',       'append-only guard',               exists(select 1 from pg_trigger where tgname='trg_ledger_no_delete' and not tgisinternal))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
@@ -293,7 +303,13 @@ with raw(mig, feature, label, present) as (values
   (43,'completion reports v2','col campaign_reports.fund_breakdown',exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaign_reports' and column_name='fund_breakdown')),
   (43,'completion reports v2','fn review_completion_report',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='review_completion_report')),
   (44,'guest donations','col donations.donor_name',exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='donor_name')),
-  (44,'guest donations','col donations.name_display',exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='name_display'))
+  (44,'guest donations','col donations.name_display',exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='name_display')),
+  (45,'financial ledger','table financial_ledger',(to_regclass('public.financial_ledger') is not null)),
+  (45,'financial ledger','view financial_summary',(to_regclass('public.financial_summary') is not null)),
+  (45,'financial ledger','fn public_financial_stats',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='public_financial_stats')),
+  (45,'financial ledger','fn check_financial_integrity',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='check_financial_integrity')),
+  (45,'financial ledger','trigger trg_ledger_on_donation',exists(select 1 from pg_trigger where tgname='trg_ledger_on_donation' and not tgisinternal)),
+  (45,'financial ledger','append-only guard (no delete)',exists(select 1 from pg_trigger where tgname='trg_ledger_no_delete' and not tgisinternal))
 )
 select mig as "#", feature, label as object,
   case when present then '✅' else '❌' end as ok

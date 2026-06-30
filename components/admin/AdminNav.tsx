@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Megaphone, Users, ShieldCheck, Flag, Wallet, Mail, HandCoins, CalendarClock, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Users, ShieldCheck, Flag, Wallet, Mail, HandCoins, CalendarClock, CheckCircle2, BarChart3 } from 'lucide-react';
 import { isLocale } from '@/i18n/config';
 import { useI18n } from '@/components/i18n/I18nProvider';
 
@@ -15,6 +15,7 @@ export function AdminNav() {
 
   const tabs = [
     { href: `/${locale}/admin`, match: '/admin', label: t('admin.navOverview'), icon: LayoutDashboard },
+    { href: `/${locale}/admin/finance`, match: '/admin/finance', label: t('admin.navFinance'), icon: BarChart3 },
     { href: `/${locale}/admin/campaigns`, match: '/admin/campaigns', label: t('admin.navCampaigns'), icon: Megaphone },
     { href: `/${locale}/admin/extensions`, match: '/admin/extensions', label: t('admin.navExtensions'), icon: CalendarClock },
     { href: `/${locale}/admin/reports`, match: '/admin/reports', label: t('admin.navReports'), icon: CheckCircle2 },
