@@ -1,6 +1,6 @@
 # Xayr — Migration Status
 
-How to confirm which of the 44 database migrations ([supabase/MIGRATIONS.md](../supabase/MIGRATIONS.md))
+How to confirm which of the 45 database migrations ([supabase/MIGRATIONS.md](../supabase/MIGRATIONS.md))
 are actually live in the Supabase project. This is **read-only** — it never
 changes the database. Fill in the "Live status" column after running the script.
 
@@ -67,6 +67,7 @@ changes the database. Fill in the "Live status" column after running the script.
 | 42 | campaign-extensions.sql | table `campaign_extension_requests`; `campaigns.extension_count`; fns `approve_campaign_extension`,`get_campaign_extension_history` |
 | 43 | completion-reports-v2.sql | `campaign_reports.status`,`campaign_reports.fund_breakdown`; fns `review_completion_report`,`campaign_total_withdrawn` |
 | 44 | guest-donations.sql | `donations.donor_name`,`donations.name_display` |
+| 45 | financial-ledger.sql | table `financial_ledger`; view `financial_summary`; fns `public_financial_stats`,`check_financial_integrity`,`campaign_financials`,`record_ledger_adjustment`; trigger `trg_ledger_on_donation`; append-only guard `trg_ledger_no_delete` |
 
 ## Live status (fill in after running the verifier)
 
@@ -78,7 +79,7 @@ changes the database. Fill in the "Live status" column after running the script.
 | 1 | schema.sql | _unverified_ | |
 | 2 | verification.sql | _unverified_ | |
 | … | … | _unverified_ | run `verify-migrations.sql` to populate |
-| 44 | guest-donations.sql | _unverified_ | newest — guest donation workflow |
+| 45 | financial-ledger.sql | _unverified_ | newest — financial ledger + summary + integrity (run this before the finance dashboard goes live) |
 
 ## Notes / known dependencies
 

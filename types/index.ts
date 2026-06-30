@@ -866,6 +866,40 @@ export type Database = {
         };
         Relationships: [];
       };
+      financial_ledger: {
+        Row: {
+          id: string;
+          entry_type: 'donation' | 'refund' | 'platform_fee' | 'provider_fee' | 'withdrawal' | 'adjustment' | 'admin_correction';
+          amount: number;
+          currency: string;
+          campaign_id: string | null;
+          donation_id: string | null;
+          payout_request_id: string | null;
+          status: string;
+          created_by: string | null;
+          reason: string | null;
+          metadata: Record<string, unknown>;
+          source_key: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          entry_type: 'donation' | 'refund' | 'platform_fee' | 'provider_fee' | 'withdrawal' | 'adjustment' | 'admin_correction';
+          amount: number;
+          currency?: string;
+          campaign_id?: string | null;
+          donation_id?: string | null;
+          payout_request_id?: string | null;
+          status?: string;
+          created_by?: string | null;
+          reason?: string | null;
+          metadata?: Record<string, unknown>;
+          source_key?: string | null;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       verification_requests: {
         Row: {
           id: string;
@@ -946,6 +980,30 @@ export type Database = {
           donations_count: number;
           total_raised: number;
           revenue: number;
+        };
+        Relationships: [];
+      };
+      financial_summary: {
+        Row: {
+          total_donations_amount: number;
+          donations_count: number;
+          refunded_amount: number;
+          pending_payments_amount: number;
+          pending_payments_count: number;
+          withdrawn_gross: number;
+          net_to_creators: number;
+          platform_fees_collected: number;
+          provider_fees_collected: number;
+          pending_withdrawals_amount: number;
+          pending_withdrawals_count: number;
+          available_for_withdrawal: number;
+          largest_donation: number;
+          avg_donation: number;
+          today_amount: number;
+          today_count: number;
+          week_amount: number;
+          month_amount: number;
+          year_amount: number;
         };
         Relationships: [];
       };
@@ -1054,6 +1112,49 @@ export type Database = {
       campaign_total_withdrawn: {
         Args: { p_campaign_id: string };
         Returns: number;
+      };
+      check_financial_integrity: {
+        Args: Record<string, never>;
+        Returns: {
+          campaign_id: string;
+          campaign_title: string;
+          raised: number;
+          committed: number;
+          paid_gross: number;
+          ledger_net: number;
+          expected_ledger: number;
+          discrepancy: number;
+        }[];
+      };
+      public_financial_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          total_donations: number;
+          total_raised: number;
+          total_delivered: number;
+          successful_campaigns: number;
+          active_campaigns: number;
+          verified_campaigns: number;
+          registered_users: number;
+        }[];
+      };
+      campaign_financials: {
+        Args: { p_campaign_id: string };
+        Returns: {
+          goal: number;
+          raised: number;
+          platform_fee: number;
+          provider_fee: number;
+          net_amount: number;
+          total_withdrawn: number;
+          available_balance: number;
+          pending_withdrawal: number;
+          remaining_balance: number;
+        }[];
+      };
+      record_ledger_adjustment: {
+        Args: { p_campaign_id: string; p_entry_type: string; p_amount: number; p_reason: string };
+        Returns: string;
       };
     };
     Enums: { [_ in never]: never };

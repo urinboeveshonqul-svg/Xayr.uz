@@ -22,6 +22,7 @@ export function Footer() {
     { href: L('/faq'), label: t('footer.faq') },
     { href: L('/security'), label: t('footer.safety') },
     { href: L('/fees'), label: t('footer.fees') },
+    { href: L('/transparency'), label: t('footer.transparency') },
     { href: L('/contact'), label: t('footer.contact') },
   ];
 

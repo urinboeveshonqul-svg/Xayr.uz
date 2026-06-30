@@ -8,6 +8,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
+import { CampaignFinancials } from '@/components/campaigns/CampaignFinancials';
 import { cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
 import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
@@ -37,7 +38,7 @@ export default async function CampaignWithdrawPage({ params }: Props) {
 
   const { data: campaign } = await supabase
     .from('campaigns')
-    .select('id, user_id, title, slug, current_amount, status')
+    .select('id, user_id, title, slug, current_amount, goal_amount, status')
     .eq('slug', slug)
     .single();
 
@@ -115,6 +116,51 @@ export default async function CampaignWithdrawPage({ params }: Props) {
     .filter((r) => r.status === 'paid')
     .reduce((sum, r) => sum + r.amount, 0);
 
+  // ── Per-campaign financial breakdown (computed from tamper-proof data) ──
+  const raised = campaign.current_amount ?? 0;
+  const paidReqs = payoutRequests.filter((r) => r.status === 'paid');
+  const platformFee = paidReqs.reduce((s, r) => s + (r.commission_amount ?? 0), 0);
+  const netToCreator = paidReqs.reduce((s, r) => s + (r.payout_amount ?? r.amount), 0);
+  const pendingWithdrawal = payoutRequests
+    .filter((r) => ['pending_review', 'approved', 'info_requested'].includes(r.status))
+    .reduce((s, r) => s + r.amount, 0);
+
+  // Completion-report stage of the money-flow timeline (best-effort; tolerant of
+  // a not-yet-applied reports migration).
+  let hasApprovedReport = false;
+  try {
+    const { count } = await supabase
+      .from('campaign_reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('campaign_id', campaign.id)
+      .eq('status', 'approved');
+    hasApprovedReport = (count ?? 0) > 0;
+  } catch {
+    hasApprovedReport = false;
+  }
+
+  const cf = dict.campaignFinance;
+  const financialsData = {
+    goal: campaign.goal_amount ?? 0,
+    raised,
+    platformFee,
+    providerFee: 0,
+    netAmount: netToCreator,
+    totalWithdrawn,
+    availableBalance: available,
+    pendingWithdrawal,
+    remainingBalance: available,
+  };
+  const timeline = [
+    { label: cf.tDonation, done: raised > 0 },
+    { label: cf.tConfirmed, done: raised > 0 },
+    { label: cf.tAvailable, done: available > 0 || totalWithdrawn > 0 },
+    { label: cf.tRequested, done: payoutRequests.length > 0 },
+    { label: cf.tApproved, done: payoutRequests.some((r) => ['approved', 'paid'].includes(r.status)) },
+    { label: cf.tSent, done: totalWithdrawn > 0 },
+    { label: cf.tReport, done: hasApprovedReport },
+  ];
+
   const eventsByReq = new Map<string, typeof payoutEvents>();
   for (const e of payoutEvents) {
     const arr = eventsByReq.get(e.request_id) ?? [];
@@ -139,6 +185,27 @@ export default async function CampaignWithdrawPage({ params }: Props) {
           </Link>
           <h1 className="section-title mt-2">{dict.dash.withdrawBtn}</h1>
           <p className="section-sub break-words">{campaign.title}</p>
+
+          <div className="mt-6">
+            <CampaignFinancials
+              data={financialsData}
+              timeline={timeline}
+              labels={{
+                title: cf.title,
+                subtitle: cf.subtitle,
+                goal: cf.goal,
+                raised: cf.raised,
+                platformFee: cf.platformFee,
+                providerFee: cf.providerFee,
+                netAmount: cf.netAmount,
+                totalWithdrawn: cf.totalWithdrawn,
+                availableBalance: cf.availableBalance,
+                pendingWithdrawal: cf.pendingWithdrawal,
+                remainingBalance: cf.remainingBalance,
+                timelineTitle: cf.timelineTitle,
+              }}
+            />
+          </div>
 
           <CampaignPayouts
             campaignId={campaign.id}
