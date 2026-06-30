@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-06-30
-> **Branch:** feat/payout-accounts · **Latest commit at sync:** `1d2e8cc` (trust modal + mobile hardening, live on main) + Financial Transparency & Ledger system (migration #45 pending manual run)
+> **Branch:** feat/payout-accounts · **Latest commit at sync:** `bd7189d` (Financial Ledger #45, live on main) + Snapshots/charts/exports/reconciliation (migration #46 pending manual run)
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -39,8 +39,8 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 |---|---|---|
 | **Overall Platform** | **~74%** | Feature-rich and polished; blocked from real-money operation by the payment gateway gap. |
 | Frontend | 95% | Full page set, components, responsive, theming, i18n. |
-| Backend (API routes) | 90% | 19 routes, all validated + RBAC; payment provider impl missing. |
-| Database | 95% | Schema + 45 migrations; live application unverified. |
+| Backend (API routes) | 90% | 20 routes, all validated + RBAC; payment provider impl missing. |
+| Database | 95% | Schema + 46 migrations; live application unverified. |
 | Security | 88% | Strong model; live RLS unverified + minor hardening items. |
 | Mobile | 95% | Bottom nav, touch targets, responsive throughout, PWA manifest. |
 | SEO | 95% | Metadata, OG images, JSON-LD, sitemap, robots, canonical/hreflang. |
@@ -48,7 +48,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 | Notifications (in-app) | 95% | Trigger-driven, complete. |
 | Push notifications | 80% (code) | Code-complete; requires OneSignal + Supabase webhook config to go live. |
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
-| Localization | 95% | 3 languages, parity maintained (1274 lines each). |
+| Localization | 95% | 3 languages, parity maintained (1296 lines each). |
 | Analytics | 60% | Per-campaign creator analytics only; no platform product analytics. |
 | Testing / CI | 35% | Build + typecheck CI; **no automated tests**, no lockfile. |
 
@@ -180,7 +180,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 ### Financial Transparency & Ledger
 - **What:** End-to-end financial tracking — every money movement is auto-recorded in an **immutable, append-only ledger** (`financial_ledger`: donation/refund/platform_fee/provider_fee/withdrawal/adjustment/admin_correction; signed amount; UPDATE/DELETE blocked by a guard trigger; `source_key` dedupe). Triggers record entries from `donations` (completed → donation, un-complete → refund) and `payout_requests` (paid → withdrawal + platform_fee); the migration backfills existing data. **Admin Financial Dashboard** (`/admin/finance`) shows the full metric set (total donations, net-to-creators, withdrawn, platform/provider fees, refunded, available-for-withdrawal, pending withdrawals/payments, avg/largest, # donations) + today/week/month/year windows + a **Financial Integrity Warning** (`check_financial_integrity()` flags campaigns whose books don't reconcile) + recent ledger + **CSV export** (`/api/admin/finance/export`). **Public Transparency page** (`/transparency`, ISR) shows aggregated, PII-free stats (`public_financial_stats()`: total donations, raised, delivered, successful/active/verified campaigns, users). **Per-campaign financial breakdown + money-flow timeline** on the owner withdrawal page (goal/raised/platform fee/provider fee/net/withdrawn/available/pending/remaining, computed from tamper-proof balances). Admin manual adjustments require admin + reason and are logged to `admin_audit_log` (`record_ledger_adjustment`). All aggregation runs in Postgres (`financial_summary` view, RPCs) — no donation-table scan in app code; fetchers fail closed to safe zeros.
 - **Where:** `supabase/financial-ledger.sql` (#45), `lib/finance.ts`, `app/[locale]/admin/finance/page.tsx`, `app/api/admin/finance/export/route.ts`, `app/[locale]/transparency/page.tsx`, `components/campaigns/CampaignFinancials.tsx` (+ `app/[locale]/campaigns/[slug]/withdraw/page.tsx`), `components/admin/AdminNav.tsx` + `components/layout/Footer.tsx` (nav links), `types/index.ts`, `locales/{uz,ru,en}/common.json` (`fin.*`, `transparencyPage.*`, `campaignFinance.*`).
-- **Status:** ⚠️ Code-complete; **pending migration #45 applied in Supabase** (the dashboard/transparency pages render safe zeros until then; the per-campaign withdraw breakdown works without it). ⏳ Follow-ups: provider-fee modeling (no gateway yet → 0), Excel/PDF export (CSV done), advanced admin filters (date/campaign/user/provider/amount).
+- **Status:** ✅ #45 live on `main` (`bd7189d`). **#46 (`financial-snapshots.sql`) adds:** daily `financial_snapshots` + idempotent generator + Vercel cron (`/api/cron/financial-snapshot`, reuses `CRON_SECRET`); ledger extension (`user_id`/`reference_id`, granular withdrawal-lifecycle + chargeback types); `reconciliation_report()`; **monthly money-flow charts** (admin + public, dependency-free inline SVG); **period tabs** (Today/Week/Month/Year/All-Time); **Excel** (`?format=xls`) + **PDF** (print-styled `/admin/finance/report`) export; avg/largest on `/transparency`. ⚠️ **Pending migration #46 applied in Supabase** (charts/snapshot cron need it; everything else degrades to safe zeros). ⏳ Remaining: provider-fee (no gateway → 0), advanced admin filters (campaign/user/provider dropdowns), one-click server-generated PDF (print view shipped).
 
 ### Contact
 - **What:** Public contact form storing messages; admin inbox with read state.
@@ -339,6 +339,7 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 43 | `completion-reports-v2.sql` | **Moderated completion reports (Phase 1)** — `campaign_reports` moderation `status` (existing reports grandfathered `approved`) + `fund_breakdown`/`timeline`/media/review columns; only approved reports public; `review_completion_report`, `campaign_total_withdrawn` | Unknown | 8, 14 |
 | 44 | `guest-donations.sql` | **Guest donations** — `donations.donor_name`/`donor_email`/`donor_phone` (PII, owner/admin RLS) + `name_display`; rebuilds `campaign_donors` view to render the chosen display name for guests + registered without exposing contact | Unknown | 7 |
 | 45 | `financial-ledger.sql` | **Financial ledger, summary & integrity** — immutable append-only `financial_ledger` (one row per money movement; signed amount; UPDATE/DELETE blocked); auto-record triggers on donations/payouts + backfill; `record_ledger_adjustment` (admin+reason→ledger+audit); `financial_summary` view; `public_financial_stats()` (anon, safe); `check_financial_integrity()`; `campaign_financials()` | Unknown | 18, 26, 31 |
+| 46 | `financial-snapshots.sql` | **Snapshots, ledger extension & reconciliation** — extends `financial_ledger` (`user_id`/`reference_id`; `campaign_credit`/granular withdrawal-lifecycle/`chargeback` types; 0-amount lifecycle events + backfill); `financial_snapshots` + idempotent `generate_financial_snapshot()` (daily cron); `reconciliation_report()`; `public_financial_series()`; `public_financial_stats()` +avg/largest | Unknown | 45 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 
@@ -369,6 +370,7 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/admin/finance/export` | GET | Download the financial ledger as CSV (UTF-8 BOM; formula-injection-safe) | Required | **Admin** | `text/csv` attachment |
 | `/api/contact` | POST | Store a contact-form message (rate-limited, Turnstile) | Public | — | `201 { ok }` / error |
 | `/api/cron/expire-campaigns` | GET | Daily sweep: archive due campaigns via `expire_due_campaigns()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, expired }` |
+| `/api/cron/financial-snapshot` | GET | Daily idempotent financial snapshot via `generate_financial_snapshot()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, created }` |
 
 ---
 
@@ -477,7 +479,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 13. Localization
 
 - **Languages:** Uzbek (default), Russian, English. Config in `i18n/config.ts`; routing via `/[locale]/…` + `NEXT_LOCALE` cookie + middleware redirect.
-- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1274 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
+- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1296 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
 - **Missing translations:** No structural gaps detected (equal line counts). Some Uzbek UI strings are hardcoded in components/API error messages (e.g. toast text in `DonationForm`, API error strings) rather than dictionary-driven.
 - **Remaining work:** Extract hardcoded UI/toast/API strings into the dictionaries for full coverage; add a CI check that locale files stay key-aligned.
 

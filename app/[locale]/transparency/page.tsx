@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   Heart, TrendingUp, HandCoins, CheckCircle2, Megaphone, ShieldCheck, Users, ArrowRight,
+  BarChart3, Trophy, LineChart,
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -9,7 +10,8 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
 import { formatMoney } from '@/lib/utils';
-import { getPublicFinancialStats } from '@/lib/finance';
+import { getPublicFinancialStats, getPublicSeries } from '@/lib/finance';
+import { MoneyBarChart } from '@/components/charts/MoneyBarChart';
 
 interface Props {
   params: Promise<{ locale: string }>;
@@ -35,16 +37,23 @@ export default async function TransparencyPage({ params }: Props) {
   const loc: Locale = isLocale(locale) ? locale : 'uz';
   const dict = await getDictionary(loc);
   const tp = dict.transparencyPage;
-  const stats = await getPublicFinancialStats();
+  const [stats, series] = await Promise.all([getPublicFinancialStats(), getPublicSeries(12)]);
 
   const money = (n: number) => `${formatMoney(n)} so'm`;
   const count = (n: number) => n.toLocaleString('uz-UZ');
+
+  const chartPoints = series.map((p) => ({
+    label: new Date(p.month).toLocaleDateString(loc, { month: 'short' }),
+    values: [p.donations, p.withdrawals],
+  }));
 
   // Real database values only — never fabricated.
   const cards = [
     { label: tp.statRaised, value: money(stats.total_raised), icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
     { label: tp.statDelivered, value: money(stats.total_delivered), icon: HandCoins, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { label: tp.statTotalDonations, value: count(stats.total_donations), icon: Heart, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
+    { label: tp.statAvgDonation, value: money(stats.avg_donation), icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+    { label: tp.statLargestDonation, value: money(stats.largest_donation), icon: Trophy, color: 'text-pink-600', bg: 'bg-pink-50 dark:bg-pink-900/20' },
     { label: tp.statSuccessful, value: count(stats.successful_campaigns), icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-teal-900/20' },
     { label: tp.statActive, value: count(stats.active_campaigns), icon: Megaphone, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: tp.statVerified, value: count(stats.verified_campaigns), icon: ShieldCheck, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-900/20' },
@@ -75,6 +84,19 @@ export default async function TransparencyPage({ params }: Props) {
               </section>
             ))}
           </div>
+
+          {/* Monthly growth (real aggregated values; no PII) */}
+          <section className="card p-6 mt-8">
+            <h2 className="text-base font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <LineChart className="w-5 h-5 text-brand-600" /> {tp.growthTitle}
+            </h2>
+            <MoneyBarChart
+              points={chartPoints}
+              seriesLabels={[tp.chartDonations, tp.chartWithdrawals]}
+              colors={['#16a34a', '#2563eb']}
+              emptyLabel={tp.noChartData}
+            />
+          </section>
 
           <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
             {tp.note}

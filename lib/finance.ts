@@ -43,8 +43,9 @@ export interface IntegrityIssue {
 }
 
 export type LedgerEntryType =
-  | 'donation' | 'refund' | 'platform_fee' | 'provider_fee'
-  | 'withdrawal' | 'adjustment' | 'admin_correction';
+  | 'donation' | 'refund' | 'platform_fee' | 'provider_fee' | 'campaign_credit'
+  | 'withdrawal' | 'withdrawal_requested' | 'withdrawal_approved' | 'withdrawal_completed' | 'withdrawal_cancelled'
+  | 'adjustment' | 'admin_correction' | 'chargeback';
 
 export interface LedgerEntry {
   id: string;
@@ -80,6 +81,43 @@ export interface PublicFinancialStats {
   active_campaigns: number;
   verified_campaigns: number;
   registered_users: number;
+  avg_donation: number;
+  largest_donation: number;
+}
+
+export interface ReconciliationRow {
+  campaign_id: string;
+  campaign_title: string;
+  total_donations: number;
+  campaign_credits: number;
+  platform_fees: number;
+  provider_fees: number;
+  withdrawals: number;
+  refunds: number;
+  available_balance: number;
+  discrepancy: number;
+  is_balanced: boolean;
+}
+
+export interface FinancialSnapshot {
+  snapshot_date: string;
+  total_donations: number;
+  donation_count: number;
+  total_withdrawn: number;
+  pending_withdrawals: number;
+  available_funds: number;
+  platform_fees: number;
+  refunds: number;
+  registered_users: number;
+  active_campaigns: number;
+  successful_campaigns: number;
+}
+
+export interface MonthlySeriesPoint {
+  month: string;
+  donations: number;
+  withdrawals: number;
+  fees: number;
 }
 
 const ZERO_SUMMARY: FinancialSummary = {
@@ -192,6 +230,7 @@ export async function getPublicFinancialStats(): Promise<PublicFinancialStats> {
   const zero: PublicFinancialStats = {
     total_donations: 0, total_raised: 0, total_delivered: 0,
     successful_campaigns: 0, active_campaigns: 0, verified_campaigns: 0, registered_users: 0,
+    avg_donation: 0, largest_donation: 0,
   };
   try {
     const admin = createAdminClient();
@@ -207,8 +246,67 @@ export async function getPublicFinancialStats(): Promise<PublicFinancialStats> {
       active_campaigns: num(r.active_campaigns),
       verified_campaigns: num(r.verified_campaigns),
       registered_users: num(r.registered_users),
+      avg_donation: num(r.avg_donation),
+      largest_donation: num(r.largest_donation),
     };
   } catch {
     return zero;
+  }
+}
+
+/** Per-campaign accounting reconciliation (admin). Empty array = healthy. */
+export async function getReconciliationReport(): Promise<ReconciliationRow[]> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc('reconciliation_report');
+    if (error || !Array.isArray(data)) return [];
+    return (data as Record<string, unknown>[]).map((r) => ({
+      campaign_id: String(r.campaign_id ?? ''),
+      campaign_title: String(r.campaign_title ?? ''),
+      total_donations: num(r.total_donations),
+      campaign_credits: num(r.campaign_credits),
+      platform_fees: num(r.platform_fees),
+      provider_fees: num(r.provider_fees),
+      withdrawals: num(r.withdrawals),
+      refunds: num(r.refunds),
+      available_balance: num(r.available_balance),
+      discrepancy: num(r.discrepancy),
+      is_balanced: r.is_balanced === true,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Daily snapshots, oldest→newest (admin). For trend charts. */
+export async function getFinancialSnapshots(days = 90): Promise<FinancialSnapshot[]> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('financial_snapshots')
+      .select('snapshot_date, total_donations, donation_count, total_withdrawn, pending_withdrawals, available_funds, platform_fees, refunds, registered_users, active_campaigns, successful_campaigns')
+      .order('snapshot_date', { ascending: false })
+      .limit(days);
+    if (error || !Array.isArray(data)) return [];
+    return (data as unknown as FinancialSnapshot[]).slice().reverse();
+  } catch {
+    return [];
+  }
+}
+
+/** Monthly donation/withdrawal/fee series — public-safe aggregates for charts. */
+export async function getPublicSeries(months = 12): Promise<MonthlySeriesPoint[]> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc('public_financial_series', { p_months: months });
+    if (error || !Array.isArray(data)) return [];
+    return (data as Record<string, unknown>[]).map((r) => ({
+      month: String(r.month ?? ''),
+      donations: num(r.donations),
+      withdrawals: num(r.withdrawals),
+      fees: num(r.fees),
+    }));
+  } catch {
+    return [];
   }
 }

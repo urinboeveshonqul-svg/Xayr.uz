@@ -2,7 +2,7 @@
 -- XAYR — Migration verification (READ-ONLY)
 -- ============================================================
 -- Paste into Supabase Dashboard -> SQL Editor and Run. Changes NOTHING — it only
--- inspects the catalog and reports which of the 45 runbook migrations
+-- inspects the catalog and reports which of the 46 runbook migrations
 -- (supabase/MIGRATIONS.md) are applied to THIS database.
 --
 -- Object names are taken verbatim from the migration files, so a ❌ means the
@@ -213,7 +213,16 @@ with raw(mig, feature, label, present) as (values
   (45, 'financial ledger',       'fn campaign_financials',          exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='campaign_financials')),
   (45, 'financial ledger',       'fn record_ledger_adjustment',     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='record_ledger_adjustment')),
   (45, 'financial ledger',       'trigger trg_ledger_on_donation',  exists(select 1 from pg_trigger where tgname='trg_ledger_on_donation' and not tgisinternal)),
-  (45, 'financial ledger',       'append-only guard',               exists(select 1 from pg_trigger where tgname='trg_ledger_no_delete' and not tgisinternal))
+  (45, 'financial ledger',       'append-only guard',               exists(select 1 from pg_trigger where tgname='trg_ledger_no_delete' and not tgisinternal)),
+
+  -- 46 — financial snapshots, ledger extension & reconciliation report
+  (46, 'financial snapshots',    'table financial_snapshots',       (to_regclass('public.financial_snapshots') is not null)),
+  (46, 'financial snapshots',    'fn generate_financial_snapshot',  exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='generate_financial_snapshot')),
+  (46, 'financial snapshots',    'fn reconciliation_report',        exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='reconciliation_report')),
+  (46, 'financial snapshots',    'fn public_financial_series',      exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='public_financial_series')),
+  (46, 'financial snapshots',    'col financial_ledger.user_id',    exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_ledger' and column_name='user_id')),
+  (46, 'financial snapshots',    'col financial_ledger.reference_id', exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_ledger' and column_name='reference_id')),
+  (46, 'financial snapshots',    'trigger trg_ledger_payout_lifecycle', exists(select 1 from pg_trigger where tgname='trg_ledger_payout_lifecycle' and not tgisinternal))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
@@ -309,7 +318,12 @@ with raw(mig, feature, label, present) as (values
   (45,'financial ledger','fn public_financial_stats',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='public_financial_stats')),
   (45,'financial ledger','fn check_financial_integrity',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='check_financial_integrity')),
   (45,'financial ledger','trigger trg_ledger_on_donation',exists(select 1 from pg_trigger where tgname='trg_ledger_on_donation' and not tgisinternal)),
-  (45,'financial ledger','append-only guard (no delete)',exists(select 1 from pg_trigger where tgname='trg_ledger_no_delete' and not tgisinternal))
+  (45,'financial ledger','append-only guard (no delete)',exists(select 1 from pg_trigger where tgname='trg_ledger_no_delete' and not tgisinternal)),
+  (46,'financial snapshots','table financial_snapshots',(to_regclass('public.financial_snapshots') is not null)),
+  (46,'financial snapshots','fn generate_financial_snapshot',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='generate_financial_snapshot')),
+  (46,'financial snapshots','fn reconciliation_report',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='reconciliation_report')),
+  (46,'financial snapshots','col financial_ledger.reference_id',exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_ledger' and column_name='reference_id')),
+  (46,'financial snapshots','trigger trg_ledger_payout_lifecycle',exists(select 1 from pg_trigger where tgname='trg_ledger_payout_lifecycle' and not tgisinternal))
 )
 select mig as "#", feature, label as object,
   case when present then '✅' else '❌' end as ok
