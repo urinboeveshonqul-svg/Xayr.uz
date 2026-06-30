@@ -1,6 +1,6 @@
 # Xayr — Migration Status
 
-How to confirm which of the 31 database migrations ([supabase/MIGRATIONS.md](../supabase/MIGRATIONS.md))
+How to confirm which of the 44 database migrations ([supabase/MIGRATIONS.md](../supabase/MIGRATIONS.md))
 are actually live in the Supabase project. This is **read-only** — it never
 changes the database. Fill in the "Live status" column after running the script.
 
@@ -54,6 +54,19 @@ changes the database. Fill in the "Live status" column after running the script.
 | 29 | push-notifications.sql | table `notification_preferences` |
 | 30 | campaign-shares.sql | table `campaign_shares`; fn `get_share_stats` |
 | 31 | admin-donation-management.sql | table `admin_audit_log`; fn `notify_on_donation_status`; trigger `trg_notify_donation_status` |
+| 32 | admin-workflow.sql | `campaigns.rejection_reason`; `admin_stats.revenue` (view re-created with revenue) |
+| 33 | email-verification-gate.sql | fn `is_email_confirmed`; `users.email_confirmed`; trigger `on_auth_email_confirmed` |
+| 34 | usernames.sql | `users.username`; table `reserved_usernames`; fn `change_username` |
+| 35 | usernames-rules.sql | `username_format_ok` source enforces the stricter rules (no consecutive periods — `[.][.]`) |
+| 36 | campaign-create-email-gate.sql | policy `campaigns_insert_own` (**superseded by #37** — same name, re-created there) |
+| 37 | campaign-create-kyc-gate.sql | `enforce_campaign_publish` source references `is_verified` (KYC publish gate) |
+| 38 | payment-foundation.sql | table `payment_events`; unique indexes `donations_payment_ref_key`,`payment_events_provider_event_key` |
+| 39 | payment-refund-reversal.sql | `apply_donation` source reverses totals on un-complete (`greatest(0, current_amount …)`) |
+| 40 | payout-info.sql | table `payout_accounts`; `payout_requests.snap_card_number`; policy `payout_accounts_select_own_admin` |
+| 41 | campaign-expiration.sql | fn `expire_due_campaigns`; `campaigns_status_check` allows `funded`/`expired`; trigger `trg_notify_owner_campaign_expiry` |
+| 42 | campaign-extensions.sql | table `campaign_extension_requests`; `campaigns.extension_count`; fns `approve_campaign_extension`,`get_campaign_extension_history` |
+| 43 | completion-reports-v2.sql | `campaign_reports.status`,`campaign_reports.fund_breakdown`; fns `review_completion_report`,`campaign_total_withdrawn` |
+| 44 | guest-donations.sql | `donations.donor_name`,`donations.name_display` |
 
 ## Live status (fill in after running the verifier)
 
@@ -65,12 +78,16 @@ changes the database. Fill in the "Live status" column after running the script.
 | 1 | schema.sql | _unverified_ | |
 | 2 | verification.sql | _unverified_ | |
 | … | … | _unverified_ | run `verify-migrations.sql` to populate |
-| 31 | admin-donation-management.sql | _unverified_ | newest — added with the admin donations tool |
+| 44 | guest-donations.sql | _unverified_ | newest — guest donation workflow |
 
 ## Notes / known dependencies
 
 - **#5 is a security prerequisite for #18** — `secure-donations-rls.sql` makes `campaigns.current_amount` tamper-proof; don't enable payouts without it.
 - **#21 column grant** — if the donor-stats privacy toggle returns `permission denied`, an older `donor-profiles.sql` (without `grant update (donor_stats_public)`) was applied. Re-run #21.
 - **#27 / #29** are operational: they also need dashboard config (Google provider; OneSignal app + Supabase webhook) — see [docs/push-notifications-setup.md](push-notifications-setup.md).
-- **Payments:** no real gateway is integrated (only the `manual` provider). Completed donations are created via the service role — either the admin tool (#31, `/admin/donations`) or a future gateway webhook.
+- **Payments:** no real gateway is integrated (only the `manual` provider). The manual admin-completion tool was **removed** (#31 notes), so there is currently **no in-app path** to move a donation to `completed` — only a direct service-role DB write or a future gateway webhook (#38 builds the foundation: `payment_ref` UNIQUE + `payment_events` dedupe/audit).
+- **#38 → #39** payment safety: #39 makes `apply_donation` **reverse** campaign totals when a `completed` donation later goes `refunded`/`failed` (floored at 0). Apply both before enabling any gateway.
+- **#40** depends on `payouts.sql` (#18) + `payout-commission.sql` (#26): adds the secure `payout_accounts` table and the `snap_*` snapshot columns on `payout_requests`.
+- **#41 → #42** campaign lifecycle: #41 adds the `expired`/`funded`/`cancelled` statuses + `expire_due_campaigns()` (driven by the Vercel cron `/api/cron/expire-campaigns`, needs `CRON_SECRET`); #42 (the extension workflow) **requires #41**.
+- **#43** (moderated completion reports) requires #8 + #14; existing v1 reports are grandfathered as `approved`. **#44** (guest donations) requires `campaign-donors-view.sql` (#7).
 - The verifier checks **representative** objects per migration (enough to detect applied/partial/missing), not every index/policy. A `⚠️ PARTIAL` is your cue to open the file and re-run it.

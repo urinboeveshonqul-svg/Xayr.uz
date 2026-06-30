@@ -4,8 +4,8 @@
 > Generated from a direct read of the codebase. Reflects only what is actually
 > implemented — no aspirational or invented features.
 >
-> **Last synced:** 2026-06-29
-> **Branch:** main · **Latest commit at sync:** `e3af6b1` (payment foundation — idempotency, verification, reconciliation)
+> **Last synced:** 2026-06-30
+> **Branch:** feat/payout-accounts · **Latest commit at sync:** `a39e14c` (secure guest donation workflow)
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -39,8 +39,8 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 |---|---|---|
 | **Overall Platform** | **~74%** | Feature-rich and polished; blocked from real-money operation by the payment gateway gap. |
 | Frontend | 95% | Full page set, components, responsive, theming, i18n. |
-| Backend (API routes) | 90% | 13 routes, all validated + RBAC; payment provider impl missing. |
-| Database | 95% | Schema + 38 migrations; live application unverified. |
+| Backend (API routes) | 90% | 18 routes, all validated + RBAC; payment provider impl missing. |
+| Database | 95% | Schema + 44 migrations; live application unverified. |
 | Security | 88% | Strong model; live RLS unverified + minor hardening items. |
 | Mobile | 95% | Bottom nav, touch targets, responsive throughout, PWA manifest. |
 | SEO | 95% | Metadata, OG images, JSON-LD, sitemap, robots, canonical/hreflang. |
@@ -318,6 +318,10 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 38 | `payment-foundation.sql` | `payment_ref` UNIQUE + `payment_events` | Unknown | 5 |
 | 39 | `payment-refund-reversal.sql` | Refund safety — `apply_donation` reverses campaign totals (floored at 0) on completed→refunded/failed | Unknown | 5 |
 | 40 | `payout-info.sql` | **Secure payout accounts** (`payout_accounts` table, RLS owner+admin) + `payout_requests` snapshot columns; `create_payout_request` sources/snapshots payout info + enforces a configurable minimum; `mark_payout_paid` accepts a payment date | Unknown | payouts.sql, payout-commission.sql |
+| 41 | `campaign-expiration.sql` | **Campaign expiration & archive** — adds `expired`/`funded`/`cancelled` statuses; widens `campaigns_select_public` to archived states (URLs+SEO keep working); `expire_due_campaigns()` (cron-driven) flips active+past-deadline → `funded`/`expired`; owner expiry/funding notification | Unknown | 1 |
+| 42 | `campaign-extensions.sql` | **Campaign extension workflow** (self-contained) — `campaign_extension_requests` table + `campaigns.extension_count`/`original_deadline`; `request`/`approve`/`reject`/`cancel`/`close` RPCs + `get_campaign_extension_history()`. A request never reactivates a campaign — only admin approval does | Unknown | 41 |
+| 43 | `completion-reports-v2.sql` | **Moderated completion reports (Phase 1)** — `campaign_reports` moderation `status` (existing reports grandfathered `approved`) + `fund_breakdown`/`timeline`/media/review columns; only approved reports public; `review_completion_report`, `campaign_total_withdrawn` | Unknown | 8, 14 |
+| 44 | `guest-donations.sql` | **Guest donations** — `donations.donor_name`/`donor_email`/`donor_phone` (PII, owner/admin RLS) + `name_display`; rebuilds `campaign_donors` view to render the chosen display name for guests + registered without exposing contact | Unknown | 7 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 
@@ -332,16 +336,21 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/auth/signup` | POST | Create account (rate-limited), validate/sanitize username | Public | — | `{ ok, needsConfirmation }` / error |
 | `/api/auth/login` | POST | Login by email or username (rate-limited) | Public | — | `{ ok }` / 401 generic |
 | `/api/auth/username-available` | GET | Live username availability | Public | — | `{ available, reason }` |
+| `/api/auth/forgot-password` | POST | Send password-reset email (rate-limited, Turnstile) | Public | — | `{ ok }` (anti-enumeration) |
 | `/api/donations` | POST | Record a **pending** donation (rate-limited), hand off to provider | Optional (guests allowed) | Campaign must be `active` | `{ donationId, status, reference, redirectUrl, instructions }` |
 | `/api/payments/webhook` | POST | Gateway callback: verify → dedupe → log → confirm → mark | Provider signature | `501` until a real provider is registered | `{ ok }` / `{ duplicate }` / error |
 | `/api/payments/status` | GET | Poll donation status by `payment_ref` (non-PII) | Public (holds ref) | — | `{ found, amount, status, campaignTitle, campaignSlug }` |
 | `/api/verification/submit` | POST | Submit KYC request + document paths | Required | Self; paths must be in user's folder | `{ ok, requestId }` |
 | `/api/admin/verifications` | GET, POST | Signed doc URLs (GET); approve/reject (POST) | Required | **Admin** | `{ documents }` / `{ ok }` |
 | `/api/admin/set-role` | POST | Change a user's role | Required | **Admin**; self-change blocked | `{ ok }` |
+| `/api/campaigns/create` | POST | Create a campaign (rate-limited, Turnstile) | Required | Self; KYC-gated at RLS (unverified → forced `draft`) | `201 { ok, slug }` / error |
 | `/api/campaigns/flag` | POST, PATCH | Submit flag (POST); resolve (PATCH) | Required | POST: any auth; PATCH: **admin** | `{ ok }` / `409 already_reported` |
 | `/api/campaigns/reports` | POST, PATCH, DELETE | Manage completion reports | Required | Owner/manager; campaign must be completed | `{ ok, id }` |
 | `/api/campaigns/views` | POST | Record view + recently-viewed (rate-limited, owner excluded) | Optional | — | `{ ok, counted }` |
 | `/api/push/notify` | POST | Supabase DB-webhook → OneSignal push | Shared secret header | `503` if unset, `401` on mismatch | always `200`-style ack |
+| `/api/admin/extensions` | POST | Approve/reject a campaign extension (calls RPC; revalidates home on approve) | Required | **Admin** (RPC re-checks `is_admin()`) | `{ ok }` / error |
+| `/api/contact` | POST | Store a contact-form message (rate-limited, Turnstile) | Public | — | `201 { ok }` / error |
+| `/api/cron/expire-campaigns` | GET | Daily sweep: archive due campaigns via `expire_due_campaigns()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, expired }` |
 
 ---
 

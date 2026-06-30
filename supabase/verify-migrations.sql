@@ -2,7 +2,7 @@
 -- XAYR — Migration verification (READ-ONLY)
 -- ============================================================
 -- Paste into Supabase Dashboard -> SQL Editor and Run. Changes NOTHING — it only
--- inspects the catalog and reports which of the 31 runbook migrations
+-- inspects the catalog and reports which of the 44 runbook migrations
 -- (supabase/MIGRATIONS.md) are applied to THIS database.
 --
 -- Object names are taken verbatim from the migration files, so a ❌ means the
@@ -146,7 +146,64 @@ with raw(mig, feature, label, present) as (values
   -- 31 — admin donation management
   (31, 'admin donations',        'table admin_audit_log',           (to_regclass('public.admin_audit_log') is not null)),
   (31, 'admin donations',        'fn notify_on_donation_status',    exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='notify_on_donation_status')),
-  (31, 'admin donations',        'trigger trg_notify_donation_status', exists(select 1 from pg_trigger where tgname='trg_notify_donation_status' and not tgisinternal))
+  (31, 'admin donations',        'trigger trg_notify_donation_status', exists(select 1 from pg_trigger where tgname='trg_notify_donation_status' and not tgisinternal)),
+
+  -- 32 — admin workflow (campaign rejection_reason + admin_stats.revenue)
+  (32, 'admin workflow',         'col campaigns.rejection_reason',  exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaigns' and column_name='rejection_reason')),
+  (32, 'admin workflow',         'col admin_stats.revenue',         exists(select 1 from information_schema.columns where table_schema='public' and table_name='admin_stats' and column_name='revenue')),
+
+  -- 33 — email verification gate
+  (33, 'email verif gate',       'fn is_email_confirmed',           exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='is_email_confirmed')),
+  (33, 'email verif gate',       'col users.email_confirmed',       exists(select 1 from information_schema.columns where table_schema='public' and table_name='users' and column_name='email_confirmed')),
+  (33, 'email verif gate',       'trigger on_auth_email_confirmed', exists(select 1 from pg_trigger where tgname='on_auth_email_confirmed' and not tgisinternal)),
+
+  -- 34 — usernames
+  (34, 'usernames',              'col users.username',              exists(select 1 from information_schema.columns where table_schema='public' and table_name='users' and column_name='username')),
+  (34, 'usernames',              'table reserved_usernames',        (to_regclass('public.reserved_usernames') is not null)),
+  (34, 'usernames',              'fn change_username',              exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='change_username')),
+
+  -- 35 — username rules (stricter username_format_ok: forbids consecutive periods)
+  (35, 'username rules',         'username_format_ok stricter',     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='username_format_ok' and pg_get_functiondef(p.oid) ilike '%[.][.]%')),
+
+  -- 36 — campaign create email gate (superseded by #37; insert policy present)
+  (36, 'create email gate',      'policy campaigns_insert_own (→#37)', exists(select 1 from pg_policies where schemaname='public' and tablename='campaigns' and policyname='campaigns_insert_own')),
+
+  -- 37 — campaign create KYC gate (enforce_campaign_publish checks is_verified)
+  (37, 'create KYC gate',        'enforce_campaign_publish KYC',    exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='enforce_campaign_publish' and pg_get_functiondef(p.oid) ilike '%is_verified%')),
+
+  -- 38 — payment foundation (payment_ref UNIQUE + payment_events)
+  (38, 'payment foundation',     'table payment_events',            (to_regclass('public.payment_events') is not null)),
+  (38, 'payment foundation',     'index donations_payment_ref_key', exists(select 1 from pg_indexes where schemaname='public' and indexname='donations_payment_ref_key')),
+  (38, 'payment foundation',     'index payment_events_provider_event_key', exists(select 1 from pg_indexes where schemaname='public' and indexname='payment_events_provider_event_key')),
+
+  -- 39 — payment refund reversal (apply_donation reverses totals on un-complete)
+  (39, 'refund reversal',        'apply_donation reverses',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='apply_donation' and pg_get_functiondef(p.oid) ilike '%greatest(0, current_amount%')),
+
+  -- 40 — payout info / secure payout accounts
+  (40, 'payout info',            'table payout_accounts',           (to_regclass('public.payout_accounts') is not null)),
+  (40, 'payout info',            'col payout_requests.snap_card_number', exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_requests' and column_name='snap_card_number')),
+  (40, 'payout info',            'policy payout_accounts_select_own_admin', exists(select 1 from pg_policies where schemaname='public' and tablename='payout_accounts' and policyname='payout_accounts_select_own_admin')),
+
+  -- 41 — campaign expiration & archive
+  (41, 'campaign expiration',    'fn expire_due_campaigns',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='expire_due_campaigns')),
+  (41, 'campaign expiration',    'status funded/expired allowed',   exists(select 1 from pg_constraint where conname='campaigns_status_check' and pg_get_constraintdef(oid) ilike '%funded%')),
+  (41, 'campaign expiration',    'trigger trg_notify_owner_campaign_expiry', exists(select 1 from pg_trigger where tgname='trg_notify_owner_campaign_expiry' and not tgisinternal)),
+
+  -- 42 — campaign extensions
+  (42, 'campaign extensions',    'table campaign_extension_requests', (to_regclass('public.campaign_extension_requests') is not null)),
+  (42, 'campaign extensions',    'col campaigns.extension_count',   exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaigns' and column_name='extension_count')),
+  (42, 'campaign extensions',    'fn approve_campaign_extension',   exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='approve_campaign_extension')),
+  (42, 'campaign extensions',    'fn get_campaign_extension_history', exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='get_campaign_extension_history')),
+
+  -- 43 — moderated completion reports v2
+  (43, 'completion reports v2',  'col campaign_reports.status',     exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaign_reports' and column_name='status')),
+  (43, 'completion reports v2',  'col campaign_reports.fund_breakdown', exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaign_reports' and column_name='fund_breakdown')),
+  (43, 'completion reports v2',  'fn review_completion_report',     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='review_completion_report')),
+  (43, 'completion reports v2',  'fn campaign_total_withdrawn',     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='campaign_total_withdrawn')),
+
+  -- 44 — guest donations
+  (44, 'guest donations',        'col donations.donor_name',        exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='donor_name')),
+  (44, 'guest donations',        'col donations.name_display',      exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='name_display'))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
@@ -211,7 +268,32 @@ with raw(mig, feature, label, present) as (values
   (30,'campaign shares','table campaign_shares',(to_regclass('public.campaign_shares') is not null)),
   (30,'campaign shares','fn get_share_stats',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='get_share_stats')),
   (31,'admin donations','table admin_audit_log',(to_regclass('public.admin_audit_log') is not null)),
-  (31,'admin donations','trigger trg_notify_donation_status',exists(select 1 from pg_trigger where tgname='trg_notify_donation_status' and not tgisinternal))
+  (31,'admin donations','trigger trg_notify_donation_status',exists(select 1 from pg_trigger where tgname='trg_notify_donation_status' and not tgisinternal)),
+  (32,'admin workflow','col campaigns.rejection_reason',exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaigns' and column_name='rejection_reason')),
+  (32,'admin workflow','col admin_stats.revenue',exists(select 1 from information_schema.columns where table_schema='public' and table_name='admin_stats' and column_name='revenue')),
+  (33,'email verif gate','fn is_email_confirmed',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='is_email_confirmed')),
+  (33,'email verif gate','col users.email_confirmed',exists(select 1 from information_schema.columns where table_schema='public' and table_name='users' and column_name='email_confirmed')),
+  (34,'usernames','col users.username',exists(select 1 from information_schema.columns where table_schema='public' and table_name='users' and column_name='username')),
+  (34,'usernames','table reserved_usernames',(to_regclass('public.reserved_usernames') is not null)),
+  (34,'usernames','fn change_username',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='change_username')),
+  (35,'username rules','username_format_ok stricter',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='username_format_ok' and pg_get_functiondef(p.oid) ilike '%[.][.]%')),
+  (36,'create email gate','policy campaigns_insert_own (→#37)',exists(select 1 from pg_policies where schemaname='public' and tablename='campaigns' and policyname='campaigns_insert_own')),
+  (37,'create KYC gate','enforce_campaign_publish KYC',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='enforce_campaign_publish' and pg_get_functiondef(p.oid) ilike '%is_verified%')),
+  (38,'payment foundation','table payment_events',(to_regclass('public.payment_events') is not null)),
+  (38,'payment foundation','index donations_payment_ref_key',exists(select 1 from pg_indexes where schemaname='public' and indexname='donations_payment_ref_key')),
+  (39,'refund reversal','apply_donation reverses',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='apply_donation' and pg_get_functiondef(p.oid) ilike '%greatest(0, current_amount%')),
+  (40,'payout info','table payout_accounts',(to_regclass('public.payout_accounts') is not null)),
+  (40,'payout info','col payout_requests.snap_card_number',exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_requests' and column_name='snap_card_number')),
+  (41,'campaign expiration','fn expire_due_campaigns',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='expire_due_campaigns')),
+  (41,'campaign expiration','status funded/expired allowed',exists(select 1 from pg_constraint where conname='campaigns_status_check' and pg_get_constraintdef(oid) ilike '%funded%')),
+  (42,'campaign extensions','table campaign_extension_requests',(to_regclass('public.campaign_extension_requests') is not null)),
+  (42,'campaign extensions','col campaigns.extension_count',exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaigns' and column_name='extension_count')),
+  (42,'campaign extensions','fn approve_campaign_extension',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='approve_campaign_extension')),
+  (43,'completion reports v2','col campaign_reports.status',exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaign_reports' and column_name='status')),
+  (43,'completion reports v2','col campaign_reports.fund_breakdown',exists(select 1 from information_schema.columns where table_schema='public' and table_name='campaign_reports' and column_name='fund_breakdown')),
+  (43,'completion reports v2','fn review_completion_report',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='review_completion_report')),
+  (44,'guest donations','col donations.donor_name',exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='donor_name')),
+  (44,'guest donations','col donations.name_display',exists(select 1 from information_schema.columns where table_schema='public' and table_name='donations' and column_name='name_display'))
 )
 select mig as "#", feature, label as object,
   case when present then '✅' else '❌' end as ok
