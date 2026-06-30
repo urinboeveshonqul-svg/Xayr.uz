@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Percent, CreditCard, Wallet, Calculator, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Percent, CreditCard, Wallet, Calculator, ShieldCheck, CheckCircle2, Heart, Lock, TrendingUp, HandHeart } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -29,6 +29,14 @@ export default async function FeesPage({ params }: Props) {
   const loc: Locale = isLocale(locale) ? locale : 'uz';
   const dict = await getDictionary(loc);
   const f = dict.feesPage;
+
+  // Transparency value cards (moved here from the homepage).
+  const valueCards = [
+    { Icon: Heart, title: dict.transparency.card1Title, text: dict.transparency.card1Text },
+    { Icon: Lock, title: dict.transparency.card2Title, text: dict.transparency.card2Text },
+    { Icon: ShieldCheck, title: dict.transparency.card3Title, text: dict.transparency.card3Text },
+    { Icon: TrendingUp, title: dict.transparency.card4Title, text: dict.transparency.card4Text },
+  ];
 
   return (
     <>
@@ -85,12 +93,26 @@ export default async function FeesPage({ params }: Props) {
             <p className="text-xs text-gray-400 mt-5 leading-relaxed">{f.exampleNote}</p>
           </section>
 
-          {/* What the platform fee funds — why it exists & how it keeps XAYR sustainable */}
-          <section className="card p-6 sm:p-8 max-w-2xl mx-auto mt-8">
+          {/* Mission — moved here from the homepage transparency section */}
+          <div className="text-center max-w-2xl mx-auto mt-16 mb-10">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 text-sm font-bold mb-4">
+              <HandHeart className="w-4 h-4" /> {dict.transparency.badge}
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
+              {dict.transparency.title}
+            </h2>
+            <p className="mt-3 text-gray-600 dark:text-gray-400 leading-relaxed">{dict.transparency.lead}</p>
+          </div>
+
+          {/* Why does XAYR charge a platform fee? — donations go to beneficiaries; any fee only runs/improves XAYR */}
+          <section className="card p-6 sm:p-8 max-w-2xl mx-auto">
             <h2 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-brand-600" />
-              {dict.transparency.feeUseTitle}
+              {dict.transparency.feeWhyTitle}
             </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+              {dict.transparency.missionBody}
+            </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
               {dict.transparency.feeBody}
             </p>
@@ -106,6 +128,19 @@ export default async function FeesPage({ params }: Props) {
               {dict.transparency.sustainability}
             </p>
           </section>
+
+          {/* Transparency value cards (moved here from the homepage) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto mt-8">
+            {valueCards.map((c, i) => (
+              <section key={i} className="card p-6">
+                <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center mb-4">
+                  <c.Icon className="w-6 h-6 text-brand-600" />
+                </div>
+                <h3 className="font-black text-gray-900 dark:text-white mb-1.5">{c.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{c.text}</p>
+              </section>
+            ))}
+          </div>
         </div>
       </main>
       <Footer />
