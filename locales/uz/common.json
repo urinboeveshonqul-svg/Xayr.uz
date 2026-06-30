@@ -214,6 +214,37 @@
     "ctaTitle": "Bugun Yaxshilik Qiling",
     "ctaSubtitle": "Kampaniya yarating yoki sevganlaringizga yordam bering. Har bir hissa muhim."
   },
+  "transparency": {
+    "badge": "BIZNING MAQSAD",
+    "title": "Avvalo — odamlarga yordam",
+    "lead": "XAYR saxiy insonlarni yordamga muhtoj odamlar, oilalar va jamiyatlar bilan bog'lash uchun yaratilgan. Maqsadimiz — odamlarga yordam berish, ayni paytda platformani barqaror saqlash.",
+    "missionBody": "Har bir xayriya to'g'ridan-to'g'ri kampaniya egasiga yo'naltiriladi. Biz ishonch va shaffoflikni hamma narsadan ustun qo'yamiz.",
+    "feeBody": "Platforma komissiyasi (agar olinsa) faqat XAYRni ishlatish va yaxshilash uchun sarflanadi, jumladan:",
+    "feeItems": [
+      "Xavfsiz to'lovlarni qayta ishlash",
+      "Server va hosting xarajatlari",
+      "Bulutli infratuzilma",
+      "Xavfsizlik xizmatlari",
+      "Firibgarlikning oldini olish",
+      "Tasdiqlash tizimlari",
+      "Mijozlarni qo'llab-quvvatlash",
+      "Platformani rivojlantirish va texnik xizmat"
+    ],
+    "feeLink": "Platforma komissiyasi qanday ishlaydi",
+    "card1Title": "Avvalo maqsad",
+    "card1Text": "O'zbekiston bo'ylab yordamga muhtoj insonlarga ko'mak berish.",
+    "card2Title": "Xavfsiz xayriyalar",
+    "card2Text": "Barcha xayriyalar xavfsiz tarzda qayta ishlanadi.",
+    "card3Title": "Tasdiqlangan kampaniyalar",
+    "card3Text": "Kampaniyalar mablag' yig'ishdan oldin ko'rib chiqiladi va tasdiqlanadi.",
+    "card4Title": "Shaffof platforma",
+    "card4Text": "Platforma to'lovlari XAYRni saqlash va yaxshilashga sarflanadi.",
+    "statVerifiedCampaigns": "Tasdiqlangan kampaniyalar",
+    "statSuccessful": "Muvaffaqiyatli kampaniyalar",
+    "statRaised": "Jami yig'ilgan mablag'",
+    "feeUseTitle": "Komissiya nimaga sarflanadi",
+    "sustainability": "Ushbu kichik komissiya XAYRni xavfsiz, ishonchli va barqaror saqlashga yordam beradi — shunda biz ko'proq insonlarga yordam bera olamiz."
+  },
   "campaign": {
     "raised": "Yig'ilgan",
     "of": "dan",

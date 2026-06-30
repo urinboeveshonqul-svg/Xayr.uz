@@ -214,6 +214,37 @@
     "ctaTitle": "Do Good Today",
     "ctaSubtitle": "Start a campaign or help your loved ones. Every contribution matters."
   },
+  "transparency": {
+    "badge": "OUR MISSION",
+    "title": "Helping People Comes First",
+    "lead": "XAYR exists to connect generous people with the individuals, families, and communities who need support. Our mission is to help people — while keeping the platform sustainable.",
+    "missionBody": "Every donation goes directly to the campaign organizer. We put trust and transparency above everything else.",
+    "feeBody": "Any platform commission is used only to operate and improve XAYR, including:",
+    "feeItems": [
+      "Secure payment processing",
+      "Server and hosting costs",
+      "Cloud infrastructure",
+      "Security services",
+      "Fraud prevention",
+      "Verification systems",
+      "Customer support",
+      "Platform development and maintenance"
+    ],
+    "feeLink": "How platform fees work",
+    "card1Title": "Mission First",
+    "card1Text": "Helping people in need across Uzbekistan.",
+    "card2Title": "Secure Donations",
+    "card2Text": "All donations are processed securely.",
+    "card3Title": "Verified Campaigns",
+    "card3Text": "Campaigns are reviewed and verified before fundraising.",
+    "card4Title": "Transparent Platform",
+    "card4Text": "Platform fees help maintain and improve XAYR.",
+    "statVerifiedCampaigns": "Verified campaigns",
+    "statSuccessful": "Successful campaigns",
+    "statRaised": "Total raised",
+    "feeUseTitle": "What the platform fee funds",
+    "sustainability": "This small fee helps keep XAYR secure, reliable, and sustainable — so we can help more people."
+  },
   "campaign": {
     "raised": "Raised",
     "of": "of",

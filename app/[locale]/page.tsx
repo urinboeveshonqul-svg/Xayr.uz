@@ -10,7 +10,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ArrowRight, TrendingUp, Heart, Users, ShieldCheck,
-  Flame, Megaphone, HandHeart, Sparkles, CheckCircle2,
+  Flame, Megaphone, HandHeart, Sparkles, CheckCircle2, Lock,
 } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -77,10 +77,12 @@ async function getCompletionReports(campaignIds: string[]): Promise<Map<string, 
 }
 
 interface PlatformStats {
-  active: number;   // active campaigns
-  donors: number;   // completed donations
-  raised: number;   // sum of completed donation amounts
-  verified: number; // verified users (creators)
+  active: number;             // active campaigns
+  donors: number;            // completed donations
+  raised: number;            // sum of completed donation amounts
+  verified: number;          // verified users (creators)
+  verifiedCampaigns: number; // campaigns reviewed & approved (left draft/pending/rejected)
+  successfulCampaigns: number; // completed or funded campaigns
 }
 
 /**
@@ -90,14 +92,21 @@ interface PlatformStats {
  * zeros instead of throwing, so the homepage never breaks.
  */
 async function getPlatformStats(): Promise<PlatformStats> {
-  const zero: PlatformStats = { active: 0, donors: 0, raised: 0, verified: 0 };
+  const zero: PlatformStats = {
+    active: 0, donors: 0, raised: 0, verified: 0,
+    verifiedCampaigns: 0, successfulCampaigns: 0,
+  };
   try {
     const admin = createAdminClient();
-    const [activeRes, donorsRes, verifiedRes, raisedRes] = await Promise.all([
+    const [activeRes, donorsRes, verifiedRes, raisedRes, verifiedCampaignsRes, successfulRes] = await Promise.all([
       admin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       admin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
       admin.from('users').select('*', { count: 'exact', head: true }).eq('verification_status', 'verified'),
       admin.from('donations').select('amount').eq('status', 'completed'),
+      // Reviewed & approved campaigns = everything that has left the pre-approval states.
+      admin.from('campaigns').select('*', { count: 'exact', head: true }).not('status', 'in', '(draft,pending,rejected)'),
+      // Successful campaigns = reached their goal (completed) or fully funded.
+      admin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['completed', 'funded']),
     ]);
     const raised = (raisedRes.data ?? []).reduce((sum, d) => sum + (d.amount ?? 0), 0);
     return {
@@ -105,6 +114,8 @@ async function getPlatformStats(): Promise<PlatformStats> {
       donors: donorsRes.count ?? 0,
       verified: verifiedRes.count ?? 0,
       raised,
+      verifiedCampaigns: verifiedCampaignsRes.count ?? 0,
+      successfulCampaigns: successfulRes.count ?? 0,
     };
   } catch {
     return zero;
@@ -150,6 +161,25 @@ export default async function HomePage({
     { icon: HandHeart, title: dict.home.step3Title, text: dict.home.step3Text, color: 'from-purple-500 to-pink-600' },
   ];
 
+  // Transparency value cards (qualitative — no numbers).
+  const valueCards = [
+    { icon: Heart, title: dict.transparency.card1Title, text: dict.transparency.card1Text, color: 'text-red-500', bg: 'bg-red-50' },
+    { icon: Lock, title: dict.transparency.card2Title, text: dict.transparency.card2Text, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { icon: ShieldCheck, title: dict.transparency.card3Title, text: dict.transparency.card3Text, color: 'text-green-600', bg: 'bg-green-50' },
+    { icon: TrendingUp, title: dict.transparency.card4Title, text: dict.transparency.card4Text, color: 'text-purple-500', bg: 'bg-purple-50' },
+  ];
+
+  // Trust indicators — real DB counts only; the strip is hidden when all are zero.
+  const trustIndicators = [
+    { value: platformStats.verifiedCampaigns.toLocaleString('uz-UZ'), label: dict.transparency.statVerifiedCampaigns },
+    { value: platformStats.successfulCampaigns.toLocaleString('uz-UZ'), label: dict.transparency.statSuccessful },
+    { value: `${formatMoney(platformStats.raised)} so'm`, label: dict.transparency.statRaised },
+  ];
+  const hasTrustData =
+    platformStats.verifiedCampaigns > 0 ||
+    platformStats.successfulCampaigns > 0 ||
+    platformStats.raised > 0;
+
   return (
     <>
       <Navbar />
@@ -170,6 +200,66 @@ export default async function HomePage({
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* MISSION & TRANSPARENCY — why XAYR exists + where any fee goes */}
+        <section className="py-20 lg:py-24 bg-white border-b border-gray-100">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-12 lg:mb-16">
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-5">
+                <HandHeart className="w-4 h-4" /> {dict.transparency.badge}
+              </span>
+              <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tight">{dict.transparency.title}</h2>
+              <p className="text-lg lg:text-xl text-gray-600 leading-relaxed">{dict.transparency.lead}</p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+              {/* Mission + fee explanation */}
+              <div>
+                <p className="text-gray-600 leading-relaxed mb-4">{dict.transparency.missionBody}</p>
+                <p className="text-gray-600 leading-relaxed mb-6">{dict.transparency.feeBody}</p>
+                <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-8">
+                  {dict.transparency.feeItems.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-gray-700">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm font-medium">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={L('/fees')}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-green-50 text-green-700 rounded-xl font-bold hover:bg-green-100 hover:gap-3 transition-all"
+                >
+                  {dict.transparency.feeLink} <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+
+              {/* Transparency value cards (2×2) */}
+              <div className="grid sm:grid-cols-2 gap-5">
+                {valueCards.map((card, i) => (
+                  <div key={i} className="p-6 rounded-3xl bg-gray-50 border border-gray-100 hover:bg-white hover:shadow-xl transition-all duration-300">
+                    <div className={`w-12 h-12 mb-4 rounded-2xl ${card.bg} flex items-center justify-center`}>
+                      <card.icon className={`w-6 h-6 ${card.color}`} />
+                    </div>
+                    <h3 className="font-black text-gray-900 mb-1.5">{card.title}</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">{card.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Trust indicators — real platform data only; hidden when there's nothing real to show */}
+            {hasTrustData && (
+              <div className="mt-12 lg:mt-16 flex flex-wrap items-center justify-center gap-x-10 sm:gap-x-16 gap-y-6 pt-10 border-t border-gray-100">
+                {trustIndicators.map((ind, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-2xl lg:text-3xl font-black text-gray-900 break-words">{ind.value}</div>
+                    <div className="text-xs sm:text-sm text-gray-500 font-semibold mt-1">{ind.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

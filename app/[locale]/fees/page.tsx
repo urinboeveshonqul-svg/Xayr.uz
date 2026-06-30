@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Percent, CreditCard, Wallet, Calculator } from 'lucide-react';
+import { Percent, CreditCard, Wallet, Calculator, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -83,6 +83,28 @@ export default async function FeesPage({ params }: Props) {
               </div>
             </dl>
             <p className="text-xs text-gray-400 mt-5 leading-relaxed">{f.exampleNote}</p>
+          </section>
+
+          {/* What the platform fee funds — why it exists & how it keeps XAYR sustainable */}
+          <section className="card p-6 sm:p-8 max-w-2xl mx-auto mt-8">
+            <h2 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-brand-600" />
+              {dict.transparency.feeUseTitle}
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
+              {dict.transparency.feeBody}
+            </p>
+            <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5 mb-5">
+              {dict.transparency.feeItems.map((item, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                  <CheckCircle2 className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              {dict.transparency.sustainability}
+            </p>
           </section>
         </div>
       </main>

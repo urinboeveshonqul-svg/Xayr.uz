@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-06-30
-> **Branch:** feat/payout-accounts · **Latest commit at sync:** `a39e14c` (secure guest donation workflow)
+> **Branch:** feat/payout-accounts · **Latest commit at sync:** `7f3753b` (migration tracking reconciliation) + homepage transparency & mission section
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -48,7 +48,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 | Notifications (in-app) | 95% | Trigger-driven, complete. |
 | Push notifications | 80% (code) | Code-complete; requires OneSignal + Supabase webhook config to go live. |
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
-| Localization | 95% | 3 languages, parity maintained (946 lines each). |
+| Localization | 95% | 3 languages, parity maintained (1130 lines each). |
 | Analytics | 60% | Per-campaign creator analytics only; no platform product analytics. |
 | Testing / CI | 35% | Build + typecheck CI; **no automated tests**, no lockfile. |
 
@@ -135,6 +135,11 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **What:** The homepage shows the **first 3 active campaigns** (by recency) as "Featured" and the **top 8 by raised amount** as "Trending."
 - **Where:** `app/[locale]/page.tsx` (`featured = campaigns.slice(0,3)`, `trending` sorted by `current_amount`).
 - **Status:** ✅ Implemented as a **presentation layer only** — there is **no `is_featured` column or admin curation**. (Documented accurately to avoid implying a backed feature.)
+
+### Homepage — Mission & Transparency
+- **What:** A **"Helping People Comes First"** section below the homepage statistics (above Featured) explaining XAYR's mission — connect generous people with the individuals, families, and communities who need support; help people while keeping operations sustainable — and where any platform commission goes (secure payment processing, server/hosting, cloud infrastructure, security services, fraud prevention, verification systems, customer support, platform development). It shows four transparency value cards (Mission First / Secure Donations / Verified Campaigns / Transparent Platform), a **"How platform fees work"** link to `/fees`, and a compact **trust-indicator strip** that renders **real DB counts only** (verified/approved campaigns, successful campaigns, total raised) and is hidden when there's no real data. **No percentage is shown on the homepage** (the rate lives on `/fees`); no nonprofit/legal claims are made. The `/fees` page gained a matching **"What the platform fee funds"** block (why it exists + sustainability), reusing the same dictionary keys.
+- **Where:** `app/[locale]/page.tsx` (new section; `getPlatformStats` extended with `verifiedCampaigns`/`successfulCampaigns` via service-role counts), `app/[locale]/fees/page.tsx`, `locales/{uz,ru,en}/common.json` (`transparency.*`).
+- **Status:** ✅ Complete. Production build + typecheck pass locally.
 
 ### Creator Profiles & Following
 - **What:** Public creator profile (`/u/[username]`) with Person JSON-LD; follow creators; followers notified on new campaign launch.
@@ -459,7 +464,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 13. Localization
 
 - **Languages:** Uzbek (default), Russian, English. Config in `i18n/config.ts`; routing via `/[locale]/…` + `NEXT_LOCALE` cookie + middleware redirect.
-- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **946 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
+- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1130 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
 - **Missing translations:** No structural gaps detected (equal line counts). Some Uzbek UI strings are hardcoded in components/API error messages (e.g. toast text in `DonationForm`, API error strings) rather than dictionary-driven.
 - **Remaining work:** Extract hardcoded UI/toast/API strings into the dictionaries for full coverage; add a CI check that locale files stay key-aligned.
 
