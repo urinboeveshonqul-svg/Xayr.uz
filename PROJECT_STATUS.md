@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-06-30
-> **Branch:** feat/payout-accounts · **Latest commit at sync:** `18a72a5` (transparency moved to `/fees`, merged to main) + "Why Trust XAYR?" trust modal on the homepage
+> **Branch:** feat/payout-accounts · **Latest commit at sync:** `8cefad7` ("Why Trust XAYR?" trust modal, live on main) + mobile-first bottom-sheet hardening
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -144,6 +144,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 ### Trust & Transparency Modal ("Why Trust XAYR?")
 - **What:** A small, secondary **🛡️ Why Trust XAYR?** pill below the hero (centered above the homepage statistics grid; **not** a primary CTA) opens a **trust & transparency modal** — centered dialog on desktop, **bottom-sheet on mobile** — without leaving the homepage. Seven sections (Verified Campaigns, Secure Donations, Transparent Withdrawals, Completion Reports, Platform Fees, Your Privacy, Community Safety), a **real-data** trust-indicator strip (verified campaigns, successful campaigns, total donations, registered users, total raised — each **hidden when 0**), and a CTA row (Help Center → `/guide`, Contact Support → `/contact`, Platform Fees → `/fees`). No fixed fee % shown — the Platform Fees section reuses `transparency.feeBody`/`feeItems`. Accessible: `role="dialog"`, `aria-modal`, labelled/described by title+subtitle, Esc-to-close, Tab focus-trap + focus restore, body scroll-lock. Reuses the ShareModal pattern (`animate-pop`, `items-end sm:items-center`, `rounded-t-3xl sm:rounded-3xl`).
 - **Where:** `components/home/WhyTrustButton.tsx` (small trigger; **lazy-loads** the modal via `next/dynamic` `{ ssr:false }`, keeping its weight out of the homepage's initial JS), `components/home/WhyTrustModal.tsx` (the dialog), `app/[locale]/page.tsx` (`getPlatformStats` extended with `verifiedCampaigns`/`successfulCampaigns`/`registeredUsers`), `components/i18n/I18nProvider.tsx` (added `ta()` array-translation helper for bullet lists), copy in `locales/{uz,ru,en}/common.json` (`trust.*`).
+- **Mobile (320–430px) hardening:** full-width bottom-sheet, `max-h-[90vh]`; body is `flex-1 min-h-0 overflow-y-auto overscroll-contain` so it scrolls **inside** the sheet (header/close pinned, page locked) — fixes content overflowing past the CTA; panel `overflow-hidden`; **drag-handle + swipe-down-to-close** (header-scoped, no scroll conflict); trigger button `whitespace-nowrap` + `min-h-[44px]` (44px touch target); single-column cards, `px-4`/`p-4` mobile padding, reduced heading/number sizes, full-width CTA buttons. Desktop (`sm:`) layout unchanged.
 - **Status:** ✅ Complete. Production build + typecheck pass locally.
 
 ### Creator Profiles & Following

@@ -25,9 +25,9 @@ export function WhyTrustButton({ stats }: { stats: TrustStats }) {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-bold shadow-sm hover:border-green-500 hover:text-green-600 hover:shadow transition-all"
+        className="inline-flex items-center justify-center gap-2 min-h-[44px] max-w-full px-5 py-2.5 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-bold shadow-sm whitespace-nowrap hover:border-green-500 hover:text-green-600 hover:shadow transition-all"
       >
-        <ShieldCheck className="w-4 h-4 text-green-600" aria-hidden="true" />
+        <ShieldCheck className="w-4 h-4 flex-shrink-0 text-green-600" aria-hidden="true" />
         {t('trust.button')}
       </button>
       {open && <WhyTrustModal stats={stats} onClose={() => setOpen(false)} />}
