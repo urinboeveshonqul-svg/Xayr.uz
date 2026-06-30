@@ -246,6 +246,64 @@
     "feeWhyTitle": "XAYR nega platforma komissiyasini oladi?",
     "sustainability": "Ushbu kichik komissiya XAYRni xavfsiz, ishonchli va barqaror saqlashga yordam beradi — shunda biz ko'proq insonlarga yordam bera olamiz."
   },
+  "trust": {
+    "button": "XAYRga nega ishonish kerak?",
+    "title": "XAYRga nega ishonish kerak?",
+    "subtitle": "Har bir xayriya xavfsiz, shaffof bo'lishi va aynan yordamga muhtoj insonlarga yetib borishiga ishonamiz.",
+    "s1Title": "Tasdiqlangan kampaniyalar",
+    "s1Points": [
+      "Har bir kampaniya mablag' yig'ish boshlanishidan oldin ko'rib chiqiladi.",
+      "Kampaniya yaratish uchun shaxsni tasdiqlash (KYC) talab qilinadi.",
+      "Shubhali kampaniyalar rad etiladi.",
+      "Har kim kampaniya ustidan shikoyat qilishi mumkin."
+    ],
+    "s2Title": "Xavfsiz xayriyalar",
+    "s2Points": [
+      "Xayriyalar xavfsiz tarzda qayta ishlanadi.",
+      "Shaxsiy ma'lumotlaringiz himoyalanadi.",
+      "To'lovni tekshirish firibgarlikning oldini olishga yordam beradi.",
+      "Har bir xayriya qayd etiladi."
+    ],
+    "s3Title": "Shaffof mablag' yechish",
+    "s3Points": [
+      "Kampaniya egalari mablag'ni darhol yechib ololmaydi.",
+      "Har bir yechish so'rovi ko'rib chiqiladi.",
+      "Mablag' tekshiruvdan so'ng qo'lda o'tkaziladi.",
+      "Har bir yechish qayd etiladi."
+    ],
+    "s4Title": "Yakuniy hisobotlar",
+    "s4Intro": "Mablag' yig'ish tugagach, kampaniya egalari mablag' qanday sarflanganini ko'rsatuvchi yakuniy hisobot e'lon qilishga undanadi — platforma qoidalariga ko'ra bu talab ham qilinishi mumkin.",
+    "s4Points": [
+      "Rasmlar",
+      "Videolar",
+      "Cheklar",
+      "Jarayon yangiliklari",
+      "Yakuniy natijalar"
+    ],
+    "s4Outro": "Bu xayriyachilarga o'z saxovatlarining haqiqiy natijasini ko'rish imkonini beradi.",
+    "s5Title": "Platforma komissiyasi",
+    "s6Title": "Maxfiyligingiz",
+    "s6Points": [
+      "Shaxsiy ma'lumotlar himoyalanadi.",
+      "Imkoniyat yoqilgan bo'lsa, anonim xayriyalar qo'llab-quvvatlanadi.",
+      "Maxfiy ma'lumotlar hech qachon ommaga ko'rsatilmaydi."
+    ],
+    "s7Title": "Hamjamiyat xavfsizligi",
+    "s7Intro": "Biror narsa noto'g'ri ko'rinsa, choralar ko'rishingiz mumkin:",
+    "s7Points": [
+      "Shubhali kampaniyalar haqida xabar berish.",
+      "Firibgarlik haqida xabar berish.",
+      "Qo'llab-quvvatlash bilan bog'lanish."
+    ],
+    "s7Outro": "Administratorlar har bir shikoyatni tekshiradi.",
+    "statsTitle": "XAYR raqamlarda",
+    "statDonations": "Jami xayriyalar",
+    "statUsers": "Ro'yxatdan o'tgan foydalanuvchilar",
+    "ctaTitle": "Yana savollaringiz bormi?",
+    "ctaHelp": "Yordam markazi",
+    "ctaContact": "Qo'llab-quvvatlash",
+    "ctaFees": "Komissiyalar"
+  },
   "campaign": {
     "raised": "Yig'ilgan",
     "of": "dan",

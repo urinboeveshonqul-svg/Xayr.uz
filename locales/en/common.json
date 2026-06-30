@@ -246,6 +246,64 @@
     "feeWhyTitle": "Why does XAYR charge a platform fee?",
     "sustainability": "This small fee helps keep XAYR secure, reliable, and sustainable — so we can help more people."
   },
+  "trust": {
+    "button": "Why Trust XAYR?",
+    "title": "Why Trust XAYR?",
+    "subtitle": "We believe every donation should be secure, transparent, and reach the people who need it.",
+    "s1Title": "Verified Campaigns",
+    "s1Points": [
+      "Every campaign is reviewed before fundraising begins.",
+      "Identity verification (KYC) is required to create a campaign.",
+      "Suspicious campaigns are rejected.",
+      "Anyone can report a campaign for review."
+    ],
+    "s2Title": "Secure Donations",
+    "s2Points": [
+      "Donations are processed securely.",
+      "Your personal information is protected.",
+      "Payment verification helps prevent fraud.",
+      "Every donation is recorded."
+    ],
+    "s3Title": "Transparent Withdrawals",
+    "s3Points": [
+      "Campaign owners cannot withdraw money instantly.",
+      "Every withdrawal request is reviewed.",
+      "Funds are transferred manually after verification.",
+      "Every withdrawal is logged."
+    ],
+    "s4Title": "Completion Reports",
+    "s4Intro": "After fundraising ends, campaign owners are encouraged — and may be required by platform rules — to publish a Completion Report showing how the funds were used.",
+    "s4Points": [
+      "Photos",
+      "Videos",
+      "Receipts",
+      "Progress updates",
+      "Final outcomes"
+    ],
+    "s4Outro": "This helps donors see the real impact of their generosity.",
+    "s5Title": "Platform Fees",
+    "s6Title": "Your Privacy",
+    "s6Points": [
+      "Personal information is protected.",
+      "Anonymous donations are supported when enabled.",
+      "Sensitive information is never displayed publicly."
+    ],
+    "s7Title": "Community Safety",
+    "s7Intro": "If something looks wrong, you can act:",
+    "s7Points": [
+      "Report suspicious campaigns.",
+      "Report fraud.",
+      "Contact support."
+    ],
+    "s7Outro": "Administrators investigate every report.",
+    "statsTitle": "XAYR in numbers",
+    "statDonations": "Total donations",
+    "statUsers": "Registered users",
+    "ctaTitle": "Have more questions?",
+    "ctaHelp": "Help Center",
+    "ctaContact": "Contact Support",
+    "ctaFees": "Platform Fees"
+  },
   "campaign": {
     "raised": "Raised",
     "of": "of",
