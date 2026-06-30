@@ -95,6 +95,20 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
       : 0;
   const dd = dict.dash;
 
+  // Donor-type breakdown — the owner can read completed donations via RLS.
+  const { data: donorTypeRows } = await supabase
+    .from('donations')
+    .select('donor_id, anonymous')
+    .eq('campaign_id', campaign.id)
+    .eq('status', 'completed');
+  const dRows = donorTypeRows ?? [];
+  const donStats = {
+    total: dRows.length,
+    guest: dRows.filter((d) => !d.donor_id).length,
+    registered: dRows.filter((d) => !!d.donor_id).length,
+    anonymous: dRows.filter((d) => d.anonymous).length,
+  };
+
   return (
     <>
       <Navbar />
@@ -108,6 +122,26 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
             shareStats={shareRows ?? []}
             locale={loc}
           />
+
+          {/* Donor-type breakdown — total / registered / guest / anonymous. */}
+          {donStats.total > 0 && (
+            <div className="card p-6 mt-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{dd.anDonorBreakdown}</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: dd.anTotalDon, value: donStats.total },
+                  { label: dd.anRegisteredDon, value: donStats.registered },
+                  { label: dd.anGuestDon, value: donStats.guest },
+                  { label: dd.anAnonymousDon, value: donStats.anonymous },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
+                    <p className="text-xs text-gray-400">{s.label}</p>
+                    <p className="text-lg font-black text-gray-900 dark:text-white">{s.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Extension analytics — original/current end date, count, days, and
               donations split before vs after the original deadline. */}

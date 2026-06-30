@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle, Loader2, XCircle, UserPlus } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 type State = 'pending' | 'completed' | 'failed' | 'unknown';
 
@@ -25,6 +26,14 @@ export function PaymentSuccessView({
   const [amount, setAmount] = useState<number | null>(null);
   const [title, setTitle] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(campaignSlug);
+  // Show the "create an account" offer only to guests.
+  const [isGuest, setIsGuest] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    createClient().auth.getUser().then(({ data: { user } }) => { if (active) setIsGuest(!user); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!reference) return;
@@ -75,8 +84,21 @@ export function PaymentSuccessView({
             )}
             {title && <Row label={t('payment.campaign')} value={title} />}
             {reference && <Row label={t('payment.reference')} value={reference} mono />}
+            <Row label={t('payment.date')} value={new Date().toLocaleDateString(locale)} />
             <Row label={t('payment.status')} value={t('payment.stCompleted')} />
           </dl>
+
+          {/* Guest account-creation offer (never forced). */}
+          {isGuest && (
+            <div className="rounded-2xl border border-brand-100 dark:border-brand-900/40 bg-brand-50/60 dark:bg-brand-900/15 p-4 mb-4 text-left">
+              <p className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-brand-600" /> {t('payment.ctaTitle')}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t('payment.ctaText')}</p>
+              <Link href={`/${locale}/auth/register`} className="btn-primary w-full py-2.5 mt-3">{t('payment.ctaBtn')}</Link>
+            </div>
+          )}
+
           <Link href={campaignHref} className="btn-primary w-full py-3">{t('payment.backToCampaign')}</Link>
         </>
       )}

@@ -10,6 +10,10 @@ export interface ReconRow {
   payment_ref: string | null;
   payment_method: string | null;
   donor_name: string | null;
+  donor_email: string | null;
+  donor_phone: string | null;
+  donor_type: 'guest' | 'registered';
+  anonymous: boolean;
   campaign_title: string | null;
   amount: number;
   status: DonationStatus;
@@ -33,6 +37,7 @@ export function AdminDonationsReconciliation({ rows }: { rows: ReconRow[] }) {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DonationStatus | 'all'>('all');
   const [providerFilter, setProviderFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'guest' | 'registered' | 'anonymous'>('all');
   const [open, setOpen] = useState<string | null>(null);
 
   const providers = useMemo(
@@ -45,15 +50,18 @@ export function AdminDonationsReconciliation({ rows }: { rows: ReconRow[] }) {
     return rows.filter((r) => {
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (providerFilter !== 'all' && r.payment_method !== providerFilter) return false;
+      if (typeFilter === 'anonymous' && !r.anonymous) return false;
+      if ((typeFilter === 'guest' || typeFilter === 'registered') && r.donor_type !== typeFilter) return false;
       if (!q) return true;
       return (
         (r.payment_ref ?? '').toLowerCase().includes(q) ||
         (r.campaign_title ?? '').toLowerCase().includes(q) ||
         (r.donor_name ?? '').toLowerCase().includes(q) ||
+        (r.donor_email ?? '').toLowerCase().includes(q) ||
         String(r.amount).includes(q)
       );
     });
-  }, [rows, query, statusFilter, providerFilter]);
+  }, [rows, query, statusFilter, providerFilter, typeFilter]);
 
   return (
     <div className="space-y-4">
@@ -81,6 +89,12 @@ export function AdminDonationsReconciliation({ rows }: { rows: ReconRow[] }) {
             {providers.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         )}
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'all' | 'guest' | 'registered' | 'anonymous')} className="input sm:w-44">
+          <option value="all">Barcha turdagi</option>
+          <option value="registered">Ro&apos;yxatdan o&apos;tgan</option>
+          <option value="guest">Mehmon</option>
+          <option value="anonymous">Anonim</option>
+        </select>
       </div>
 
       <p className="text-sm text-gray-500">{visible.length} ta yozuv</p>
@@ -111,8 +125,14 @@ export function AdminDonationsReconciliation({ rows }: { rows: ReconRow[] }) {
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-300 truncate mt-0.5">{r.campaign_title ?? '—'}</p>
                     <p className="text-xs text-gray-400 mt-0.5 font-mono break-all">{r.payment_ref ?? '—'}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {r.donor_name ?? 'Anonim'} · {new Date(r.created_at).toLocaleString('uz-UZ')}
+                    <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${r.donor_type === 'guest' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                        {r.donor_type === 'guest' ? 'Mehmon' : "Ro'yxatdan o'tgan"}
+                      </span>
+                      {/* Admins always see the REAL donor name, even when anonymous. */}
+                      <span className="text-gray-500 dark:text-gray-300">{r.donor_name ?? '—'}</span>
+                      {r.anonymous && <span className="text-gray-400">(anonim)</span>}
+                      <span>· {new Date(r.created_at).toLocaleString('uz-UZ')}</span>
                     </p>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -120,6 +140,12 @@ export function AdminDonationsReconciliation({ rows }: { rows: ReconRow[] }) {
 
                 {expanded && (
                   <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                    {(r.donor_email || r.donor_phone) && (
+                      <div className="mb-3 text-xs text-gray-600 dark:text-gray-300 space-y-0.5">
+                        {r.donor_email && <p>Email: <span className="font-mono break-all">{r.donor_email}</span></p>}
+                        {r.donor_phone && <p>Telefon: <span className="font-mono">{r.donor_phone}</span></p>}
+                      </div>
+                    )}
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Webhook tarixi</p>
                     {r.events.length === 0 ? (
                       <p className="text-xs text-gray-400">Hozircha to‘lov hodisalari yo‘q</p>

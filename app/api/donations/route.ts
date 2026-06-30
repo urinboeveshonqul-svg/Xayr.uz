@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPaymentProvider } from '@/lib/payments';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
+import { verifyTurnstile, tokenFromBody, TURNSTILE_FAILED_MESSAGE } from '@/lib/security/turnstile';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +14,11 @@ const schema = z.object({
   anonymous: z.boolean().optional().default(false),
   message: z.string().max(300).nullable().optional(),
   method: z.enum(['click', 'payme', 'uzcard', 'humo', 'cash']).nullable().optional(),
+  name_display: z.enum(['full', 'first', 'anonymous']).optional().default('full'),
+  // Guest contact (required for guests; ignored for logged-in donors).
+  donor_name: z.string().max(120).nullable().optional(),
+  donor_email: z.string().email().max(254).nullable().optional(),
+  donor_phone: z.string().max(40).nullable().optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,13 +43,31 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
-  const { campaignId, amount, anonymous, message, method } = parsed.data;
+  const { campaignId, amount, message, method, name_display, donor_name, donor_email, donor_phone } = parsed.data;
+  // Anonymity is derived from the display choice — never trusted as a separate flag.
+  const anonymous = name_display === 'anonymous';
 
   // 2) Identify the donor (optional — anonymous/guest donations are allowed).
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // 2a) Guests must provide a name + email and pass Turnstile (bot/fraud gate).
+  //     Logged-in donors reuse their profile (linked via donor_id).
+  const isGuest = !user;
+  if (isGuest) {
+    if (!donor_name || donor_name.trim().length < 2) {
+      return NextResponse.json({ error: 'name_required' }, { status: 422 });
+    }
+    if (!donor_email) {
+      return NextResponse.json({ error: 'email_required' }, { status: 422 });
+    }
+    const ts = await verifyTurnstile(tokenFromBody(body), ip);
+    if (!ts.success) {
+      return NextResponse.json({ error: TURNSTILE_FAILED_MESSAGE }, { status: 400 });
+    }
+  }
 
   // 3) Validate the campaign with the service role (avoids RLS edge cases).
   const admin = createAdminClient();
@@ -77,6 +101,12 @@ export async function POST(request: Request) {
       message: message || null,
       payment_method: method ?? null,
       status: 'pending',
+      name_display,
+      // Guest contact is PII (admin/owner-only via RLS). Logged-in donors reuse
+      // their profile, so these stay null for them.
+      donor_name: isGuest ? donor_name!.trim() : null,
+      donor_email: isGuest ? donor_email!.trim() : null,
+      donor_phone: isGuest ? (donor_phone?.trim() || null) : null,
     })
     .select('id')
     .single();

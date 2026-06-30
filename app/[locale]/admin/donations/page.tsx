@@ -17,7 +17,7 @@ export default async function AdminDonationsPage() {
 
   const { data: donationData } = await admin
     .from('donations')
-    .select('id, payment_ref, payment_method, donor_id, campaign_id, amount, status, created_at')
+    .select('id, payment_ref, payment_method, donor_id, campaign_id, amount, status, created_at, donor_name, donor_email, donor_phone, anonymous')
     .order('created_at', { ascending: false })
     .limit(300);
   const donations = donationData ?? [];
@@ -31,15 +31,15 @@ export default async function AdminDonationsPage() {
     const [{ data: campaigns }, { data: users }, { data: events }] = await Promise.all([
       admin.from('campaigns').select('id, title').in('id', campaignIds),
       donorIds.length > 0
-        ? admin.from('users').select('id, full_name').in('id', donorIds)
-        : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+        ? admin.from('users').select('id, full_name, email').in('id', donorIds)
+        : Promise.resolve({ data: [] as { id: string; full_name: string | null; email: string | null }[] }),
       refs.length > 0
         ? admin.from('payment_events').select('*').in('payment_ref', refs).order('received_at', { ascending: false })
         : Promise.resolve({ data: [] as PaymentEvent[] }),
     ]);
 
     const campaignById = new Map((campaigns ?? []).map((c) => [c.id, c.title] as const));
-    const userById = new Map((users ?? []).map((u) => [u.id, u.full_name] as const));
+    const userById = new Map((users ?? []).map((u) => [u.id, u] as const));
     const eventsByRef = new Map<string, PaymentEvent[]>();
     for (const e of events ?? []) {
       if (!e.payment_ref) continue;
@@ -48,17 +48,25 @@ export default async function AdminDonationsPage() {
       eventsByRef.set(e.payment_ref, arr);
     }
 
-    rows = donations.map((d) => ({
-      id: d.id,
-      payment_ref: d.payment_ref,
-      payment_method: d.payment_method,
-      donor_name: d.donor_id ? userById.get(d.donor_id) ?? null : null,
-      campaign_title: campaignById.get(d.campaign_id) ?? null,
-      amount: d.amount,
-      status: d.status,
-      created_at: d.created_at,
-      events: d.payment_ref ? eventsByRef.get(d.payment_ref) ?? [] : [],
-    }));
+    rows = donations.map((d) => {
+      const u = d.donor_id ? userById.get(d.donor_id) : null;
+      return {
+        id: d.id,
+        payment_ref: d.payment_ref,
+        payment_method: d.payment_method,
+        // Admins always see the REAL identity (guest fields or the linked profile).
+        donor_name: u ? u.full_name : d.donor_name,
+        donor_email: u ? u.email : d.donor_email,
+        donor_phone: u ? null : d.donor_phone,
+        donor_type: (d.donor_id ? 'registered' : 'guest') as 'registered' | 'guest',
+        anonymous: d.anonymous,
+        campaign_title: campaignById.get(d.campaign_id) ?? null,
+        amount: d.amount,
+        status: d.status,
+        created_at: d.created_at,
+        events: d.payment_ref ? eventsByRef.get(d.payment_ref) ?? [] : [],
+      };
+    });
   }
 
   return (

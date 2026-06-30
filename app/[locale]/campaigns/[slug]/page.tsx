@@ -114,6 +114,18 @@ async function getReports(campaignId: string): Promise<CampaignReport[]> {
   }
 }
 
+// Public total withdrawn (paid payouts) — for the completion report transparency
+// block. payout_requests is owner/admin-only, so we read the aggregate via RPC.
+async function getWithdrawn(campaignId: string): Promise<number> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.rpc('campaign_total_withdrawn', { p_campaign_id: campaignId });
+    return data ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 // Public, non-sensitive extension timeline (dates only — never the reason).
 async function getExtensionHistory(campaignId: string): Promise<TimelineExtension[]> {
   try {
@@ -231,6 +243,12 @@ export default async function CampaignDetailPage({ params }: Props) {
     }
   }
 
+  // Completion report (one per campaign; RLS gives the public only an approved
+  // one, the owner their own). Withdrawn total caps the fund-usage report.
+  const report = reports[0] ?? null;
+  const withdrawn = campaign.status === 'completed' ? await getWithdrawn(campaign.id) : 0;
+  const beforeImages = [campaign.image_url, ...(campaign.images ?? [])].filter((s): s is string => !!s);
+
   return (
     <>
       {/* Per-campaign structured data (BreadcrumbList + WebPage + DonateAction) */}
@@ -272,22 +290,23 @@ export default async function CampaignDetailPage({ params }: Props) {
             {/* Team roster (public) + owner-only management */}
             <CampaignTeam campaignId={campaign.id} members={team} isOwner={isOwner} />
 
-            {/* Completion reports — gallery + document viewer; owner/manager can edit/delete */}
+            {/* Completion report — moderated fund-usage report (approved is public;
+                the owner also sees their pending/changes-requested/rejected report). */}
             {campaign.status === 'completed' && (
               <CompletionReports
-                reports={reports}
+                report={report}
                 isOwner={canManageReports}
                 campaignId={campaign.id}
                 userId={campaign.user_id}
-                beforeImages={[campaign.image_url, ...(campaign.images ?? [])].filter(
-                  (s): s is string => !!s
-                )}
+                raised={campaign.current_amount ?? 0}
+                withdrawn={withdrawn}
+                beforeImages={beforeImages}
               />
             )}
 
-            {/* Publish form — owner/manager of a completed campaign */}
-            {canManageReports && campaign.status === 'completed' && (
-              <CompletionReportForm campaignId={campaign.id} userId={campaign.user_id} />
+            {/* Submit form — owner/manager of a completed campaign with no report yet. */}
+            {canManageReports && campaign.status === 'completed' && !report && (
+              <CompletionReportForm campaignId={campaign.id} userId={campaign.user_id} totalWithdrawn={withdrawn} />
             )}
 
             <CampaignUpdates

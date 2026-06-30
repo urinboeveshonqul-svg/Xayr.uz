@@ -4,8 +4,8 @@
 > Generated from a direct read of the codebase. Reflects only what is actually
 > implemented — no aspirational or invented features.
 >
-> **Last synced:** 2026-06-29
-> **Branch:** main · **Latest commit at sync:** `e3af6b1` (payment foundation — idempotency, verification, reconciliation)
+> **Last synced:** 2026-06-30
+> **Branch:** feat/payout-accounts · **Latest commit at sync:** `7f3753b` (migration tracking reconciliation) + homepage transparency & mission section
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -39,8 +39,8 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 |---|---|---|
 | **Overall Platform** | **~74%** | Feature-rich and polished; blocked from real-money operation by the payment gateway gap. |
 | Frontend | 95% | Full page set, components, responsive, theming, i18n. |
-| Backend (API routes) | 90% | 13 routes, all validated + RBAC; payment provider impl missing. |
-| Database | 95% | Schema + 38 migrations; live application unverified. |
+| Backend (API routes) | 90% | 18 routes, all validated + RBAC; payment provider impl missing. |
+| Database | 95% | Schema + 44 migrations; live application unverified. |
 | Security | 88% | Strong model; live RLS unverified + minor hardening items. |
 | Mobile | 95% | Bottom nav, touch targets, responsive throughout, PWA manifest. |
 | SEO | 95% | Metadata, OG images, JSON-LD, sitemap, robots, canonical/hreflang. |
@@ -48,7 +48,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 | Notifications (in-app) | 95% | Trigger-driven, complete. |
 | Push notifications | 80% (code) | Code-complete; requires OneSignal + Supabase webhook config to go live. |
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
-| Localization | 95% | 3 languages, parity maintained (946 lines each). |
+| Localization | 95% | 3 languages, parity maintained (1130 lines each). |
 | Analytics | 60% | Per-campaign creator analytics only; no platform product analytics. |
 | Testing / CI | 35% | Build + typecheck CI; **no automated tests**, no lockfile. |
 
@@ -88,9 +88,9 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **Status:** ✅ Code-complete (pending migrations #41–#42 applied + `CRON_SECRET` set).
 
 ### Donations
-- **What:** Donation modal with preset/custom amounts, anonymous toggle, optional message. Server creates a **pending** record; client can never set status.
-- **Where:** `components/donations/DonationForm.tsx`, `app/api/donations/route.ts`. Table: `donations`.
-- **Status:** ⚠️ Records pending donations end-to-end; **no completion path** until a payment gateway is wired (see §11). UI explicitly tells donors "payment coming soon — we'll contact you."
+- **What:** Donation modal with preset/custom amounts, optional message, and a 3-way **name display** (Display my name / First name only / Anonymous). Works for **guests and registered users** on the same campaign page. **Guests** provide name + email (+ optional phone) and pass **Turnstile**; logged-in donors reuse their profile (linked via `donor_id`) and skip those fields. Server creates a **pending** record; client can never set status. Anonymity is derived server-side from the display choice. Guest contact is PII (admin/owner-only via RLS); the public donor feed shows only the chosen display name (`campaign_donors` view handles guest + registered, first-word, and anonymous). The payment-success page shows an on-screen **receipt** (amount/campaign/transaction ref/date) and offers guests a **"Create a XAYR account"** CTA (never forced). Admin donations view distinguishes **guest vs registered**, shows the real name/email/phone even for anonymous donations, and filters by donor type; owner analytics shows a **donor-type breakdown** (total / registered / guest / anonymous).
+- **Where:** `components/donations/DonationForm.tsx`, `app/api/donations/route.ts` (Turnstile + guest validation), `components/payments/PaymentSuccessView.tsx` (receipt + account CTA), `components/admin/AdminDonationsReconciliation.tsx` + `app/[locale]/admin/donations/page.tsx` (donor type/contact/filter), `app/[locale]/campaigns/[slug]/analytics/page.tsx` (breakdown); migration `supabase/guest-donations.sql` (#44). Table: `donations` (+ `donor_name`/`donor_email`/`donor_phone`/`name_display`).
+- **Status:** ✅ Guest-donation workflow complete (security: Turnstile + rate-limit + server-side validation; status never client-trusted). ⚠️ Still **no completion path** until a payment gateway is wired (see §11); **email** receipts need a transactional-email provider (not yet integrated) — the receipt is shown on-screen meanwhile.
 
 ### Notifications (in-app)
 - **What:** Bell + notifications view; auto-generated on new donation, comment, campaign milestone, campaign status change, updates, completion reports, payout status, and verification decisions.
@@ -128,13 +128,18 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **Status:** ✅ Complete.
 
 ### Reports (completion reports + abuse flags)
-- **Completion reports:** Creator/manager publishes outcome reports (title, message, images, documents) on **completed** campaigns; surfaced on home "Success Stories." `components/campaigns/{CompletionReportForm,CompletionReports}.tsx`, `app/api/campaigns/reports/route.ts`. Table: `campaign_reports`. ✅ Complete.
+- **Completion reports (moderated, Phase 1):** Creator/manager submits a fund-usage **completion report** on a **completed** campaign — title, ≥200-char summary, **fund-usage breakdown** (category/description/amount, total ≤ total withdrawn), beneficiary status, milestone **timeline**, images/before-after/videos/documents. Reports are **admin-moderated**: a guard trigger forces submissions to `pending` (owners can't self-approve); admins **approve / request changes / reject** with feedback under **/admin/reports** (`review_completion_report`). Only **approved** reports are public (RLS); existing v1 reports were grandfathered as `approved`. The public report shows a **transparency block** (Funds Raised / Withdrawn / Reported / Completion Date / Verified) + "Remaining funds not yet reported" when reported < withdrawn, the breakdown, timeline, gallery, inline videos, and documents. Owner is notified on each decision; donors are notified **on approval** (was: on submit). `components/campaigns/{CompletionReportForm,CompletionReports}.tsx`, `components/admin/AdminReports.tsx`, `app/[locale]/admin/reports/page.tsx`, `app/api/campaigns/reports/route.ts`; migration `supabase/completion-reports-v2.sql` (#43). Table: `campaign_reports` (+ status/fund_breakdown/timeline/beneficiary/media/review columns). ✅ Phase 1 (pending #43 applied). ⏳ Phase 2: Verified-Completion trust badges + creator trust display + search filters + report analytics.
 - **Abuse flags:** Authenticated users flag campaigns (fraud/misleading/spam/other); admin resolves. `components/campaigns/ReportCampaignButton.tsx`, `app/api/campaigns/flag/route.ts`, `components/admin/AdminCampaignFlags.tsx`. Table: `campaign_flags`. ✅ Complete.
 
 ### "Featured" / Homepage Curation
 - **What:** The homepage shows the **first 3 active campaigns** (by recency) as "Featured" and the **top 8 by raised amount** as "Trending."
 - **Where:** `app/[locale]/page.tsx` (`featured = campaigns.slice(0,3)`, `trending` sorted by `current_amount`).
 - **Status:** ✅ Implemented as a **presentation layer only** — there is **no `is_featured` column or admin curation**. (Documented accurately to avoid implying a backed feature.)
+
+### Homepage — Mission & Transparency
+- **What:** A **"Helping People Comes First"** section below the homepage statistics (above Featured) explaining XAYR's mission — connect generous people with the individuals, families, and communities who need support; help people while keeping operations sustainable — and where any platform commission goes (secure payment processing, server/hosting, cloud infrastructure, security services, fraud prevention, verification systems, customer support, platform development). It shows four transparency value cards (Mission First / Secure Donations / Verified Campaigns / Transparent Platform), a **"How platform fees work"** link to `/fees`, and a compact **trust-indicator strip** that renders **real DB counts only** (verified/approved campaigns, successful campaigns, total raised) and is hidden when there's no real data. **No percentage is shown on the homepage** (the rate lives on `/fees`); no nonprofit/legal claims are made. The `/fees` page gained a matching **"What the platform fee funds"** block (why it exists + sustainability), reusing the same dictionary keys.
+- **Where:** `app/[locale]/page.tsx` (new section; `getPlatformStats` extended with `verifiedCampaigns`/`successfulCampaigns` via service-role counts), `app/[locale]/fees/page.tsx`, `locales/{uz,ru,en}/common.json` (`transparency.*`).
+- **Status:** ✅ Complete. Production build + typecheck pass locally.
 
 ### Creator Profiles & Following
 - **What:** Public creator profile (`/u/[username]`) with Person JSON-LD; follow creators; followers notified on new campaign launch.
@@ -318,6 +323,10 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 38 | `payment-foundation.sql` | `payment_ref` UNIQUE + `payment_events` | Unknown | 5 |
 | 39 | `payment-refund-reversal.sql` | Refund safety — `apply_donation` reverses campaign totals (floored at 0) on completed→refunded/failed | Unknown | 5 |
 | 40 | `payout-info.sql` | **Secure payout accounts** (`payout_accounts` table, RLS owner+admin) + `payout_requests` snapshot columns; `create_payout_request` sources/snapshots payout info + enforces a configurable minimum; `mark_payout_paid` accepts a payment date | Unknown | payouts.sql, payout-commission.sql |
+| 41 | `campaign-expiration.sql` | **Campaign expiration & archive** — adds `expired`/`funded`/`cancelled` statuses; widens `campaigns_select_public` to archived states (URLs+SEO keep working); `expire_due_campaigns()` (cron-driven) flips active+past-deadline → `funded`/`expired`; owner expiry/funding notification | Unknown | 1 |
+| 42 | `campaign-extensions.sql` | **Campaign extension workflow** (self-contained) — `campaign_extension_requests` table + `campaigns.extension_count`/`original_deadline`; `request`/`approve`/`reject`/`cancel`/`close` RPCs + `get_campaign_extension_history()`. A request never reactivates a campaign — only admin approval does | Unknown | 41 |
+| 43 | `completion-reports-v2.sql` | **Moderated completion reports (Phase 1)** — `campaign_reports` moderation `status` (existing reports grandfathered `approved`) + `fund_breakdown`/`timeline`/media/review columns; only approved reports public; `review_completion_report`, `campaign_total_withdrawn` | Unknown | 8, 14 |
+| 44 | `guest-donations.sql` | **Guest donations** — `donations.donor_name`/`donor_email`/`donor_phone` (PII, owner/admin RLS) + `name_display`; rebuilds `campaign_donors` view to render the chosen display name for guests + registered without exposing contact | Unknown | 7 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 
@@ -332,16 +341,21 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/auth/signup` | POST | Create account (rate-limited), validate/sanitize username | Public | — | `{ ok, needsConfirmation }` / error |
 | `/api/auth/login` | POST | Login by email or username (rate-limited) | Public | — | `{ ok }` / 401 generic |
 | `/api/auth/username-available` | GET | Live username availability | Public | — | `{ available, reason }` |
+| `/api/auth/forgot-password` | POST | Send password-reset email (rate-limited, Turnstile) | Public | — | `{ ok }` (anti-enumeration) |
 | `/api/donations` | POST | Record a **pending** donation (rate-limited), hand off to provider | Optional (guests allowed) | Campaign must be `active` | `{ donationId, status, reference, redirectUrl, instructions }` |
 | `/api/payments/webhook` | POST | Gateway callback: verify → dedupe → log → confirm → mark | Provider signature | `501` until a real provider is registered | `{ ok }` / `{ duplicate }` / error |
 | `/api/payments/status` | GET | Poll donation status by `payment_ref` (non-PII) | Public (holds ref) | — | `{ found, amount, status, campaignTitle, campaignSlug }` |
 | `/api/verification/submit` | POST | Submit KYC request + document paths | Required | Self; paths must be in user's folder | `{ ok, requestId }` |
 | `/api/admin/verifications` | GET, POST | Signed doc URLs (GET); approve/reject (POST) | Required | **Admin** | `{ documents }` / `{ ok }` |
 | `/api/admin/set-role` | POST | Change a user's role | Required | **Admin**; self-change blocked | `{ ok }` |
+| `/api/campaigns/create` | POST | Create a campaign (rate-limited, Turnstile) | Required | Self; KYC-gated at RLS (unverified → forced `draft`) | `201 { ok, slug }` / error |
 | `/api/campaigns/flag` | POST, PATCH | Submit flag (POST); resolve (PATCH) | Required | POST: any auth; PATCH: **admin** | `{ ok }` / `409 already_reported` |
 | `/api/campaigns/reports` | POST, PATCH, DELETE | Manage completion reports | Required | Owner/manager; campaign must be completed | `{ ok, id }` |
 | `/api/campaigns/views` | POST | Record view + recently-viewed (rate-limited, owner excluded) | Optional | — | `{ ok, counted }` |
 | `/api/push/notify` | POST | Supabase DB-webhook → OneSignal push | Shared secret header | `503` if unset, `401` on mismatch | always `200`-style ack |
+| `/api/admin/extensions` | POST | Approve/reject a campaign extension (calls RPC; revalidates home on approve) | Required | **Admin** (RPC re-checks `is_admin()`) | `{ ok }` / error |
+| `/api/contact` | POST | Store a contact-form message (rate-limited, Turnstile) | Public | — | `201 { ok }` / error |
+| `/api/cron/expire-campaigns` | GET | Daily sweep: archive due campaigns via `expire_due_campaigns()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, expired }` |
 
 ---
 
@@ -450,7 +464,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 13. Localization
 
 - **Languages:** Uzbek (default), Russian, English. Config in `i18n/config.ts`; routing via `/[locale]/…` + `NEXT_LOCALE` cookie + middleware redirect.
-- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **946 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
+- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1130 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
 - **Missing translations:** No structural gaps detected (equal line counts). Some Uzbek UI strings are hardcoded in components/API error messages (e.g. toast text in `DonationForm`, API error strings) rather than dictionary-driven.
 - **Remaining work:** Extract hardcoded UI/toast/API strings into the dictionaries for full coverage; add a CI check that locale files stay key-aligned.
 
