@@ -3,22 +3,30 @@ import Link from 'next/link';
 import {
   TrendingUp, Hash, BarChart3, Trophy, Clock, RotateCcw, Percent, CreditCard,
   Banknote, HandCoins, Hourglass, Wallet, AlertTriangle, Download, ShieldCheck,
-  CalendarDays,
+  CalendarDays, FileSpreadsheet, FileText, LineChart,
 } from 'lucide-react';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
 import { formatMoney } from '@/lib/utils';
-import { getFinancialSummary, getIntegrityIssues, getRecentLedger, type LedgerEntryType } from '@/lib/finance';
+import { getFinancialSummary, getIntegrityIssues, getRecentLedger, getPublicSeries, type LedgerEntryType } from '@/lib/finance';
+import { MoneyBarChart } from '@/components/charts/MoneyBarChart';
+import { FinancePeriodTabs } from '@/components/admin/FinancePeriodTabs';
 
 export const metadata: Metadata = { title: 'Financial Dashboard — Xayr' };
 export const dynamic = 'force-dynamic';
 
-const ENTRY_COLOR: Record<LedgerEntryType, string> = {
+const ENTRY_COLOR: Partial<Record<LedgerEntryType, string>> = {
   donation: 'text-green-600 bg-green-50 dark:bg-green-900/20',
   refund: 'text-red-600 bg-red-50 dark:bg-red-900/20',
   platform_fee: 'text-brand-600 bg-brand-50 dark:bg-brand-900/20',
   provider_fee: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20',
   withdrawal: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20',
+  withdrawal_completed: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20',
+  withdrawal_requested: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20',
+  withdrawal_approved: 'text-teal-600 bg-teal-50 dark:bg-teal-900/20',
+  withdrawal_cancelled: 'text-gray-600 bg-gray-100 dark:bg-gray-800',
+  campaign_credit: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20',
+  chargeback: 'text-red-700 bg-red-50 dark:bg-red-900/20',
   adjustment: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20',
   admin_correction: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20',
 };
@@ -32,13 +40,29 @@ export default async function AdminFinancePage({
   const lng = isLocale(locale) ? locale : 'uz';
   const fin = (await getDictionary(lng)).fin;
 
-  const [s, issues, ledger] = await Promise.all([
+  const [s, issues, ledger, series] = await Promise.all([
     getFinancialSummary(),
     getIntegrityIssues(),
     getRecentLedger(40),
+    getPublicSeries(12),
   ]);
 
   const money = (n: number) => `${formatMoney(n)} so'm`;
+
+  // Period tabs (Today / Week / Month / Year / All Time) for donations.
+  const periods = [
+    { key: 'today', label: fin.today, amount: money(s.today_amount), sub: `${s.today_count} ${fin.donationsWord}` },
+    { key: 'week', label: fin.thisWeek, amount: money(s.week_amount) },
+    { key: 'month', label: fin.thisMonth, amount: money(s.month_amount) },
+    { key: 'year', label: fin.thisYear, amount: money(s.year_amount) },
+    { key: 'all', label: fin.allTime, amount: money(s.total_donations_amount), sub: `${s.donations_count.toLocaleString('uz-UZ')} ${fin.donationsWord}` },
+  ];
+
+  // Monthly money-flow chart (donations vs withdrawals).
+  const chartPoints = series.map((p) => ({
+    label: new Date(p.month).toLocaleDateString(lng, { month: 'short' }),
+    values: [p.donations, p.withdrawals],
+  }));
 
   // Primary money metrics.
   const metrics: { label: string; value: string; sub?: string; icon: typeof TrendingUp; color: string; bg: string }[] = [
@@ -72,13 +96,21 @@ export default async function AdminFinancePage({
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">{fin.title}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">{fin.subtitle}</p>
         </div>
-        <a
-          href={`/api/admin/finance/export`}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700 transition-colors"
-        >
-          <Download className="w-4 h-4" /> {fin.exportCsv}
-        </a>
+        <div className="flex flex-wrap gap-2">
+          <a href={`/api/admin/finance/export?format=csv`} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-bold hover:bg-brand-700 transition-colors">
+            <Download className="w-4 h-4" /> {fin.exportCsv}
+          </a>
+          <a href={`/api/admin/finance/export?format=xls`} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-brand-500 hover:text-brand-600 transition-colors">
+            <FileSpreadsheet className="w-4 h-4" /> {fin.exportExcel}
+          </a>
+          <Link href={`/${lng}/admin/finance/report`} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-brand-500 hover:text-brand-600 transition-colors">
+            <FileText className="w-4 h-4" /> {fin.exportPdf}
+          </Link>
+        </div>
       </div>
+
+      {/* Period tabs */}
+      <FinancePeriodTabs periods={periods} caption={fin.totalDonations} />
 
       {/* Integrity */}
       {issues.length > 0 ? (
@@ -148,6 +180,19 @@ export default async function AdminFinancePage({
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Monthly money-flow chart (from real ledger/payout data) */}
+      <section className="card p-5">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <LineChart className="w-5 h-5 text-brand-600" /> {fin.monthlyFlow}
+        </h3>
+        <MoneyBarChart
+          points={chartPoints}
+          seriesLabels={[fin.chartDonations, fin.chartWithdrawals]}
+          colors={['#16a34a', '#2563eb']}
+          emptyLabel={fin.noChartData}
+        />
       </section>
 
       {/* Recent ledger */}

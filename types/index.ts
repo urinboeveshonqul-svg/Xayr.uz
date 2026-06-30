@@ -869,7 +869,7 @@ export type Database = {
       financial_ledger: {
         Row: {
           id: string;
-          entry_type: 'donation' | 'refund' | 'platform_fee' | 'provider_fee' | 'withdrawal' | 'adjustment' | 'admin_correction';
+          entry_type: 'donation' | 'refund' | 'platform_fee' | 'provider_fee' | 'campaign_credit' | 'withdrawal' | 'withdrawal_requested' | 'withdrawal_approved' | 'withdrawal_completed' | 'withdrawal_cancelled' | 'adjustment' | 'admin_correction' | 'chargeback';
           amount: number;
           currency: string;
           campaign_id: string | null;
@@ -877,14 +877,16 @@ export type Database = {
           payout_request_id: string | null;
           status: string;
           created_by: string | null;
+          user_id: string | null;
           reason: string | null;
+          reference_id: string | null;
           metadata: Record<string, unknown>;
           source_key: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
-          entry_type: 'donation' | 'refund' | 'platform_fee' | 'provider_fee' | 'withdrawal' | 'adjustment' | 'admin_correction';
+          entry_type: 'donation' | 'refund' | 'platform_fee' | 'provider_fee' | 'campaign_credit' | 'withdrawal' | 'withdrawal_requested' | 'withdrawal_approved' | 'withdrawal_completed' | 'withdrawal_cancelled' | 'adjustment' | 'admin_correction' | 'chargeback';
           amount: number;
           currency?: string;
           campaign_id?: string | null;
@@ -892,10 +894,40 @@ export type Database = {
           payout_request_id?: string | null;
           status?: string;
           created_by?: string | null;
+          user_id?: string | null;
           reason?: string | null;
+          reference_id?: string | null;
           metadata?: Record<string, unknown>;
           source_key?: string | null;
           created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      financial_snapshots: {
+        Row: {
+          snapshot_date: string;
+          total_donations: number;
+          donation_count: number;
+          total_withdrawn: number;
+          pending_withdrawals: number;
+          available_funds: number;
+          platform_fees: number;
+          provider_fees: number;
+          refunds: number;
+          chargebacks: number;
+          registered_users: number;
+          verified_campaigns: number;
+          active_campaigns: number;
+          completed_campaigns: number;
+          successful_campaigns: number;
+          avg_donation: number;
+          largest_donation: number;
+          created_at: string;
+        };
+        Insert: {
+          snapshot_date: string;
+          [key: string]: unknown;
         };
         Update: Record<string, never>;
         Relationships: [];
@@ -1136,6 +1168,37 @@ export type Database = {
           active_campaigns: number;
           verified_campaigns: number;
           registered_users: number;
+          avg_donation: number;
+          largest_donation: number;
+        }[];
+      };
+      public_financial_series: {
+        Args: { p_months?: number };
+        Returns: {
+          month: string;
+          donations: number;
+          withdrawals: number;
+          fees: number;
+        }[];
+      };
+      generate_financial_snapshot: {
+        Args: { p_date?: string };
+        Returns: boolean;
+      };
+      reconciliation_report: {
+        Args: Record<string, never>;
+        Returns: {
+          campaign_id: string;
+          campaign_title: string;
+          total_donations: number;
+          campaign_credits: number;
+          platform_fees: number;
+          provider_fees: number;
+          withdrawals: number;
+          refunds: number;
+          available_balance: number;
+          discrepancy: number;
+          is_balanced: boolean;
         }[];
       };
       campaign_financials: {
