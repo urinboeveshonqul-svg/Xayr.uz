@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
+import { WhyTrustButton } from '@/components/home/WhyTrustButton';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import { RecentlyViewed } from '@/components/campaigns/RecentlyViewed';
 import { Avatar } from '@/components/ui/Avatar';
@@ -77,10 +78,13 @@ async function getCompletionReports(campaignIds: string[]): Promise<Map<string, 
 }
 
 interface PlatformStats {
-  active: number;   // active campaigns
-  donors: number;   // completed donations
-  raised: number;   // sum of completed donation amounts
-  verified: number; // verified users (creators)
+  active: number;              // active campaigns
+  donors: number;             // completed donations
+  raised: number;             // sum of completed donation amounts
+  verified: number;           // verified users (creators)
+  verifiedCampaigns: number;  // campaigns reviewed & approved (left draft/pending/rejected)
+  successfulCampaigns: number;// completed or funded campaigns
+  registeredUsers: number;    // total registered users
 }
 
 /**
@@ -90,14 +94,22 @@ interface PlatformStats {
  * zeros instead of throwing, so the homepage never breaks.
  */
 async function getPlatformStats(): Promise<PlatformStats> {
-  const zero: PlatformStats = { active: 0, donors: 0, raised: 0, verified: 0 };
+  const zero: PlatformStats = {
+    active: 0, donors: 0, raised: 0, verified: 0,
+    verifiedCampaigns: 0, successfulCampaigns: 0, registeredUsers: 0,
+  };
   try {
     const admin = createAdminClient();
-    const [activeRes, donorsRes, verifiedRes, raisedRes] = await Promise.all([
+    const [activeRes, donorsRes, verifiedRes, raisedRes, verifiedCampaignsRes, successfulRes, usersRes] = await Promise.all([
       admin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       admin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
       admin.from('users').select('*', { count: 'exact', head: true }).eq('verification_status', 'verified'),
       admin.from('donations').select('amount').eq('status', 'completed'),
+      // Reviewed & approved campaigns = everything that has left the pre-approval states.
+      admin.from('campaigns').select('*', { count: 'exact', head: true }).not('status', 'in', '(draft,pending,rejected)'),
+      // Successful campaigns = reached their goal (completed) or fully funded.
+      admin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['completed', 'funded']),
+      admin.from('users').select('*', { count: 'exact', head: true }),
     ]);
     const raised = (raisedRes.data ?? []).reduce((sum, d) => sum + (d.amount ?? 0), 0);
     return {
@@ -105,6 +117,9 @@ async function getPlatformStats(): Promise<PlatformStats> {
       donors: donorsRes.count ?? 0,
       verified: verifiedRes.count ?? 0,
       raised,
+      verifiedCampaigns: verifiedCampaignsRes.count ?? 0,
+      successfulCampaigns: successfulRes.count ?? 0,
+      registeredUsers: usersRes.count ?? 0,
     };
   } catch {
     return zero;
@@ -150,6 +165,15 @@ export default async function HomePage({
     { icon: HandHeart, title: dict.home.step3Title, text: dict.home.step3Text, color: 'from-purple-500 to-pink-600' },
   ];
 
+  // Real counts for the "Why Trust XAYR?" modal — zeros are hidden inside the modal.
+  const trustStats = {
+    verifiedCampaigns: platformStats.verifiedCampaigns,
+    successfulCampaigns: platformStats.successfulCampaigns,
+    donations: platformStats.donors,
+    registeredUsers: platformStats.registeredUsers,
+    raised: platformStats.raised,
+  };
+
   return (
     <>
       <Navbar />
@@ -159,6 +183,10 @@ export default async function HomePage({
         {/* STATISTICS */}
         <section className="py-16 lg:py-20 bg-white border-b border-gray-100">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Small, secondary trust trigger — opens the "Why Trust XAYR?" modal (lazy) */}
+            <div className="flex justify-center mb-10 lg:mb-12">
+              <WhyTrustButton stats={trustStats} />
+            </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               {stats.map((stat, i) => (
                 <div key={i} className="text-center p-6 lg:p-8 rounded-3xl bg-gray-50 hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-gray-100">

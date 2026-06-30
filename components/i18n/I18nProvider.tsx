@@ -28,14 +28,18 @@ export function I18nProvider({
   );
 }
 
-function lookup(messages: Messages, key: string): string | undefined {
-  const value = key.split('.').reduce<unknown>(
+function lookupRaw(messages: Messages, key: string): unknown {
+  return key.split('.').reduce<unknown>(
     (acc, part) =>
       acc && typeof acc === 'object'
         ? (acc as Record<string, unknown>)[part]
         : undefined,
     messages
   );
+}
+
+function lookup(messages: Messages, key: string): string | undefined {
+  const value = lookupRaw(messages, key);
   return typeof value === 'string' ? value : undefined;
 }
 
@@ -65,5 +69,17 @@ export function useI18n() {
     [messages]
   );
 
-  return { t, locale };
+  // Translate a key whose value is a list of strings (e.g. bullet points).
+  // Returns [] when the key is missing or not an array of strings.
+  const ta = useCallback(
+    (key: string): string[] => {
+      const value = lookupRaw(messages, key);
+      return Array.isArray(value)
+        ? value.filter((v): v is string => typeof v === 'string')
+        : [];
+    },
+    [messages]
+  );
+
+  return { t, ta, locale };
 }

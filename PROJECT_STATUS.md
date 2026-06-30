@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-06-30
-> **Branch:** feat/payout-accounts · **Latest commit at sync:** `c84882f` (homepage transparency) → transparency/mission moved to the Platform Fees page (`/fees`)
+> **Branch:** feat/payout-accounts · **Latest commit at sync:** `18a72a5` (transparency moved to `/fees`, merged to main) + "Why Trust XAYR?" trust modal on the homepage
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -48,7 +48,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 | Notifications (in-app) | 95% | Trigger-driven, complete. |
 | Push notifications | 80% (code) | Code-complete; requires OneSignal + Supabase webhook config to go live. |
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
-| Localization | 95% | 3 languages, parity maintained (1131 lines each). |
+| Localization | 95% | 3 languages, parity maintained (1189 lines each). |
 | Analytics | 60% | Per-campaign creator analytics only; no platform product analytics. |
 | Testing / CI | 35% | Build + typecheck CI; **no automated tests**, no lockfile. |
 
@@ -138,7 +138,12 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 
 ### Platform Fees — Mission & Transparency (`/fees`)
 - **What:** The full mission/transparency explanation lives on the **Platform Fees page** (`/fees`), **not** the homepage — it was moved off the homepage so it no longer interrupts the donation flow or surfaces commissions to first-time visitors too early. `/fees` now covers: the **"Helping People Comes First"** mission (connect generous people with the individuals, families, and communities who need support; help people while keeping operations sustainable), a **"Why does XAYR charge a platform fee?"** section (donations go directly to the campaign organizer; any commission is used only to operate/improve XAYR), the cost-category checklist (payment processing, hosting, cloud infrastructure, security, fraud prevention, identity verification, customer support, platform maintenance/development), a sustainability note, and four transparency value cards (Mission First / Secure Donations / Verified Campaigns / Transparent Platform) — in the page's brand/dark design. The existing pricing cards + worked example remain (the **only** place a percentage appears). No nonprofit/legal claims. `/fees` is reachable from the footer **Support** group (alongside FAQ + Guide), so no main-nav clutter.
-- **Where:** `app/[locale]/fees/page.tsx`; copy in `locales/{uz,ru,en}/common.json` (`transparency.*` retained/reused; `feeWhyTitle` added). The homepage (`app/[locale]/page.tsx`) no longer renders the section (`getPlatformStats` reverted to its original 4 counts). Unused-on-page keys (`feeUseTitle`, `statVerifiedCampaigns`, `statSuccessful`, `statRaised`) are kept in the dictionaries for reuse.
+- **Where:** `app/[locale]/fees/page.tsx`; copy in `locales/{uz,ru,en}/common.json` (`transparency.*` retained/reused; `feeWhyTitle` added). The homepage (`app/[locale]/page.tsx`) no longer renders the section. The `statVerifiedCampaigns`/`statSuccessful`/`statRaised` labels are reused by the Trust modal (below).
+- **Status:** ✅ Complete. Production build + typecheck pass locally.
+
+### Trust & Transparency Modal ("Why Trust XAYR?")
+- **What:** A small, secondary **🛡️ Why Trust XAYR?** pill below the hero (centered above the homepage statistics grid; **not** a primary CTA) opens a **trust & transparency modal** — centered dialog on desktop, **bottom-sheet on mobile** — without leaving the homepage. Seven sections (Verified Campaigns, Secure Donations, Transparent Withdrawals, Completion Reports, Platform Fees, Your Privacy, Community Safety), a **real-data** trust-indicator strip (verified campaigns, successful campaigns, total donations, registered users, total raised — each **hidden when 0**), and a CTA row (Help Center → `/guide`, Contact Support → `/contact`, Platform Fees → `/fees`). No fixed fee % shown — the Platform Fees section reuses `transparency.feeBody`/`feeItems`. Accessible: `role="dialog"`, `aria-modal`, labelled/described by title+subtitle, Esc-to-close, Tab focus-trap + focus restore, body scroll-lock. Reuses the ShareModal pattern (`animate-pop`, `items-end sm:items-center`, `rounded-t-3xl sm:rounded-3xl`).
+- **Where:** `components/home/WhyTrustButton.tsx` (small trigger; **lazy-loads** the modal via `next/dynamic` `{ ssr:false }`, keeping its weight out of the homepage's initial JS), `components/home/WhyTrustModal.tsx` (the dialog), `app/[locale]/page.tsx` (`getPlatformStats` extended with `verifiedCampaigns`/`successfulCampaigns`/`registeredUsers`), `components/i18n/I18nProvider.tsx` (added `ta()` array-translation helper for bullet lists), copy in `locales/{uz,ru,en}/common.json` (`trust.*`).
 - **Status:** ✅ Complete. Production build + typecheck pass locally.
 
 ### Creator Profiles & Following
@@ -464,7 +469,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 13. Localization
 
 - **Languages:** Uzbek (default), Russian, English. Config in `i18n/config.ts`; routing via `/[locale]/…` + `NEXT_LOCALE` cookie + middleware redirect.
-- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1131 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
+- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1189 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
 - **Missing translations:** No structural gaps detected (equal line counts). Some Uzbek UI strings are hardcoded in components/API error messages (e.g. toast text in `DonationForm`, API error strings) rather than dictionary-driven.
 - **Remaining work:** Extract hardcoded UI/toast/API strings into the dictionaries for full coverage; add a CI check that locale files stay key-aligned.
 
