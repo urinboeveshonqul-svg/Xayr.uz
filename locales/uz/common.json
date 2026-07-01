@@ -465,6 +465,10 @@
     "privacy": "Maxfiylik Siyosati",
     "terms": "Foydalanish Shartlari",
     "cookies": "Cookie Siyosati",
+    "offer": "Ommaviy Oferta",
+    "refund": "Qaytarish Siyosati",
+    "rules": "Tekshiruv Qoidalari",
+    "legalTitle": "Huquqiy",
     "secure": "100% Xavfsiz To'lovlar",
     "verified": "Tasdiqlangan Platforma",
     "support247": "24/7 Texnik Yordam",
@@ -733,6 +737,47 @@
     "lastUpdated": "Oxirgi yangilanish",
     "effectiveDate": "1-yanvar, 2026",
     "tocTitle": "Mundarija",
+    "offer": {
+      "title": "Ommaviy oferta",
+      "subtitle": "XAYR jamoaviy moliyalashtirish platformasidan foydalanishni tartibga soluvchi ommaviy oferta.",
+      "intro": "Ushbu Ommaviy oferta XAYR o'z jamoaviy moliyalashtirish platformasini taqdim etish shartlarini belgilaydi. Kampaniya yaratish yoki xayriya qilish orqali siz ushbu shartlarni qabul qilasiz.",
+      "sections": [
+        { "id": "platform", "heading": "XAYR haqida", "paragraphs": ["XAYR — O'zbekistondagi xayriyachilarni tekshirilgan kampaniya tashkilotchilari bilan bog'lovchi xayriya jamoaviy moliyalashtirish platformasi.", "XAYR texnologiya va tekshiruv vositalarini taqdim etadi. U xayriyachi bilan kampaniya tashkilotchisi o'rtasidagi munosabatlarning tarafi emas va xayriyalarni o'z foydasiga yig'maydi."] },
+        { "id": "acceptance", "heading": "Ofertani qabul qilish", "paragraphs": ["Kampaniyaga xayriya qilish yoki kampaniya yaratish/boshqarish orqali siz ushbu Ommaviy oferta bilan birga Xizmat ko'rsatish shartlari, Maxfiylik siyosati, Mablag'ni qaytarish siyosati hamda Kampaniyani tekshirish va mablag' yechish qoidalari bilan tanishganingizni va roziligingizni tasdiqlaysiz."] },
+        { "id": "donations", "heading": "Ixtiyoriy xayriyalar", "paragraphs": ["XAYRdagi barcha xayriyalar ixtiyoriy bo'lib, xayriyachi tanlagan kampaniyaga yo'naltiriladi.", "Yakunlangan xayriya, Mablag'ni qaytarish siyosatida ko'rsatilgan cheklangan hollar bundan mustasno, odatda qaytarilmaydi."] },
+        { "id": "verification", "heading": "Tekshiruv va natijalar", "paragraphs": ["XAYR har bir kampaniyani ko'rib chiqadi va mablag' yig'ish boshlanishidan oldin tashkilotchining shaxsini tasdiqlaydi. Tekshiruv xavfni kamaytiradi, lekin uni butunlay yo'q qilmaydi."], "bullets": ["XAYR kampaniya tashkilotchilarini shaxsni tasdiqlash (KYC) orqali tekshiradi.", "XAYR kampaniyalarni e'lon qilishdan oldin ko'rib chiqadi.", "XAYR kampaniya o'z maqsadiga erishishini yoki ko'zlangan natijaga yetishini kafolatlay olmaydi.", "Mablag'dan ko'rsatilgan maqsadda foydalanish uchun faqat kampaniya tashkilotchisi javobgardir."] },
+        { "id": "fees", "heading": "Platforma komissiyasi", "paragraphs": ["Agar platforma komissiyasi qo'llanilsa, u shaffof tarzda oshkor etiladi. Xayriyachilar platforma komissiyasini to'lamaydi. XAYRni ishlatish va yaxshilash uchun tashkilotchining mablag' yechishidan kichik komissiya ushlab qolinishi mumkin.", "Aniq komissiya tafsilotlari Komissiyalar sahifasida e'lon qilinadi va vaqt o'tishi bilan yangilanishi mumkin."] },
+        { "id": "rules", "heading": "Platforma qoidalari", "paragraphs": ["Foydalanuvchilar platforma qoidalariga, jumladan Xizmat ko'rsatish shartlaridagi taqiqlangan kontent qoidalariga rioya qilishlari shart. XAYR ushbu qoidalarni buzuvchi kontentni ko'rib chiqishi yoki o'chirishi va hisoblarni to'xtatib qo'yishi mumkin."] },
+        { "id": "contact", "heading": "Bog'lanish", "paragraphs": ["Ushbu Ommaviy oferta bo'yicha savollar uchun Bog'lanish sahifasi orqali biz bilan bog'laning."] }
+      ]
+    },
+    "refund": {
+      "title": "Mablag'ni qaytarish siyosati",
+      "subtitle": "XAYRda xayriyalar qachon va qanday qaytarilishi mumkinligi.",
+      "intro": "Ushbu Mablag'ni qaytarish siyosati xayriya qachon qaytarilishi mumkinligini va qachon qaytarilmasligini tushuntiradi. Xayriyalar haqiqiy kampaniyalarni moliyalashtirgani va tekshirilgan tashkilotchilarga o'tkazilgani sababli, qaytarishlar cheklangan.",
+      "sections": [
+        { "id": "overview", "heading": "Umumiy ma'lumot", "paragraphs": ["Xayriyalar ixtiyoriy bo'lib, kampaniya tashkilotchilariga yetib borishi uchun mo'ljallangan. Ushbu siyosat qaytarish mumkin yoki mumkin bo'lmagan aniq holatlarni tavsiflaydi."] },
+        { "id": "possible", "heading": "Qaytarish qachon mumkin", "paragraphs": ["Quyidagi hollarda mablag' qaytarilishi mumkin:"], "bullets": ["Sizdan pul yechildi, biroq texnik nosozlik yoki muvaffaqiyatsiz to'lov sababli xayriya yakunlanmadi.", "Bir xayriya uchun takroriy yoki tasodifiy to'lov amalga oshirildi.", "Mablag' tashkilotchiga o'tkazilishidan oldin kampaniya firibgarlik yoki qoidalarning jiddiy buzilishi uchun o'chirildi.", "Amaldagi qonun mablag'ni qaytarishni talab qiladi."] },
+        { "id": "after-transfer", "heading": "Mablag' kampaniya egasiga o'tkazilgandan so'ng", "paragraphs": ["Xayriya mablag'i ko'rib chiqilib, tasdiqlangach va kampaniya tashkilotchisiga to'langach, XAYR bu o'tkazmani bekor qila olmaydi va platforma orqali mablag' qaytarilmaydi.", "Bu bosqichda mablag' tashkilotchida bo'lib, kampaniya uchun sarflanadi. Agar mablag' noto'g'ri ishlatilayotganiga ishonsangiz, XAYR tekshirishi uchun kampaniya ustidan shikoyat qiling."] },
+        { "id": "failed", "heading": "Muvaffaqiyatsiz to'lovlar", "paragraphs": ["Agar to'lov amalga oshmasa yoki tasdiqlanmasa, xayriya yakunlanmaydi va mablag' kampaniyaga yetib bormaydi. Har qanday vaqtincha ushlab turish to'lov provayderi tomonidan bekor qilinadi.", "Agar sizdan muvaffaqiyatsiz ko'rsatilgan xayriya uchun pul yechilgan bo'lsa, to'lov ma'lumotnomasi bilan qo'llab-quvvatlashga murojaat qiling."] },
+        { "id": "duplicate", "heading": "Takroriy to'lovlar", "paragraphs": ["Agar bir xayriya uchun sizdan bir necha marta pul yechilgan bo'lsa, tranzaksiya ma'lumotnomalari bilan qo'llab-quvvatlashga murojaat qiling. Tasdiqlangan takroriy to'lovlar qaytariladi."] },
+        { "id": "request", "heading": "Mablag'ni qaytarishni so'rash va qo'llab-quvvatlash", "paragraphs": ["Mablag'ni qaytarishni so'rash uchun Bog'lanish sahifasi orqali biz bilan bog'laning va ismingiz, kampaniya, summa, sana hamda to'lov ma'lumotnomasini ko'rsating. Biz mos so'rovlarni ko'rib chiqamiz va imkon qadar tezroq javob beramiz."] }
+      ]
+    },
+    "verificationRules": {
+      "title": "Kampaniyani tekshirish va mablag' yechish qoidalari",
+      "subtitle": "XAYR platformaga ishonchni saqlash uchun kampaniyalarni qanday tekshirishi va mablag' yechishni qanday ko'rib chiqishi.",
+      "intro": "Ushbu qoidalar XAYR har bir bosqichda qo'llaydigan tekshiruvlarni tushuntiradi: shaxsni tasdiqlash, kampaniyani ko'rib chiqish, mablag' yechishni ko'rib chiqish, yakuniy hisobotlar, muddatni uzaytirish so'rovlari va firibgarlik tekshiruvlari.",
+      "sections": [
+        { "id": "kyc", "heading": "Shaxsni tasdiqlash (KYC)", "paragraphs": ["Kampaniya yaratishdan oldin tashkilotchi shaxsni tasdiqlashdan o'tishi shart. Bu xayriyachilarni himoya qiladi va mablag' yig'ishni javobgar saqlaydi."], "bullets": ["Tashkilotchi shaxsni tasdiqlovchi hujjatlar va selfi taqdim etadi.", "Administrator taqdim etilgan ma'lumotni ko'rib chiqadi.", "Hujjatlar xavfsiz saqlanadi va hech qachon ommaga ko'rsatilmaydi.", "Faqat tasdiqlangan tashkilotchilar kampaniya e'lon qilishi va mablag' yechishni so'rashi mumkin."] },
+        { "id": "review", "heading": "Kampaniyani ko'rib chiqish", "paragraphs": ["Har bir yangi kampaniya e'lon qilinishidan oldin ko'rib chiqiladi. Kampaniya avval kutish holatida bo'ladi va faqat ko'rib chiqilgandan so'ng faollashadi.", "Administratorlar kampaniyani tasdiqlashi yoki sabab ko'rsatib rad etishi mumkin. Chalg'ituvchi yoki qoidalarni buzuvchi kampaniyalar rad etiladi."] },
+        { "id": "withdrawal", "heading": "Mablag' yechishni qo'lda ko'rib chiqish", "paragraphs": ["Kampaniya tashkilotchilari mablag'ni darhol yechib ololmaydi. Har bir yechish so'rovi qo'lda ko'rib chiqish jarayonidan o'tadi.", "So'rov ko'rib chiqilish holatidan tasdiqlangan, so'ngra to'langan holatga o'tadi. Mablag' tekshiruvdan so'ng o'tkaziladi va o'tkazma ma'lumotnomasi qayd etiladi. Yechishda platforma komissiyasi ushlab qolinishi mumkin."] },
+        { "id": "reports", "heading": "Yakuniy hisobotlar", "paragraphs": ["Kampaniya yakunlangach, tashkilotchi xayriya mablag'i qanday sarflanganini ko'rsatuvchi yakuniy hisobot e'lon qilishi kutiladi."], "bullets": ["Hisobot mablag' sarfi taqsimotini o'z ichiga oladi va rasmlar, cheklar hamda yangiliklarni qamrashi mumkin.", "Hisobotlar ko'rib chiqiladi; faqat administrator tomonidan tasdiqlangan hisobotlar ommaga ko'rsatiladi.", "Yakuniy hisobot tasdiqlanganda xayriyachilar xabardor qilinadi."] },
+        { "id": "extensions", "heading": "Muddatni uzaytirish so'rovlari", "paragraphs": ["Maqsadiga erishmagan muddati tugagan kampaniya egasi sabab ko'rsatib yangi muddat so'rashi mumkin. So'rovlar cheklangan (uzaytirishlarning maksimal soni, har biri belgilangan kunlar doirasida) va administrator tomonidan ko'rib chiqiladi.", "So'rovning o'zi kampaniyani qayta faollashtirmaydi — buni faqat administrator tasdig'i amalga oshiradi."] },
+        { "id": "fraud", "heading": "Firibgarlik tekshiruvlari", "paragraphs": ["XAYR firibgarlik yoki suiiste'mol haqidagi shikoyatlarni tekshiradi. Har qanday foydalanuvchi kampaniya ustidan shikoyat qilishi mumkin.", "Tekshiruv davomida XAYR kampaniyani to'xtatib qo'yishi, mablag' yechishni ushlab turishi yoki hisoblarni bloklashi mumkin. Tasdiqlangan firibgarlik kampaniyaning o'chirilishiga olib keladi va tegishli organlarga xabar berilishi mumkin."] },
+        { "id": "contact", "heading": "Savollar", "paragraphs": ["Tekshiruv yoki mablag' yechish bo'yicha savollar uchun Bog'lanish sahifasi orqali biz bilan bog'laning."] }
+      ]
+    },
     "privacy": {
       "title": "Maxfiylik siyosati",
       "subtitle": "Biz sizning shaxsiy ma'lumotlaringizni qanday to'plashimiz, ishlatishimiz va himoya qilishimiz haqida.",
