@@ -13,10 +13,11 @@ import {
   ArrowRight, TrendingUp, Heart, Users, ShieldCheck,
   Flame, Megaphone, HandHeart, Sparkles, CheckCircle2,
 } from 'lucide-react';
-import { formatMoney } from '@/lib/utils';
+import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
-import type { Campaign, CampaignReport } from '@/types';
+import type { Campaign } from '@/types';
+import { getSuccessStories } from '@/lib/success-stories';
 
 export const revalidate = 60;
 
@@ -37,45 +38,8 @@ async function getActiveCampaigns(): Promise<Campaign[]> {
   }
 }
 
-// Real completed campaigns — the basis of the Success Stories section.
-async function getCompletedCampaigns(): Promise<Campaign[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select('*, profiles:users(full_name, avatar_url), categories(slug)')
-      .eq('status', 'completed')
-      .order('updated_at', { ascending: false })
-      .limit(6);
-
-    if (error) return [];
-    return (data as unknown as Campaign[]) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Latest completion report per completed campaign (for Success Stories cards).
-async function getCompletionReports(campaignIds: string[]): Promise<Map<string, CampaignReport>> {
-  if (campaignIds.length === 0) return new Map();
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from('campaign_reports')
-      .select('id, campaign_id, user_id, title, message, images, documents, created_at, updated_at')
-      .in('campaign_id', campaignIds)
-      .order('created_at', { ascending: false });
-
-    const map = new Map<string, CampaignReport>();
-    for (const r of (data as unknown as CampaignReport[]) ?? []) {
-      // Keep only the most recent report per campaign (first in desc order).
-      if (!map.has(r.campaign_id)) map.set(r.campaign_id, r);
-    }
-    return map;
-  } catch {
-    return new Map();
-  }
-}
+// Success Stories now come from lib/success-stories (getSuccessStories): they
+// require goal reached + completed/funded + an APPROVED completion report.
 
 interface PlatformStats {
   active: number;              // active campaigns
@@ -136,13 +100,11 @@ export default async function HomePage({
   const dict = await getDictionary(lng);
   const L = (path: string) => `/${lng}${path}`;
 
-  const [campaigns, platformStats, completedCampaigns] = await Promise.all([
+  const [campaigns, platformStats, stories] = await Promise.all([
     getActiveCampaigns(),
     getPlatformStats(),
-    getCompletedCampaigns(),
+    getSuccessStories(6),
   ]);
-
-  const completionReports = await getCompletionReports(completedCampaigns.map((c) => c.id));
 
   const featured = campaigns.slice(0, 3);
   const featuredIds = new Set(featured.map((c) => c.id));
@@ -295,33 +257,32 @@ export default async function HomePage({
           </div>
         </section>
 
-        {/* SUCCESS STORIES — real completed campaigns from Supabase. Hidden when none. */}
-        {completedCampaigns.length > 0 && (
+        {/* SUCCESS STORIES — VERIFIED only: goal reached + completed/funded + an
+            admin-APPROVED completion report (lib/success-stories). Hidden when none. */}
+        {stories.length > 0 && (
           <section className="py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center max-w-2xl mx-auto mb-14">
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-5">
+                  <ShieldCheck className="w-4 h-4" /> {dict.home.successVerified}
+                </span>
                 <h2 className="text-3xl lg:text-4xl font-black text-gray-900 mb-4 tracking-tight">{dict.home.testimonialsTitle}</h2>
                 <p className="text-lg text-gray-600">{dict.home.testimonialsSubtitle}</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {completedCampaigns.map((c) => {
-                  const report = completionReports.get(c.id) ?? null;
-                  // Prefer first report image over campaign cover when a report exists.
-                  const coverImage = (report?.images?.[0]) || c.image_url || null;
-                  const excerpt = report
-                    ? report.message.length > 140
-                      ? report.message.slice(0, 140).trimEnd() + '…'
-                      : report.message
-                    : null;
+                {stories.map(({ campaign: c, report }) => {
+                  const coverImage = report.images?.[0] || c.image_url || null;
+                  const slug = (c.categories?.slug ?? 'other') as keyof typeof dict.categories;
+                  const catLabel = dict.categories[slug] ?? '';
+                  const excerpt = report.message.length > 130 ? report.message.slice(0, 130).trimEnd() + '…' : report.message;
+                  const completedDate = new Date(report.reviewed_at ?? report.created_at).toLocaleDateString(lng);
 
                   return (
-                    <Link
+                    <div
                       key={c.id}
-                      href={L(`/campaigns/${c.slug}`)}
                       className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
                     >
-                      {/* Cover image */}
-                      <div className="relative aspect-[4/3] bg-gray-100">
+                      <Link href={L(`/campaigns/${c.slug}`)} className="block relative aspect-[4/3] bg-gray-100">
                         {coverImage ? (
                           <Image
                             src={coverImage}
@@ -334,71 +295,66 @@ export default async function HomePage({
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100" />
                         )}
+                        {/* Completion Report Approved badge */}
                         <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-green-600 text-white text-xs font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> {dict.donation.completed}
+                          <ShieldCheck className="w-3.5 h-3.5" /> {dict.home.successBadge}
                         </div>
-                      </div>
+                        {catLabel && (
+                          <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-gray-700 text-xs font-bold">
+                            {catLabel}
+                          </div>
+                        )}
+                      </Link>
 
-                      {/* Card body */}
                       <div className="p-5 flex flex-col flex-1">
-                        {/* Campaign title */}
-                        <h3 className="font-black text-gray-900 line-clamp-2 leading-tight group-hover:text-green-600 transition-colors">
-                          {c.title}
-                        </h3>
+                        <Link href={L(`/campaigns/${c.slug}`)}>
+                          <h3 className="font-black text-gray-900 line-clamp-2 leading-tight group-hover:text-green-600 transition-colors">
+                            {c.title}
+                          </h3>
+                        </Link>
                         {c.profiles?.full_name && (
                           <div className="flex items-center gap-2 mt-1">
-                            <Avatar
-                              src={c.profiles.avatar_url}
-                              name={c.profiles.full_name}
-                              className="w-5 h-5 text-[9px]"
-                            />
+                            <Avatar src={c.profiles.avatar_url} name={c.profiles.full_name} className="w-5 h-5 text-[9px]" />
                             <p className="text-sm text-gray-500 truncate">{c.profiles.full_name}</p>
                           </div>
                         )}
 
-                        {/* Completion report block */}
-                        {report && (
-                          <div className="mt-3 p-3 rounded-2xl bg-green-50 border border-green-100">
-                            <p className="text-xs font-bold text-green-700 mb-1 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" />
-                              {report.title}
-                            </p>
-                            {excerpt && (
-                              <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
-                                {excerpt}
-                              </p>
-                            )}
-                            {/* Thumbnail strip for extra report images */}
-                            {report.images.length > 1 && (
-                              <div className="flex gap-1.5 mt-2 overflow-hidden">
-                                {report.images.slice(1, 4).map((src, i) => (
-                                  <div
-                                    key={i}
-                                    className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100"
-                                  >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={src} alt="" className="w-full h-full object-cover" />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        <div className="mt-3 p-3 rounded-2xl bg-green-50 border border-green-100">
+                          <p className="text-xs font-bold text-green-700 mb-1 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> {report.title}
+                          </p>
+                          {excerpt && <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{excerpt}</p>}
+                        </div>
 
-                        {/* Amount footer */}
-                        <div className="mt-auto pt-4 border-t border-gray-100 flex items-end justify-between gap-3">
+                        {/* Amount raised / goal + completion date */}
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex items-end justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-base font-black text-gray-900 truncate">{formatMoney(c.current_amount ?? 0)} so'm</div>
+                            <div className="text-base font-black text-gray-900 truncate">{formatMoney(c.current_amount ?? 0)} so&apos;m</div>
                             <div className="text-xs text-gray-500 truncate">{formatMoney(c.goal_amount ?? 0)} {dict.campaign.of}</div>
                           </div>
-                          <div className="text-xs text-gray-400 flex-shrink-0">
-                            {new Date(c.updated_at).toLocaleDateString(lng)}
-                          </div>
+                          <div className="text-xs text-gray-400 flex-shrink-0">{completedDate}</div>
                         </div>
+
+                        {/* View Completion Report */}
+                        <Link
+                          href={L(`/campaigns/${c.slug}#completion-report`)}
+                          className="mt-4 inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-bold hover:bg-green-100 hover:gap-3 transition-all"
+                        >
+                          {dict.home.viewReport} <ArrowRight className="w-4 h-4" />
+                        </Link>
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
+              </div>
+
+              <div className="mt-12 text-center">
+                <Link
+                  href={L('/campaigns?filter=success')}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 font-bold hover:border-green-500 hover:text-green-600 hover:gap-3 transition-all shadow-sm"
+                >
+                  {dict.home.successSeeAll} <ArrowRight className="w-5 h-5" />
+                </Link>
               </div>
             </div>
           </section>

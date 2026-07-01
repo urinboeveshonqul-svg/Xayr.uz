@@ -9,6 +9,7 @@ import { Pagination } from '@/components/campaigns/Pagination';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
+import { getSuccessStoryIds } from '@/lib/success-stories';
 import type { Campaign, CampaignCategory } from '@/types';
 
 export async function generateMetadata({
@@ -42,6 +43,7 @@ interface SearchParams {
   sort?: string;
   urgent?: string;
   page?: string;
+  filter?: string; // 'success' = verified Success Stories only
 }
 
 /**
@@ -58,6 +60,16 @@ async function getCampaigns(sp: SearchParams): Promise<{
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
+  // Verified Success Stories filter: resolve the qualifying campaign ids
+  // server-side (goal reached + completed/funded + approved report), then the
+  // paginated query is scoped to them instead of active campaigns.
+  const isSuccess = sp.filter === 'success';
+  let successIds: string[] = [];
+  if (isSuccess) {
+    successIds = await getSuccessStoryIds();
+    if (successIds.length === 0) return { campaigns: [], total: 0, page };
+  }
+
   try {
     const supabase = await createClient();
     const hasCategory = !!sp.category && CATEGORIES.includes(sp.category as CampaignCategory);
@@ -69,8 +81,9 @@ async function getCampaigns(sp: SearchParams): Promise<{
           ? '*, profiles:users(full_name, avatar_url), categories!inner(slug)'
           : '*, profiles:users(full_name, avatar_url), categories(slug)',
         { count: 'exact' }
-      )
-      .eq('status', 'active');
+      );
+
+    query = isSuccess ? query.in('id', successIds) : query.eq('status', 'active');
 
     if (hasCategory) query = query.eq('categories.slug', sp.category!);
     if (sp.urgent === '1') query = query.eq('is_urgent', true);
@@ -142,10 +155,13 @@ export default async function CampaignsPage({
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="mb-10">
-            <h1 className="section-title">{dict.campaign.allCampaigns}</h1>
+            <h1 className="section-title">{sp.filter === 'success' ? dict.filters.successStories : dict.campaign.allCampaigns}</h1>
             <p className="section-sub">
               {total} {dict.campaign.found}
             </p>
+            {sp.filter === 'success' && (
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 max-w-2xl">{dict.filters.successStoriesNote}</p>
+            )}
           </div>
 
           <CampaignFilters />

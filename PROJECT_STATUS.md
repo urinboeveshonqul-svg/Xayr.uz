@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-06-30
-> **Branch:** feat/payout-accounts · **Latest commit at sync:** `bd7189d` (Financial Ledger #45, live on main) + Snapshots/charts/exports/reconciliation (migration #46 pending manual run)
+> **Branch:** feat/payout-accounts · **Latest commit at sync:** `5667c21` (financial snapshots #46, live on main) + verified Success Stories (approved completion report required; no migration)
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -48,7 +48,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 | Notifications (in-app) | 95% | Trigger-driven, complete. |
 | Push notifications | 80% (code) | Code-complete; requires OneSignal + Supabase webhook config to go live. |
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
-| Localization | 95% | 3 languages, parity maintained (1296 lines each). |
+| Localization | 95% | 3 languages, parity maintained (1305 lines each). |
 | Analytics | 60% | Per-campaign creator analytics only; no platform product analytics. |
 | Testing / CI | 35% | Build + typecheck CI; **no automated tests**, no lockfile. |
 
@@ -135,6 +135,11 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **What:** The homepage shows the **first 3 active campaigns** (by recency) as "Featured" and the **top 8 by raised amount** as "Trending."
 - **Where:** `app/[locale]/page.tsx` (`featured = campaigns.slice(0,3)`, `trending` sorted by `current_amount`).
 - **Status:** ✅ Implemented as a **presentation layer only** — there is **no `is_featured` column or admin curation**. (Documented accurately to avoid implying a backed feature.)
+
+### Success Stories (verified)
+- **What:** A campaign appears as a Success Story **only** if ALL hold: goal reached (`current_amount >= goal_amount`), status `completed`/`funded`, and an **admin-approved completion report** exists. This excludes active/expired-under-goal/pending/draft/rejected/paused/cancelled campaigns and any campaign whose report is missing / pending / rejected. Surfaces: homepage Success Stories section (verified-only cards: **Report-Approved badge**, amount raised, goal, completion date, category, cover image, **View Completion Report** → `/campaigns/[slug]#completion-report`); a `/campaigns?filter=success` **Success Stories search filter** (server-side); creator profiles (include `funded`); and the public campaign page shows **"Successfully Completed"** (replacing the generic ended/funded notice) with a link to the report when an approved report exists. Sync is automatic — every surface derives live from `campaign_reports.status='approved'` + campaign status/goal, so approving/revoking a report adds/removes the campaign everywhere on next load (homepage within its ISR window).
+- **Where:** `lib/success-stories.ts` (`getSuccessStories`, `getSuccessStoryIds` — the single qualification rule), `app/[locale]/page.tsx` (homepage section), `app/[locale]/campaigns/page.tsx` + `components/campaigns/CampaignFilters.tsx` (search filter), `components/campaigns/CampaignDetail.tsx` + `app/[locale]/campaigns/[slug]/page.tsx` (messaging + `#completion-report` anchor), `app/[locale]/u/[username]/page.tsx` (creator profile). Uses `dict.home.success*` / `dict.filters.successStories*` / `dict.detail.successCompleted*`.
+- **Status:** ✅ Complete. **No migration** — reuses existing `campaign_reports.status` + campaign `status`/goal (no denormalized flag, no duplicated data); server-side filtering over the small approved-report set. Fixed the prior bug where the homepage listed *any* `status='completed'` campaign regardless of goal or report.
 
 ### Platform Fees — Mission & Transparency (`/fees`)
 - **What:** The full mission/transparency explanation lives on the **Platform Fees page** (`/fees`), **not** the homepage — it was moved off the homepage so it no longer interrupts the donation flow or surfaces commissions to first-time visitors too early. `/fees` now covers: the **"Helping People Comes First"** mission (connect generous people with the individuals, families, and communities who need support; help people while keeping operations sustainable), a **"Why does XAYR charge a platform fee?"** section (donations go directly to the campaign organizer; any commission is used only to operate/improve XAYR), the cost-category checklist (payment processing, hosting, cloud infrastructure, security, fraud prevention, identity verification, customer support, platform maintenance/development), a sustainability note, and four transparency value cards (Mission First / Secure Donations / Verified Campaigns / Transparent Platform) — in the page's brand/dark design. The existing pricing cards + worked example remain (the **only** place a percentage appears). No nonprofit/legal claims. `/fees` is reachable from the footer **Support** group (alongside FAQ + Guide), so no main-nav clutter.
@@ -479,7 +484,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 13. Localization
 
 - **Languages:** Uzbek (default), Russian, English. Config in `i18n/config.ts`; routing via `/[locale]/…` + `NEXT_LOCALE` cookie + middleware redirect.
-- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1296 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
+- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1305 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
 - **Missing translations:** No structural gaps detected (equal line counts). Some Uzbek UI strings are hardcoded in components/API error messages (e.g. toast text in `DonationForm`, API error strings) rather than dictionary-driven.
 - **Remaining work:** Extract hardcoded UI/toast/API strings into the dictionaries for full coverage; add a CI check that locale files stay key-aligned.
 

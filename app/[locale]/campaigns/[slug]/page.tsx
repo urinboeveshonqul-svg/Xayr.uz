@@ -246,6 +246,8 @@ export default async function CampaignDetailPage({ params }: Props) {
   // Completion report (one per campaign; RLS gives the public only an approved
   // one, the owner their own). Withdrawn total caps the fund-usage report.
   const report = reports[0] ?? null;
+  // A verified success requires an admin-APPROVED completion report (public-facing).
+  const hasApprovedReport = reports.some((r) => r.status === 'approved');
   const withdrawn = campaign.status === 'completed' ? await getWithdrawn(campaign.id) : 0;
   const beforeImages = [campaign.image_url, ...(campaign.images ?? [])].filter((s): s is string => !!s);
 
@@ -260,7 +262,7 @@ export default async function CampaignDetailPage({ params }: Props) {
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <ViewTracker campaignId={campaign.id} />
-          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} />
+          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} hasApprovedReport={hasApprovedReport} />
 
           <div className="max-w-5xl mx-auto">
             {/* Public lifecycle timeline — shown when the campaign was extended */}
@@ -293,15 +295,17 @@ export default async function CampaignDetailPage({ params }: Props) {
             {/* Completion report — moderated fund-usage report (approved is public;
                 the owner also sees their pending/changes-requested/rejected report). */}
             {campaign.status === 'completed' && (
-              <CompletionReports
-                report={report}
-                isOwner={canManageReports}
-                campaignId={campaign.id}
-                userId={campaign.user_id}
-                raised={campaign.current_amount ?? 0}
-                withdrawn={withdrawn}
-                beforeImages={beforeImages}
-              />
+              <div id="completion-report" className="scroll-mt-24">
+                <CompletionReports
+                  report={report}
+                  isOwner={canManageReports}
+                  campaignId={campaign.id}
+                  userId={campaign.user_id}
+                  raised={campaign.current_amount ?? 0}
+                  withdrawn={withdrawn}
+                  beforeImages={beforeImages}
+                />
+              </div>
             )}
 
             {/* Submit form — owner/manager of a completed campaign with no report yet. */}
