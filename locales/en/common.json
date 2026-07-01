@@ -465,6 +465,10 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Use",
     "cookies": "Cookie Policy",
+    "offer": "Public Offer",
+    "refund": "Refund Policy",
+    "rules": "Verification Rules",
+    "legalTitle": "Legal",
     "secure": "100% Secure Payments",
     "verified": "Verified Platform",
     "support247": "24/7 Support",
@@ -733,6 +737,47 @@
     "lastUpdated": "Last updated",
     "effectiveDate": "January 1, 2026",
     "tocTitle": "Contents",
+    "offer": {
+      "title": "Public Offer",
+      "subtitle": "The public offer governing the use of the XAYR crowdfunding platform.",
+      "intro": "This Public Offer sets out the terms on which XAYR provides its crowdfunding platform. By creating a campaign or making a donation, you accept these terms.",
+      "sections": [
+        { "id": "platform", "heading": "About XAYR", "paragraphs": ["XAYR is a charitable crowdfunding platform that connects donors with verified campaign creators in Uzbekistan.", "XAYR provides the technology and verification tools. It is not a party to the relationship between a donor and a campaign creator, and it does not collect donations for its own benefit."] },
+        { "id": "acceptance", "heading": "Acceptance of this offer", "paragraphs": ["By donating to a campaign, or by creating or managing a campaign, you confirm that you have read and agree to this Public Offer together with the Terms of Service, the Privacy Policy, the Refund Policy, and the Campaign Verification & Withdrawal Rules."] },
+        { "id": "donations", "heading": "Voluntary donations", "paragraphs": ["All donations on XAYR are voluntary and are directed to the campaign chosen by the donor.", "A completed donation is generally non-refundable, except in the limited cases described in the Refund Policy."] },
+        { "id": "verification", "heading": "Verification and outcomes", "paragraphs": ["XAYR reviews every campaign and verifies the creator's identity before fundraising begins. Verification reduces risk but does not remove it."], "bullets": ["XAYR verifies campaign creators through identity verification (KYC).", "XAYR moderates campaigns before they are published.", "XAYR cannot guarantee that a campaign will reach its goal or achieve its stated outcome.", "Campaign creators are solely responsible for using the funds for the stated purpose."] },
+        { "id": "fees", "heading": "Platform fees", "paragraphs": ["If a platform fee applies, it is disclosed transparently. Donors pay no platform fee. A small platform commission may be deducted from a creator's withdrawal to operate and improve XAYR.", "Exact fee details are published on the Fees page and may be updated over time."] },
+        { "id": "rules", "heading": "Platform rules", "paragraphs": ["Users must follow the platform rules, including the prohibited-content rules in the Terms of Service. XAYR may moderate or remove content, and suspend accounts, that violate these rules."] },
+        { "id": "contact", "heading": "Contact", "paragraphs": ["For questions about this Public Offer, contact us through the Contact page."] }
+      ]
+    },
+    "refund": {
+      "title": "Refund Policy",
+      "subtitle": "How and when donations can be refunded on XAYR.",
+      "intro": "This Refund Policy explains when a donation can be returned and when it cannot. Because donations fund real campaigns and are transferred to verified creators, refunds are limited.",
+      "sections": [
+        { "id": "overview", "heading": "Overview", "paragraphs": ["Donations are voluntary and are intended to reach campaign creators. This policy describes the specific situations in which a refund may or may not be possible."] },
+        { "id": "possible", "heading": "When refunds are possible", "paragraphs": ["A refund may be issued in the following cases:"], "bullets": ["You were charged but the donation did not complete due to a technical or failed payment.", "A duplicate or accidental charge occurred for the same donation.", "A campaign was removed for fraud or a serious rules violation before the funds were transferred to the creator.", "A refund is required by applicable law."] },
+        { "id": "after-transfer", "heading": "After funds are transferred to the campaign owner", "paragraphs": ["Once donated funds have been reviewed, approved, and paid out to a campaign creator, XAYR can no longer reverse the transfer, and a refund cannot be issued through the platform.", "At that point the funds are with the creator and are used for the campaign. If you believe funds are being misused, please report the campaign so XAYR can investigate."] },
+        { "id": "failed", "heading": "Failed payments", "paragraphs": ["If a payment fails or is not confirmed, the donation is not completed and no funds reach the campaign. Any temporary authorization hold is released by your payment provider.", "If you were charged for a donation that shows as failed, contact support with the payment reference so we can help."] },
+        { "id": "duplicate", "heading": "Duplicate payments", "paragraphs": ["If you were charged more than once for the same donation, contact support with the transaction references. Verified duplicate charges are refunded."] },
+        { "id": "request", "heading": "How to request a refund and contact support", "paragraphs": ["To request a refund, contact us through the Contact page and include your name, the campaign, the amount, the date, and the payment reference. We review eligible requests and respond as soon as possible."] }
+      ]
+    },
+    "verificationRules": {
+      "title": "Campaign Verification & Withdrawal Rules",
+      "subtitle": "How XAYR verifies campaigns and reviews withdrawals to keep the platform trustworthy.",
+      "intro": "These rules explain the checks XAYR applies at each stage: identity verification, campaign review, withdrawal review, completion reports, extension requests, and fraud investigations.",
+      "sections": [
+        { "id": "kyc", "heading": "Identity verification (KYC)", "paragraphs": ["Before creating a campaign, a creator must pass identity verification. This protects donors and keeps fundraising accountable."], "bullets": ["The creator submits identity documents and a selfie.", "An administrator reviews the submission.", "Documents are stored securely and are never shown publicly.", "Only verified creators can publish campaigns and request withdrawals."] },
+        { "id": "review", "heading": "Campaign review", "paragraphs": ["Every new campaign is moderated before it goes live. A campaign starts as pending and becomes active only after review.", "Administrators may approve a campaign or reject it with a reason. Misleading campaigns, or campaigns that violate the rules, are rejected."] },
+        { "id": "withdrawal", "heading": "Manual withdrawal review", "paragraphs": ["Campaign creators cannot withdraw funds instantly. Each withdrawal request enters a manual review workflow.", "A request moves from pending review to approved and then to paid. Funds are transferred after verification, and the transfer reference is recorded. A platform commission may be deducted at withdrawal."] },
+        { "id": "reports", "heading": "Completion reports", "paragraphs": ["After a campaign completes, the creator is expected to publish a completion report showing how the donated funds were used."], "bullets": ["The report includes a fund-usage breakdown and may include photos, receipts, and updates.", "Reports are moderated; only administrator-approved reports are shown publicly.", "Donors are notified when a completion report is approved."] },
+        { "id": "extensions", "heading": "Extension requests", "paragraphs": ["The owner of an expired campaign that did not reach its goal may request a new deadline with a reason. Requests are limited (a maximum number of extensions, each within a capped number of days) and are reviewed by an administrator.", "A request does not by itself reactivate a campaign — only administrator approval does."] },
+        { "id": "fraud", "heading": "Fraud investigations", "paragraphs": ["XAYR investigates reports of fraud or misuse. Any user can flag a campaign for review.", "During an investigation, XAYR may pause a campaign, withhold withdrawals, or suspend accounts. Confirmed fraud leads to removal of the campaign and may be reported to the relevant authorities."] },
+        { "id": "contact", "heading": "Questions", "paragraphs": ["For questions about verification or withdrawals, contact us through the Contact page."] }
+      ]
+    },
     "privacy": {
       "title": "Privacy Policy",
       "subtitle": "How we collect, use, and protect your personal data.",

@@ -26,6 +26,16 @@ export function Footer() {
     { href: L('/contact'), label: t('footer.contact') },
   ];
 
+  // Legal Center — every legal document, grouped together.
+  const legalLinks = [
+    { href: L('/offer'), label: t('footer.offer') },
+    { href: L('/refund'), label: t('footer.refund') },
+    { href: L('/terms'), label: t('footer.terms') },
+    { href: L('/privacy'), label: t('footer.privacy') },
+    { href: L('/cookies'), label: t('footer.cookies') },
+    { href: L('/verification-rules'), label: t('footer.rules') },
+  ];
+
   const trust = [
     { Icon: ShieldCheck, label: t('footer.secure') },
     { Icon: BadgeCheck, label: t('footer.verified') },
@@ -215,11 +225,13 @@ export function Footer() {
           <p className="text-gray-500 order-2 md:order-1">
             © {new Date().getFullYear()} Xayr. {t('footer.rights')}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 order-1 md:order-2">
-            <Link href={L('/privacy')} className="text-gray-400 hover:text-white transition-colors">{t('footer.privacy')}</Link>
-            <Link href={L('/terms')} className="text-gray-400 hover:text-white transition-colors">{t('footer.terms')}</Link>
-            <Link href={L('/cookies')} className="text-gray-400 hover:text-white transition-colors">{t('footer.cookies')}</Link>
-          </div>
+          <nav aria-label={t('footer.legalTitle')} className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 order-1 md:order-2">
+            {legalLinks.map((link) => (
+              <Link key={link.href} href={link.href} className="text-gray-400 hover:text-white transition-colors">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>
