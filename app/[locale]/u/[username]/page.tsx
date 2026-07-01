@@ -72,7 +72,7 @@ export default async function PublicProfilePage({ params }: Props) {
       .from('campaigns')
       .select('*, profiles:users(full_name, avatar_url, username), categories(slug)')
       .eq('user_id', p.id)
-      .in('status', ['active', 'completed'])
+      .in('status', ['active', 'completed', 'funded'])
       .order('created_at', { ascending: false }),
     supabase.from('creator_followers').select('*', { count: 'exact', head: true }).eq('creator_id', p.id),
     supabase.from('campaigns').select('current_amount').eq('user_id', p.id),

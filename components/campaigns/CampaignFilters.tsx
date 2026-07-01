@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Search, X } from 'lucide-react';
+import { Search, X, ShieldCheck } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
@@ -18,6 +18,7 @@ export function CampaignFilters() {
   const category = searchParams.get('category') ?? 'all';
   const sort = searchParams.get('sort') ?? 'newest';
   const urgent = searchParams.get('urgent') === '1';
+  const successOnly = searchParams.get('filter') === 'success';
   const [search, setSearch] = useState(searchParams.get('q') ?? '');
 
   // Apply a mutation to the URL params, always resetting to page 1.
@@ -47,8 +48,11 @@ export function CampaignFilters() {
   const toggleUrgent = (on: boolean) =>
     update((p) => (on ? p.set('urgent', '1') : p.delete('urgent')));
 
+  const toggleSuccess = (on: boolean) =>
+    update((p) => (on ? p.set('filter', 'success') : p.delete('filter')));
+
   const hasFilters =
-    category !== 'all' || urgent || !!searchParams.get('q') || sort !== 'newest';
+    category !== 'all' || urgent || successOnly || !!searchParams.get('q') || sort !== 'newest';
 
   const clearAll = () => {
     setSearch('');
@@ -88,6 +92,21 @@ export function CampaignFilters() {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Success Stories toggle — verified outcomes only */}
+      <div>
+        <button
+          onClick={() => toggleSuccess(!successOnly)}
+          aria-pressed={successOnly}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-bold transition-all ${
+            successOnly
+              ? 'bg-green-600 text-white'
+              : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" /> {t('filters.successStories')}
+        </button>
       </div>
 
       {/* Category chips */}

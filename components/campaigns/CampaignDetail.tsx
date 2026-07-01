@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
-  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, CalendarClock, Send, Facebook, Link2, MessageCircle
+  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, CalendarClock, Send, Facebook, Link2, MessageCircle, ShieldCheck
 } from 'lucide-react';
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -25,9 +25,11 @@ interface CampaignDetailProps {
   donors: Donor[];
   /** Owner-only: a pending extension request → show "under review" when ended. */
   pendingExtension?: boolean;
+  /** True when this campaign has an admin-approved completion report (verified success). */
+  hasApprovedReport?: boolean;
 }
 
-export function CampaignDetail({ campaign, donors, pendingExtension = false }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, donors, pendingExtension = false, hasApprovedReport = false }: CampaignDetailProps) {
   const { t, locale } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -273,6 +275,20 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false }: C
                 <div className="rounded-2xl p-4 text-center bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-900/40">
                   <Clock className="w-7 h-7 text-amber-500 mx-auto mb-2" />
                   <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{t('detail.underReview')}</p>
+                </div>
+              ) : hasApprovedReport ? (
+                // Verified success: an admin-approved completion report exists.
+                // Replaces the generic "Campaign Ended"/"Funded" notice.
+                <div className="rounded-2xl p-4 text-center bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40">
+                  <ShieldCheck className="w-7 h-7 text-green-600 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-green-700 dark:text-green-400">{t('detail.successCompletedTitle')}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('detail.successCompletedNote')}</p>
+                  <a
+                    href="#completion-report"
+                    className="mt-3 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 transition-colors"
+                  >
+                    {t('detail.viewReport')}
+                  </a>
                 </div>
               ) : (
                 <div
