@@ -213,6 +213,8 @@
     "testimonialsTitle": "Muvaffaqiyat Hikoyalari",
     "testimonialsSubtitle": "Xayr platformasi orqali o'z maqsadlariga erishganlar",
     "successVerified": "Tasdiqlangan natijalar",
+    "verifiedBadge": "Tasdiqlangan muvaffaqiyat",
+    "verifiedTooltip": "Bu kampaniya o'z maqsadiga muvaffaqiyatli erishdi va administrator tomonidan tasdiqlangan yakuniy hisobot chop etdi.",
     "successBadge": "Hisobot tasdiqlangan",
     "viewReport": "Hisobotni ko'rish",
     "successSeeAll": "Barcha muvaffaqiyat hikoyalari",

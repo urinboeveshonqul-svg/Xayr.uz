@@ -18,6 +18,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import type { Campaign } from '@/types';
 import { getSuccessStories } from '@/lib/success-stories';
+import { VerifiedSuccessBadge } from '@/components/campaigns/VerifiedSuccessBadge';
 
 export const revalidate = 60;
 
@@ -280,8 +281,11 @@ export default async function HomePage({
                   return (
                     <div
                       key={c.id}
-                      className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
+                      className="group relative bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
                     >
+                      {/* Verified Success Story badge — interactive (tooltip), so a
+                          sibling over the cover rather than nested in the Link. */}
+                      <VerifiedSuccessBadge className="absolute top-3 left-3 z-10" />
                       <Link href={L(`/campaigns/${c.slug}`)} className="block relative aspect-[4/3] bg-gray-100">
                         {coverImage ? (
                           <Image
@@ -295,10 +299,6 @@ export default async function HomePage({
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-100" />
                         )}
-                        {/* Completion Report Approved badge */}
-                        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-green-600 text-white text-xs font-bold flex items-center gap-1">
-                          <ShieldCheck className="w-3.5 h-3.5" /> {dict.home.successBadge}
-                        </div>
                         {catLabel && (
                           <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-gray-700 text-xs font-bold">
                             {catLabel}

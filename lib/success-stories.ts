@@ -92,11 +92,18 @@ export async function getSuccessStories(limit = 6): Promise<SuccessStory[]> {
       const report = byCampaign.get(c.id);
       if (report) stories.push({ campaign: c, report });
     }
-    // Re-sort by approval date (the .in() campaign fetch doesn't preserve order).
+    // Order (server-side, over the small approved set — reuses existing
+    // timestamps, no new fields): (1) most recently APPROVED report (reviewed_at),
+    // (2) tie / unavailable → newest campaign completion date (updated_at),
+    // (3) still tied → newest campaign creation date. The .in() campaign fetch
+    // doesn't preserve order, so we re-sort explicitly.
+    const ts = (v?: string | null) => (v ? Date.parse(v) : 0);
     stories.sort((a, b) => {
-      const da = a.report.reviewed_at ?? a.report.created_at;
-      const db = b.report.reviewed_at ?? b.report.created_at;
-      return da < db ? 1 : da > db ? -1 : 0;
+      const ar = ts(a.report.reviewed_at), br = ts(b.report.reviewed_at);
+      if (ar !== br) return br - ar;
+      const au = ts(a.campaign.updated_at), bu = ts(b.campaign.updated_at);
+      if (au !== bu) return bu - au;
+      return ts(b.campaign.created_at) - ts(a.campaign.created_at);
     });
     return stories.slice(0, limit);
   } catch {
