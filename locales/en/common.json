@@ -213,6 +213,8 @@
     "testimonialsTitle": "Success Stories",
     "testimonialsSubtitle": "People who reached their goals through Xayr",
     "successVerified": "Verified outcomes",
+    "verifiedBadge": "Verified Success Story",
+    "verifiedTooltip": "This campaign successfully reached its goal and published an administrator-approved Completion Report.",
     "successBadge": "Report Approved",
     "viewReport": "View Completion Report",
     "successSeeAll": "All success stories",
