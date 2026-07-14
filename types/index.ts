@@ -652,6 +652,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      payme_transactions: {
+        Row: {
+          id: string;
+          paycom_id: string;
+          donation_id: string;
+          order_ref: string;
+          amount: number;
+          state: number;
+          create_time: number;
+          perform_time: number;
+          cancel_time: number;
+          reason: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          paycom_id: string;
+          donation_id: string;
+          order_ref: string;
+          amount: number;
+          state?: number;
+          create_time: number;
+          perform_time?: number;
+          cancel_time?: number;
+          reason?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          paycom_id?: string;
+          donation_id?: string;
+          order_ref?: string;
+          amount?: number;
+          state?: number;
+          create_time?: number;
+          perform_time?: number;
+          cancel_time?: number;
+          reason?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       payment_provider_settings: {
         Row: {
           id: string;

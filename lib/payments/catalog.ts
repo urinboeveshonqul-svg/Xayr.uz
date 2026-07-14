@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isClickConfigured } from './providers/click';
+import { isPaymeConfigured } from './providers/payme';
 import {
   PROVIDER_META,
   type PaymentProviderOption,
@@ -24,6 +25,7 @@ import {
 /** Providers with a real PaymentProvider implementation + their env check. */
 const IMPLEMENTED: Record<string, () => boolean> = {
   click: isClickConfigured,
+  payme: isPaymeConfigured,
 };
 
 interface ProviderSettingsRow {
