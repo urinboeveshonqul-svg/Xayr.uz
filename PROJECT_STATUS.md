@@ -4,8 +4,8 @@
 > Generated from a direct read of the codebase. Reflects only what is actually
 > implemented — no aspirational or invented features.
 >
-> **Last synced:** 2026-06-30
-> **Branch:** feat/payout-accounts · **Latest commit at sync:** `a7b6785` (verified Success Stories + badge, live on main) + Legal Center (Public Offer, Refund, Verification & Withdrawal Rules)
+> **Last synced:** 2026-07-14
+> **Branch:** feat/payout-accounts · **Latest at sync:** Click (SHOP API) payment integration + committed lockfile/`npm ci` CI (on top of `f729183` legal center, live on main)
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -37,20 +37,20 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 
 | Area | Completion | Notes |
 |---|---|---|
-| **Overall Platform** | **~74%** | Feature-rich and polished; blocked from real-money operation by the payment gateway gap. |
+| **Overall Platform** | **~80%** | Feature-rich and polished; Click gateway code-complete — real-money operation now blocked only on merchant credentials + sandbox verification. |
 | Frontend | 95% | Full page set, components, responsive, theming, i18n. |
-| Backend (API routes) | 90% | 20 routes, all validated + RBAC; payment provider impl missing. |
+| Backend (API routes) | 92% | 21 routes, all validated + RBAC; Click provider live (env-gated), Payme missing. |
 | Database | 95% | Schema + 46 migrations; live application unverified. |
 | Security | 88% | Strong model; live RLS unverified + minor hardening items. |
 | Mobile | 95% | Bottom nav, touch targets, responsive throughout, PWA manifest. |
 | SEO | 95% | Metadata, OG images, JSON-LD, sitemap, robots, canonical/hreflang. |
-| **Payment System** | **25%** | Abstraction/webhook/idempotency built; **no real gateway** — donations never complete automatically. |
+| **Payment System** | **70%** | Click (SHOP API) provider + callback endpoint + method selection implemented, env-gated; **pending merchant credentials + sandbox test**. Payme not started. |
 | Notifications (in-app) | 95% | Trigger-driven, complete. |
 | Push notifications | 80% (code) | Code-complete; requires OneSignal + Supabase webhook config to go live. |
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
 | Localization | 95% | 3 languages, parity maintained (1352 lines each). |
 | Analytics | 60% | Per-campaign creator analytics only; no platform product analytics. |
-| Testing / CI | 35% | Build + typecheck CI; **no automated tests**, no lockfile. |
+| Testing / CI | 40% | Build + typecheck CI on `npm ci` + committed lockfile; **no automated tests**. |
 
 ---
 
@@ -90,7 +90,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 ### Donations
 - **What:** Donation modal with preset/custom amounts, optional message, and a 3-way **name display** (Display my name / First name only / Anonymous). Works for **guests and registered users** on the same campaign page. **Guests** provide name + email (+ optional phone) and pass **Turnstile**; logged-in donors reuse their profile (linked via `donor_id`) and skip those fields. Server creates a **pending** record; client can never set status. Anonymity is derived server-side from the display choice. Guest contact is PII (admin/owner-only via RLS); the public donor feed shows only the chosen display name (`campaign_donors` view handles guest + registered, first-word, and anonymous). The payment-success page shows an on-screen **receipt** (amount/campaign/transaction ref/date) and offers guests a **"Create a XAYR account"** CTA (never forced). Admin donations view distinguishes **guest vs registered**, shows the real name/email/phone even for anonymous donations, and filters by donor type; owner analytics shows a **donor-type breakdown** (total / registered / guest / anonymous).
 - **Where:** `components/donations/DonationForm.tsx`, `app/api/donations/route.ts` (Turnstile + guest validation), `components/payments/PaymentSuccessView.tsx` (receipt + account CTA), `components/admin/AdminDonationsReconciliation.tsx` + `app/[locale]/admin/donations/page.tsx` (donor type/contact/filter), `app/[locale]/campaigns/[slug]/analytics/page.tsx` (breakdown); migration `supabase/guest-donations.sql` (#44). Table: `donations` (+ `donor_name`/`donor_email`/`donor_phone`/`name_display`).
-- **Status:** ✅ Guest-donation workflow complete (security: Turnstile + rate-limit + server-side validation; status never client-trusted). ⚠️ Still **no completion path** until a payment gateway is wired (see §11); **email** receipts need a transactional-email provider (not yet integrated) — the receipt is shown on-screen meanwhile.
+- **Status:** ✅ Guest-donation workflow complete (security: Turnstile + rate-limit + server-side validation; status never client-trusted). ✅ **Click checkout wired** (env-gated — see §11): the form shows a payment-method selector when a gateway is configured and redirects to hosted checkout; donations complete automatically via the signed Click callback. ⚠️ **Email** receipts need a transactional-email provider (not yet integrated) — the receipt is shown on-screen meanwhile.
 
 ### Notifications (in-app)
 - **What:** Bell + notifications view; auto-generated on new donation, comment, campaign milestone, campaign status change, updates, completion reports, payout status, and verification decisions.
@@ -212,7 +212,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 
 | System | Exists | Missing | Remaining work |
 |---|---|---|---|
-| **Payment gateway** | Provider abstraction, webhook endpoint, idempotency dedupe, amount/currency verification, `payment_events` audit, `manual` provider | A real provider (Click/Payme) implementing `createPayment` + `verifyWebhook` | Implement one provider, register it, sandbox-test signature + webhook, wire method selection into `DonationForm`. |
+| **Payment gateway** | **Click (SHOP API) provider** (`createPayment` redirect + signed Prepare/Complete callback endpoint, env-gated) + method selection in `DonationForm`; provider abstraction, idempotency dedupe, amount/currency verification, `payment_events` audit, `manual` fallback | Live Click merchant credentials + cabinet config + sandbox verification; a Payme provider | Configure `CLICK_*` env + cabinet URLs (see `docs/click-setup.md`), sandbox-test end-to-end; then implement Payme. |
 | **Push notifications** | Full client + server code, preferences table, webhook handler | Live OneSignal app + Supabase DB-webhook config | Configure dashboards; verify end-to-end delivery. |
 | **Analytics** | Per-campaign creator analytics | Platform-wide product analytics | Add Plausible/PostHog (or similar) + an admin analytics view. |
 | **Search** | `ilike` + filters + trigram indexes | Ranked/fuzzy full-text | Add `tsvector` column + ranking, or typo tolerance. |
@@ -224,10 +224,10 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 ## 5. Planned Features
 
 ### High Priority
-1. Live Click **or** Payme payment integration (unblocks the whole money flow).
+1. ~~Click payment integration (code)~~ ✅ done — **remaining: Click merchant credentials + cabinet config + sandbox test** (`docs/click-setup.md`); then Payme provider.
 2. Verify + apply all DB migrations to production; record live status.
 3. Transactional email (donation receipts, payout confirmations, contact replies).
-4. Automated tests (payment idempotency, RLS, donation→credit trigger) + committed lockfile.
+4. Automated tests (payment idempotency, RLS, donation→credit trigger). ~~Committed lockfile~~ ✅ done (CI on `npm ci`).
 
 ### Medium Priority
 5. Platform-level analytics + admin analytics dashboard.
@@ -362,7 +362,8 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/auth/username-available` | GET | Live username availability | Public | — | `{ available, reason }` |
 | `/api/auth/forgot-password` | POST | Send password-reset email (rate-limited, Turnstile) | Public | — | `{ ok }` (anti-enumeration) |
 | `/api/donations` | POST | Record a **pending** donation (rate-limited), hand off to provider | Optional (guests allowed) | Campaign must be `active` | `{ donationId, status, reference, redirectUrl, instructions }` |
-| `/api/payments/webhook` | POST | Gateway callback: verify → dedupe → log → confirm → mark | Provider signature | `501` until a real provider is registered | `{ ok }` / `{ duplicate }` / error |
+| `/api/payments/webhook` | POST | Generic gateway callback: verify → dedupe → log → confirm → mark | Provider signature | `501` for providers without `verifyWebhook` (Click uses its own route) | `{ ok }` / `{ duplicate }` / error |
+| `/api/payments/click` | POST | **Click SHOP API callbacks** (Prepare `action=0` + Complete `action=1`): MD5 signature (timing-safe) → log → dedupe → `confirmDonation` | Click MD5 signature + `service_id` match | Env-gated (`CLICK_*`); always HTTP 200 with Click's spec error codes | Click JSON (`merchant_prepare_id`/`merchant_confirm_id`, `error`, `error_note`) |
 | `/api/payments/status` | GET | Poll donation status by `payment_ref` (non-PII) | Public (holds ref) | — | `{ found, amount, status, campaignTitle, campaignSlug }` |
 | `/api/verification/submit` | POST | Submit KYC request + document paths | Required | Self; paths must be in user's folder | `{ ok, requestId }` |
 | `/api/admin/verifications` | GET, POST | Signed doc URLs (GET); approve/reject (POST) | Required | **Admin** | `{ documents }` / `{ ok }` |
@@ -390,7 +391,7 @@ Names only — never commit real values. Template: `.env.example`.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (public) | ✅ Required | Browser + server clients, middleware |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-role key — **secret, server-only**, bypasses RLS | ✅ Required (for donations, admin, webhooks) | `lib/supabase/admin.ts` |
 | `NEXT_PUBLIC_APP_URL` | Canonical app URL | ✅ Required | SEO/sitemap, push click URLs |
-| `CLICK_MERCHANT_ID` / `CLICK_SERVICE_ID` / `CLICK_SECRET_KEY` | Click gateway — **secret** | ⏳ Optional today (no provider impl) | Reserved for future Click provider |
+| `CLICK_MERCHANT_ID` / `CLICK_SERVICE_ID` / `CLICK_SECRET_KEY` | Click gateway — **secret** | ⏳ Optional (Click hidden until all 3 set) | `lib/payments/providers/click.ts`, `/api/payments/click` — setting all three activates Click checkout (see `docs/click-setup.md`) |
 | `PAYME_MERCHANT_ID` / `PAYME_SECRET_KEY` | Payme gateway — **secret** | ⏳ Optional today | Reserved for future Payme provider |
 | `NEXT_PUBLIC_ONESIGNAL_APP_ID` | OneSignal app id (public) | ⏳ Optional (push off without it) | OneSignal web SDK |
 | `ONESIGNAL_REST_API_KEY` | OneSignal REST key — **secret** | ⏳ Optional | `/api/push/notify` |
@@ -408,8 +409,8 @@ Names only — never commit real values. Template: `.env.example`.
 ## 10. Deployment
 
 **GitHub** — Repository on `main`. CI: `.github/workflows/ci.yml` runs on push/PR to `main` →
-`npm install` → `npm run typecheck` → `npm run build` (with placeholder Supabase env).
-No lint step (no ESLint config). **No `package-lock.json` committed** (so `npm ci`/cache disabled).
+`npm ci` (committed `package-lock.json`, npm cache enabled) → `npm run typecheck` → `npm run build`
+(with placeholder Supabase env). No lint step (no ESLint config).
 
 **Vercel** — Framework auto-detected (`vercel.json`). Set all required env vars (§9) at server scope.
 Image remote patterns restricted in `next.config.mjs` to the Supabase project host + `images.unsplash.com`.
@@ -437,22 +438,22 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 
 **Architecture.** Provider-agnostic abstraction in `lib/payments/`:
 - `types.ts` — `PaymentProvider` contract (`createPayment`, optional `verifyWebhook`), `PaymentIntent`, `WebhookResult`.
-- `index.ts` — provider registry + `getPaymentProvider()`.
-- `providers/manual.ts` — the only registered provider (records pending, no charge).
+- `index.ts` — provider registry (resolved per call from runtime env) + `getPaymentProvider()` + `getEnabledPaymentMethods()` (drives the donation form's method selector).
+- `providers/manual.ts` — no-gateway fallback (records pending, no charge).
+- `providers/click.ts` — **Click SHOP API provider**: `createPayment` builds the hosted-checkout redirect (`transaction_param = click_<donationId>`, return to `/payment/success?ref=…`); exports the MD5 signature verifier (timing-safe via `lib/security/timing-safe.ts`) + deterministic `merchant_prepare_id` derivation. Env-gated by `CLICK_MERCHANT_ID`/`CLICK_SERVICE_ID`/`CLICK_SECRET_KEY` — unset ⇒ exact pre-gateway behaviour. Click's two-phase, spec-mandated response contract lives in the dedicated `app/api/payments/click/route.ts` (see §8), built on the same helpers/confirm path as the generic webhook. Setup: `docs/click-setup.md`.
 - `confirm.ts` — `confirmDonation()` (service-role, idempotent; amount **and** currency are **mandatory** and fail closed; a definitive mismatch marks the donation `failed` + alerts admins, never left pending).
 - **Money-loss hardening (2026-06-24, see `docs/payment-security-audit.md`):** M1 webhook signature enforcement (reject on `signatureValid===false`), M2 mandatory amount/currency, M3 refund reversal (`supabase/payment-refund-reversal.sql` — reverses campaign totals + payout availability on refund/fail), M5 mismatch→failed+admin alert. **M4 (migration #5 live in prod) remains UNVERIFIED — run `verify-migrations.sql` before enabling payments.**
 - `helpers.ts` — `createPaymentEvent`, `isDuplicateWebhook`, `markPaymentProcessed`, `validatePaymentAmount`, `validateCurrency`.
 
-**Current flow.** `DonationForm` → `POST /api/donations` → service-role insert as `pending` → `manual` provider returns a `manual_<id>` reference + "coming soon" instructions → `payment_ref` saved. `apply_donation` credits the campaign **only** when a donation reaches `completed`.
+**Current flow (Click configured).** `DonationForm` (method selector, CLICK pre-selected) → `POST /api/donations` → service-role insert as `pending` → Click provider returns the hosted-checkout `redirectUrl` (`payment_ref = click_<donationId>`) → donor pays on my.click.uz → Click POSTs **Prepare** then **Complete** (MD5-signed, form-urlencoded) to `/api/payments/click` → signature + `service_id` verified, event logged/deduped in `payment_events`, `confirmDonation` verifies amount+currency and credits (the `apply_donation` trigger updates campaign totals) → donor lands on `/payment/success?ref=…`, which polls to **completed**. Cancellation/failure (Complete with `error<0`) marks the donation `failed`. Unconfigured ⇒ manual provider, "coming soon" instructions, no selector (unchanged).
 
 **Current limitations.**
-- No real gateway: nothing transitions a donation to `completed` automatically.
-- The manual admin-completion tool was **removed** (migration #31 notes), so there is currently **no in-app path** to complete a donation — only a direct service-role DB write.
-- `DonationForm` does not present payment-method selection.
+- Click is **unverified against a live/sandbox merchant** — needs credentials + cabinet callback URLs + an end-to-end test (`docs/click-setup.md` §5).
+- No Payme provider yet.
+- No refund flow/UI (reversal trigger #39 exists at the DB layer).
+- Without a configured gateway there is still no in-app path to complete a donation (manual tool removed in #31).
 
-**Ready for providers?** **Yes.** The webhook route (`/api/payments/webhook`) already verifies signatures (delegated), dedupes by `provider_event_id`, logs to `payment_events`, confirms with server-side amount/currency checks, and marks processed/retryable. Registering a provider in `index.ts` activates the full path with no other changes.
-
-**Missing work.** Implement `createPayment` + `verifyWebhook` for Click or Payme; register it; add method selection to the donation UI; sandbox-test; add refund handling.
+**Missing work.** Configure + sandbox-test Click; implement Payme (`createPayment` + its JSON-RPC merchant-API endpoint); refund handling/UI.
 
 **Merchant requirements.** A registered Uzbek merchant account with Click and/or Payme; merchant/service IDs + secret keys (env vars already scaffolded); a public webhook URL allow-listed with the provider.
 
@@ -528,9 +529,9 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 
 | Sev | Description | Location | Suggested fix |
 |---|---|---|---|
-| 🔴 Critical | No real payment gateway — donations never auto-complete; no in-app completion path (manual tool removed) | `lib/payments/providers/`, `app/api/donations/route.ts` | Implement & register a Click/Payme provider. |
+| 🟠 High | Click gateway implemented but **not yet live** — needs merchant credentials, cabinet callback URLs, and a sandbox end-to-end test; until then donations still never auto-complete | `lib/payments/providers/click.ts`, `app/api/payments/click/route.ts` | Follow `docs/click-setup.md`; set `CLICK_*` env in Vercel; sandbox-test. |
 | 🔴 Critical | Live RLS unverified — base `schema.sql` allows `donations_insert_any`; only migration #5 restricts to pending. If #5 isn't applied, totals are forgeable | `supabase/secure-donations-rls.sql` | Run `verify-migrations.sql`; apply #5 (and all) in prod. |
-| 🟠 High | No `package-lock.json` → non-reproducible builds; CI can't use `npm ci` | repo root, `.github/workflows/ci.yml` | Commit a lockfile; switch CI to `npm ci`. |
+| ✅ Fixed | ~~No `package-lock.json` → non-reproducible builds~~ → lockfile committed; CI on `npm ci` + npm cache | repo root, `.github/workflows/ci.yml` | Done. |
 | 🟠 High | No automated tests; CI = typecheck + build only | repo-wide | Add tests for payment idempotency, RLS, donation trigger. |
 | 🟡 Medium | No transactional email (receipts, payout confirmations, contact replies) | — | Integrate an email provider. |
 | 🔴 Critical | Broad `SELECT` on `public.users` leaks `email`/`phone`/`rejection_reason` (PII enumeration via anon key) | `supabase/schema.sql` `users_select_all` | Public-safe profile view or split PII into own-row-RLS table; see `docs/rls-audit.md` F1. |
@@ -545,7 +546,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 
 - **Dual schema source of truth:** `supabase/schema.sql` and `supabase/000_master_migration.sql` both exist — drift risk. Document which is canonical.
 - **Unused scaffolding:** `admin_audit_log` table retained but no writer remains (manual donation tool removed). Either use it for admin-action logging or drop it.
-- **Provider registry comment vs reality:** `lib/payments/index.ts` references Click/Payme that don't exist yet (clearly marked as future, but reads as more-than-present).
+- **Provider registry:** Click is real (env-gated); Payme remains future-only in comments.
 - **No ESLint config:** `next lint` intentionally skipped; lint-class issues uncaught.
 - **Hardcoded copy:** Toast/error strings not fully i18n-driven (see §13/§17).
 - **`as unknown as Campaign[]` casts** in listing/home queries — acceptable but loosens type safety at the data boundary.
@@ -556,10 +557,11 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 19. Launch Checklist
 
 ### Critical (block launch with real money)
-- [ ] Implement & register a live payment provider (Click or Payme).
-- [ ] Add payment-method selection to the donation UI.
+- [x] Implement & register a live payment provider — **Click (SHOP API)** ✅ (code).
+- [x] Add payment-method selection to the donation UI.
+- [ ] Configure Click merchant credentials (`CLICK_*` env) + cabinet callback URLs; sandbox-test end-to-end (`docs/click-setup.md`).
 - [ ] Run **all** migrations in production; confirm with `verify-migrations.sql` (esp. #5 donations RLS).
-- [ ] Commit `package-lock.json`; switch CI to `npm ci`.
+- [x] Commit `package-lock.json`; switch CI to `npm ci`.
 - [ ] Set all required env vars in Vercel (server scope), no secrets as `NEXT_PUBLIC_`.
 - [ ] Verify storage buckets + RLS exist (incl. private `verification-documents`).
 - [ ] Smoke-test full flow: signup → KYC → create → donate → complete (webhook) → payout.
@@ -587,11 +589,11 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 |---|---|
 | **Technical readiness** | **High.** Clean, typed, documented Next.js 15 + Supabase architecture; strong SEO/i18n/mobile; thoughtful security design and internal audit docs. |
 | **Business readiness** | **Medium.** Complete creator→donor→reporting→payout product loop is built; cannot yet transact real money. Demonstrable as a working product minus live charging. |
-| **Payment readiness** | **Low.** Abstraction is production-grade and provider-ready, but no live gateway — the single biggest gap. ~5–10 working days to money-ready MVP. |
+| **Payment readiness** | **Medium.** Click (SHOP API) fully implemented on the production-grade abstraction; remaining gap is operational — merchant credentials + cabinet config + sandbox verification (~1–3 days once Click onboarding completes). |
 | **Security** | **Medium-High.** Strong model (tamper-proof donations, column grants, guarded fields, service-role confinement). Gated on verifying RLS is actually applied in production. |
 | **Scalability** | **Medium-High.** Indexed, paginated queries; serverless on Vercel + managed Postgres. Manual migrations and absence of tests are the main scaling-process risks. |
 
-**Bottom line:** A polished, near-complete platform whose only critical blocker to launch is live payment integration plus verifying production RLS.
+**Bottom line:** A polished, near-complete platform. Click integration is code-complete; the remaining launch blockers are operational — Click merchant onboarding/sandbox verification and confirming production RLS/migrations.
 
 ---
 
@@ -601,10 +603,11 @@ Prioritized; effort sized **Small** (<1d), **Medium** (1–3d), **Large** (3d+).
 
 | # | Task | Impact | Effort |
 |---|---|---|---|
-| 1 | Implement & register a Click or Payme provider (unblocks all money flow) | 🔴 Highest | Large |
+| 1 | ~~Implement & register a Click provider~~ ✅ done — configure Click merchant creds + cabinet URLs, sandbox-test (`docs/click-setup.md`) | 🔴 Highest | Small (external) |
 | 2 | Run + verify all migrations in production (`verify-migrations.sql`) | 🔴 Highest | Small |
-| 3 | Commit `package-lock.json`; switch CI to `npm ci` | 🟠 High | Small |
-| 4 | Add payment-method selection to `DonationForm` | 🟠 High | Small |
+| 3 | ~~Commit `package-lock.json`; switch CI to `npm ci`~~ ✅ done | 🟠 High | — |
+| 4 | ~~Add payment-method selection to `DonationForm`~~ ✅ done (shown when a gateway is configured) | 🟠 High | — |
+| 4b | Implement a Payme provider (JSON-RPC merchant API) | 🟠 High | Large |
 | 5 | Transactional email (receipts, payout confirmations, contact replies) | 🟠 High | Medium |
 | 6 | Automated tests: payment idempotency, RLS, donation→credit trigger | 🟠 High | Medium |
 | 7 | Configure OneSignal + Supabase webhook (activate live push) | 🟡 Medium | Small |

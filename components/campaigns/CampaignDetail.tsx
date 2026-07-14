@@ -27,9 +27,11 @@ interface CampaignDetailProps {
   pendingExtension?: boolean;
   /** True when this campaign has an admin-approved completion report (verified success). */
   hasApprovedReport?: boolean;
+  /** Real payment gateways enabled on the server (e.g. ['click']). */
+  paymentMethods?: string[];
 }
 
-export function CampaignDetail({ campaign, donors, pendingExtension = false, hasApprovedReport = false }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, donors, pendingExtension = false, hasApprovedReport = false, paymentMethods = [] }: CampaignDetailProps) {
   const { t, locale } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -321,6 +323,7 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false, has
               <DonationForm
                 campaignId={campaign.id}
                 onClose={() => setShowDonation(false)}
+                paymentMethods={paymentMethods}
               />
             )}
 

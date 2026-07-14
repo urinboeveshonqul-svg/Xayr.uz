@@ -14,6 +14,12 @@ const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
 
 type NameDisplay = 'full' | 'first' | 'anonymous';
 
+// Donor-facing labels for the real gateways the server reports as enabled.
+const METHOD_LABELS: Record<string, { name: string; note: string }> = {
+  click: { name: 'CLICK', note: "Click ilovasi yoki bank kartasi orqali xavfsiz to'lov" },
+  payme: { name: 'Payme', note: "Payme ilovasi yoki bank kartasi orqali xavfsiz to'lov" },
+};
+
 const schema = z.object({
   amount: z.coerce
     .number({ invalid_type_error: 'Miqdor kiriting' })
@@ -26,6 +32,8 @@ type FormData = z.infer<typeof schema>;
 interface DonationFormProps {
   campaignId: string;
   onClose: () => void;
+  /** Real gateways enabled on the server (e.g. ['click']). Empty → manual fallback. */
+  paymentMethods?: string[];
 }
 
 /**
@@ -35,9 +43,11 @@ interface DonationFormProps {
  * name-display option. The server creates the (pending) record — the client can
  * never set payment status.
  */
-export function DonationForm({ campaignId, onClose }: DonationFormProps) {
+export function DonationForm({ campaignId, onClose, paymentMethods = [] }: DonationFormProps) {
   const [customAmount, setCustomAmount] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
+  // Pre-select the first enabled gateway; null = manual (record-only) fallback.
+  const [method, setMethod] = useState<string | null>(paymentMethods[0] ?? null);
   const [isGuest, setIsGuest] = useState<boolean | null>(null); // null = still resolving
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
@@ -90,6 +100,7 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
         body: JSON.stringify({
           campaignId,
           amount: data.amount,
+          method,
           message: data.message || null,
           anonymous: nameDisplay === 'anonymous',
           name_display: nameDisplay,
@@ -192,17 +203,53 @@ export function DonationForm({ campaignId, onClose }: DonationFormProps) {
           <textarea {...register('message')} rows={2} className="input resize-none" placeholder="Kampaniya uchun tilaklaringizni yozing..." />
         </div>
 
+        {/* Payment method (shown only when a real gateway is enabled) */}
+        {paymentMethods.length > 0 && (
+          <div>
+            <label className="label">To&apos;lov usuli</label>
+            <div className="space-y-2">
+              {paymentMethods.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMethod(m)}
+                  aria-pressed={method === m}
+                  className={`w-full min-h-[48px] flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all active:scale-[0.99] ${
+                    method === m
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-700'
+                  }`}
+                >
+                  <CreditCard className={`w-5 h-5 flex-shrink-0 ${method === m ? 'text-brand-600' : 'text-gray-400'}`} />
+                  <span className="min-w-0">
+                    <span className={`block text-sm font-bold ${method === m ? 'text-brand-700 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                      {METHOD_LABELS[m]?.name ?? m}
+                    </span>
+                    <span className="block text-xs text-gray-400">{METHOD_LABELS[m]?.note ?? ''}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Turnstile (guests) */}
         {isGuest && <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} className="flex justify-center" />}
 
         {/* Payment notice */}
         <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl px-3 py-2 leading-relaxed flex items-start gap-2">
           <CreditCard className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>To&apos;lov tizimi tez orada ulanadi. Xayriyangiz qayd etiladi va siz bilan bog&apos;laniladi.</span>
+          <span>
+            {method
+              ? `Davom etsangiz, xavfsiz to'lov uchun ${METHOD_LABELS[method]?.name ?? method} sahifasiga yo'naltirilasiz.`
+              : "To'lov tizimi tez orada ulanadi. Xayriyangiz qayd etiladi va siz bilan bog'laniladi."}
+          </span>
         </p>
 
         <button type="submit" disabled={isSubmitting || isGuest === null} className="btn-primary w-full py-3 min-h-[48px] text-base">
-          {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saqlanmoqda...</> : 'Xayriya qilish'}
+          {isSubmitting
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> {method ? "Yo'naltirilmoqda..." : 'Saqlanmoqda...'}</>
+            : method ? "To'lovga o'tish" : 'Xayriya qilish'}
         </button>
       </form>
     </div>
