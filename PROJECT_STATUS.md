@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-07-14
-> **Branch:** feat/payout-accounts · **Latest at sync:** scalable payment provider selection (catalog + admin settings + CLICK sub-options, migration #47 pending) on top of Click (SHOP API) integration — live on main
+> **Branch:** feat/payout-accounts · **Latest at sync:** Payme (Merchant API) integration (migration #48 pending) on top of provider selection (#47 ✅ applied) + Click (SHOP API) — live on main
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -39,12 +39,12 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 |---|---|---|
 | **Overall Platform** | **~80%** | Feature-rich and polished; Click gateway code-complete — real-money operation now blocked only on merchant credentials + sandbox verification. |
 | Frontend | 95% | Full page set, components, responsive, theming, i18n. |
-| Backend (API routes) | 92% | 22 routes, all validated + RBAC; Click provider live (env-gated), Payme missing. |
+| Backend (API routes) | 93% | 23 routes, all validated + RBAC; Click + Payme providers live (env-gated). |
 | Database | 95% | Schema + 46 migrations; live application unverified. |
 | Security | 88% | Strong model; live RLS unverified + minor hardening items. |
 | Mobile | 95% | Bottom nav, touch targets, responsive throughout, PWA manifest. |
 | SEO | 95% | Metadata, OG images, JSON-LD, sitemap, robots, canonical/hreflang. |
-| **Payment System** | **70%** | Click (SHOP API) provider + callback endpoint + method selection implemented, env-gated; **pending merchant credentials + sandbox test**. Payme not started. |
+| **Payment System** | **85%** | Click (SHOP API) **and Payme (Merchant API)** providers + endpoints + provider-selection UI + admin catalog settings implemented, env-gated; **pending merchant credentials + sandbox tests + migration #48 (Payme)**. Paynet/Uzum are catalog slots. |
 | Notifications (in-app) | 95% | Trigger-driven, complete. |
 | Push notifications | 80% (code) | Code-complete; requires OneSignal + Supabase webhook config to go live. |
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
@@ -212,7 +212,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 
 | System | Exists | Missing | Remaining work |
 |---|---|---|---|
-| **Payment gateway** | **Click (SHOP API) provider** (`createPayment` redirect + signed Prepare/Complete callback endpoint, env-gated) + method selection in `DonationForm`; provider abstraction, idempotency dedupe, amount/currency verification, `payment_events` audit, `manual` fallback | Live Click merchant credentials + cabinet config + sandbox verification; a Payme provider | Configure `CLICK_*` env + cabinet URLs (see `docs/click-setup.md`), sandbox-test end-to-end; then implement Payme. |
+| **Payment gateway** | **Click (SHOP API)** + **Payme (Merchant API)** providers (env-gated) + method selection + admin provider settings; provider abstraction, idempotency, amount/currency verification, `payment_events` audit, `manual` fallback | Live merchant credentials + cabinet config + sandbox verification for both; migration #48 (Payme state table); admin flips Payme on | Configure `CLICK_*`/`PAYME_*` env + cabinets (`docs/click-setup.md`, `docs/payme-setup.md`), apply #48, sandbox-test end-to-end. |
 | **Push notifications** | Full client + server code, preferences table, webhook handler | Live OneSignal app + Supabase DB-webhook config | Configure dashboards; verify end-to-end delivery. |
 | **Analytics** | Per-campaign creator analytics | Platform-wide product analytics | Add Plausible/PostHog (or similar) + an admin analytics view. |
 | **Search** | `ilike` + filters + trigram indexes | Ranked/fuzzy full-text | Add `tsvector` column + ranking, or typo tolerance. |
@@ -224,7 +224,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 ## 5. Planned Features
 
 ### High Priority
-1. ~~Click payment integration (code)~~ ✅ done — **remaining: Click merchant credentials + cabinet config + sandbox test** (`docs/click-setup.md`); then Payme provider.
+1. ~~Click payment integration (code)~~ ✅ ~~Payme payment integration (code)~~ ✅ — **remaining: merchant credentials + cabinet config + sandbox tests for both** (`docs/click-setup.md`, `docs/payme-setup.md`) + migration #48.
 2. Verify + apply all DB migrations to production; record live status.
 3. Transactional email (donation receipts, payout confirmations, contact replies).
 4. Automated tests (payment idempotency, RLS, donation→credit trigger). ~~Committed lockfile~~ ✅ done (CI on `npm ci`).
@@ -273,6 +273,7 @@ maintained by `set_updated_at()` triggers where present.
 | `campaign_shares` | Share tracking | `campaign_id` | Anonymous insert (source CHECK-restricted); `get_share_stats` owner-only read. |
 | `notification_preferences` | Push preference matrix | `user_id (PK)` | Own-row scoped. |
 | `payment_provider_settings` | Admin-managed payment provider catalog (enable/coming-soon/order/default) | `id` = provider id (text PK) | Select all (public availability); write admin-only; admin API writes via service role. |
+| `payme_transactions` | Payme merchant-API transaction state machine (create/perform/cancel + ms timestamps) | `donation_id → donations`; `paycom_id` unique | Admin-only read; service-role writes; one active txn per donation (partial unique index). |
 | `payout_requests` | Withdrawal requests | `campaign_id`, `user_id`, `reviewed_by` | Created/read via SECURITY DEFINER RPCs; state machine + 3% commission. |
 | `payout_request_events` | Payout audit trail | `request_id → payout_requests` | Written by payout RPCs; `notify_on_payout_event`. |
 | `verification_requests` | KYC submissions | `user_id`, `reviewed_by` | Insert/read own + admin; status drives publish gate. |
@@ -347,7 +348,8 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 44 | `guest-donations.sql` | **Guest donations** — `donations.donor_name`/`donor_email`/`donor_phone` (PII, owner/admin RLS) + `name_display`; rebuilds `campaign_donors` view to render the chosen display name for guests + registered without exposing contact | Unknown | 7 |
 | 45 | `financial-ledger.sql` | **Financial ledger, summary & integrity** — immutable append-only `financial_ledger` (one row per money movement; signed amount; UPDATE/DELETE blocked); auto-record triggers on donations/payouts + backfill; `record_ledger_adjustment` (admin+reason→ledger+audit); `financial_summary` view; `public_financial_stats()` (anon, safe); `check_financial_integrity()`; `campaign_financials()` | Unknown | 18, 26, 31 |
 | 46 | `financial-snapshots.sql` | **Snapshots, ledger extension & reconciliation** — extends `financial_ledger` (`user_id`/`reference_id`; `campaign_credit`/granular withdrawal-lifecycle/`chargeback` types; 0-amount lifecycle events + backfill); `financial_snapshots` + idempotent `generate_financial_snapshot()` (daily cron); `reconciliation_report()`; `public_financial_series()`; `public_financial_stats()` +avg/largest | Unknown | 45 |
-| 47 | `payment-provider-settings.sql` | **Payment provider settings** — `payment_provider_settings` (enable/disable, coming-soon, priority, default; RLS select-all/admin-write; seeded: click active+default, payme/paynet/uzum coming-soon) + widens `donations.payment_method` CHECK with `paynet`/`uzum`. App fails open to safe defaults until applied | Unknown | 1 |
+| 47 | `payment-provider-settings.sql` | **Payment provider settings** — `payment_provider_settings` (enable/disable, coming-soon, priority, default; RLS select-all/admin-write; seeded: click active+default, payme/paynet/uzum coming-soon) + widens `donations.payment_method` CHECK with `paynet`/`uzum`. App fails open to safe defaults until applied | ✅ Applied 2026-07-14 (user-confirmed) | 1 |
+| 48 | `payme-transactions.sql` | **Payme merchant-API transactions** — `payme_transactions` state table (paycom_id unique, state 1/2/-1/-2, create/perform/cancel ms timestamps echoed verbatim, cancel reason; one ACTIVE txn per donation via partial unique index; RLS admin-read, service-role writes) backing Create/Perform/Cancel/Check/GetStatement | Unknown — **required before enabling Payme** | 1, 39, 47 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 
@@ -378,6 +380,7 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/admin/extensions` | POST | Approve/reject a campaign extension (calls RPC; revalidates home on approve) | Required | **Admin** (RPC re-checks `is_admin()`) | `{ ok }` / error |
 | `/api/admin/finance/export` | GET | Download the financial ledger as CSV (UTF-8 BOM; formula-injection-safe) | Required | **Admin** | `text/csv` attachment |
 | `/api/admin/payment-providers` | POST | Update payment provider settings (enable/coming-soon/priority/default; single-default enforced) | Required | **Admin** | `{ ok }` / error |
+| `/api/payments/payme` | POST | **Payme Merchant API** (JSON-RPC 2.0): CheckPerform/Create/Perform/Cancel/Check/GetStatement — idempotent state machine over `payme_transactions`; credits via `confirmDonation` | HTTP Basic (merchant KEY, timing-safe) | Env-gated (`PAYME_*`); always HTTP 200 with a JSON-RPC body | JSON-RPC `result`/`error` per Payme spec |
 | `/api/contact` | POST | Store a contact-form message (rate-limited, Turnstile) | Public | — | `201 { ok }` / error |
 | `/api/cron/expire-campaigns` | GET | Daily sweep: archive due campaigns via `expire_due_campaigns()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, expired }` |
 | `/api/cron/financial-snapshot` | GET | Daily idempotent financial snapshot via `generate_financial_snapshot()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, created }` |
@@ -395,7 +398,8 @@ Names only — never commit real values. Template: `.env.example`.
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-role key — **secret, server-only**, bypasses RLS | ✅ Required (for donations, admin, webhooks) | `lib/supabase/admin.ts` |
 | `NEXT_PUBLIC_APP_URL` | Canonical app URL | ✅ Required | SEO/sitemap, push click URLs |
 | `CLICK_MERCHANT_ID` / `CLICK_SERVICE_ID` / `CLICK_SECRET_KEY` | Click gateway — **secret** | ⏳ Optional (Click hidden until all 3 set) | `lib/payments/providers/click.ts`, `/api/payments/click` — setting all three activates Click checkout (see `docs/click-setup.md`) |
-| `PAYME_MERCHANT_ID` / `PAYME_SECRET_KEY` | Payme gateway — **secret** | ⏳ Optional today | Reserved for future Payme provider |
+| `PAYME_MERCHANT_ID` / `PAYME_SECRET_KEY` | Payme gateway — **secret** | ⏳ Optional (Payme stays Coming Soon until both set + admin-enabled) | `lib/payments/providers/payme.ts`, `/api/payments/payme` (see `docs/payme-setup.md`) |
+| `PAYME_CHECKOUT_URL` | Payme hosted-checkout base override | ⏳ Optional (defaults to production checkout) | Sandbox testing: `https://checkout.test.paycom.uz` |
 | `NEXT_PUBLIC_ONESIGNAL_APP_ID` | OneSignal app id (public) | ⏳ Optional (push off without it) | OneSignal web SDK |
 | `ONESIGNAL_REST_API_KEY` | OneSignal REST key — **secret** | ⏳ Optional | `/api/push/notify` |
 | `SUPABASE_WEBHOOK_SECRET` | Shared secret for push webhook — **secret** | ⏳ Optional (push webhook returns 503 without it) | `/api/push/notify` auth |
@@ -443,6 +447,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 - `types.ts` — `PaymentProvider` contract (`createPayment` — now with an optional `submethod` wallet/card hint —, optional `verifyWebhook`), `PaymentIntent`, `WebhookResult`.
 - `index.ts` — provider registry (resolved per call from runtime env) + `getPaymentProvider()`.
 - `providers-meta.ts` — client-safe catalog metadata (id/name/logo mark/supported sub-methods/default order) for CLICK, Payme, Paynet, Uzum Bank; adding a provider = one entry + one implementation, no UI redesign.
+- `providers/payme.ts` — **Payme Merchant API provider**: `createPayment` builds the hosted-checkout redirect (`checkout.paycom.uz/<base64: m; ac.order_id=payme_<donationId>; a=<tiyin>; c=return-url>`); exports the timing-safe Basic-auth verifier + tiyin conversion + state/error constants. Env-gated by `PAYME_MERCHANT_ID`/`PAYME_SECRET_KEY`. Payme drives payment via the JSON-RPC endpoint `app/api/payments/payme` (see §8) over the `payme_transactions` state table (#48); cancel-after-perform marks the donation `refunded` (totals reversed by #39). Setup: `docs/payme-setup.md`.
 - `catalog.ts` — **server-side catalog resolver**: merges code (implemented) + env (configured) + `payment_provider_settings` (admin: enabled/coming-soon/priority/default) into a single availability answer, fail-open to safe defaults pre-migration-#47. Feeds the donation form (via the campaign page), the admin panel, and donation-API validation — availability is never hardcoded twice.
 - `providers/manual.ts` — no-gateway fallback (records pending, no charge).
 - `providers/click.ts` — **Click SHOP API provider**: `createPayment` builds the hosted-checkout redirect (`transaction_param = click_<donationId>`, return to `/payment/success?ref=…`); exports the MD5 signature verifier (timing-safe via `lib/security/timing-safe.ts`) + deterministic `merchant_prepare_id` derivation. Env-gated by `CLICK_MERCHANT_ID`/`CLICK_SERVICE_ID`/`CLICK_SECRET_KEY` — unset ⇒ exact pre-gateway behaviour. Click's two-phase, spec-mandated response contract lives in the dedicated `app/api/payments/click/route.ts` (see §8), built on the same helpers/confirm path as the generic webhook. Setup: `docs/click-setup.md`.
@@ -453,12 +458,11 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 **Current flow (Click configured).** `DonationForm` (method selector, CLICK pre-selected) → `POST /api/donations` → service-role insert as `pending` → Click provider returns the hosted-checkout `redirectUrl` (`payment_ref = click_<donationId>`) → donor pays on my.click.uz → Click POSTs **Prepare** then **Complete** (MD5-signed, form-urlencoded) to `/api/payments/click` → signature + `service_id` verified, event logged/deduped in `payment_events`, `confirmDonation` verifies amount+currency and credits (the `apply_donation` trigger updates campaign totals) → donor lands on `/payment/success?ref=…`, which polls to **completed**. Cancellation/failure (Complete with `error<0`) marks the donation `failed`. Unconfigured ⇒ manual provider, "coming soon" instructions, no selector (unchanged).
 
 **Current limitations.**
-- Click is **unverified against a live/sandbox merchant** — needs credentials + cabinet callback URLs + an end-to-end test (`docs/click-setup.md` §5).
-- No Payme provider yet.
-- No refund flow/UI (reversal trigger #39 exists at the DB layer).
+- Click and Payme are **unverified against live/sandbox merchants** — each needs credentials + cabinet config + an end-to-end test (`docs/click-setup.md` §5, `docs/payme-setup.md` §5). Payme additionally needs migration **#48** and the admin toggle (Coming Soon → Enabled) in `/admin/payments`.
+- Payme's cancel-after-perform refunds a donation at the DB level; there is still no admin-facing refund UI.
 - Without a configured gateway there is still no in-app path to complete a donation (manual tool removed in #31).
 
-**Missing work.** Configure + sandbox-test Click; implement Payme (`createPayment` + its JSON-RPC merchant-API endpoint); refund handling/UI.
+**Missing work.** Configure + sandbox-test Click and Payme; refund handling/UI; Paynet/Uzum Bank providers (catalog slots ready).
 
 **Merchant requirements.** A registered Uzbek merchant account with Click and/or Payme; merchant/service IDs + secret keys (env vars already scaffolded); a public webhook URL allow-listed with the provider.
 
@@ -534,7 +538,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 
 | Sev | Description | Location | Suggested fix |
 |---|---|---|---|
-| 🟠 High | Click gateway implemented but **not yet live** — needs merchant credentials, cabinet callback URLs, and a sandbox end-to-end test; until then donations still never auto-complete | `lib/payments/providers/click.ts`, `app/api/payments/click/route.ts` | Follow `docs/click-setup.md`; set `CLICK_*` env in Vercel; sandbox-test. |
+| 🟠 High | Click + Payme gateways implemented but **not yet live** — each needs merchant credentials, cabinet config, and a sandbox end-to-end test (Payme also migration #48 + the admin enable toggle); until then donations still never auto-complete | `lib/payments/providers/{click,payme}.ts`, `app/api/payments/{click,payme}/route.ts` | Follow `docs/click-setup.md` + `docs/payme-setup.md`; set env in Vercel; apply #48; sandbox-test. |
 | 🔴 Critical | Live RLS unverified — base `schema.sql` allows `donations_insert_any`; only migration #5 restricts to pending. If #5 isn't applied, totals are forgeable | `supabase/secure-donations-rls.sql` | Run `verify-migrations.sql`; apply #5 (and all) in prod. |
 | ✅ Fixed | ~~No `package-lock.json` → non-reproducible builds~~ → lockfile committed; CI on `npm ci` + npm cache | repo root, `.github/workflows/ci.yml` | Done. |
 | 🟠 High | No automated tests; CI = typecheck + build only | repo-wide | Add tests for payment idempotency, RLS, donation trigger. |
@@ -551,7 +555,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 
 - **Dual schema source of truth:** `supabase/schema.sql` and `supabase/000_master_migration.sql` both exist — drift risk. Document which is canonical.
 - **Unused scaffolding:** `admin_audit_log` table retained but no writer remains (manual donation tool removed). Either use it for admin-action logging or drop it.
-- **Provider registry:** Click is real (env-gated); Payme remains future-only in comments.
+- **Provider registry:** Click and Payme are real (env-gated); Paynet/Uzum Bank are metadata-only catalog slots awaiting implementations.
 - **No ESLint config:** `next lint` intentionally skipped; lint-class issues uncaught.
 - **Hardcoded copy:** Toast/error strings not fully i18n-driven (see §13/§17).
 - **`as unknown as Campaign[]` casts** in listing/home queries — acceptable but loosens type safety at the data boundary.

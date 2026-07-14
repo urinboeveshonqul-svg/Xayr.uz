@@ -1,18 +1,20 @@
 import type { PaymentProvider, PaymentProviderId } from './types';
 import { manualProvider } from './providers/manual';
 import { clickProvider, isClickConfigured } from './providers/click';
+import { paymeProvider, isPaymeConfigured } from './providers/payme';
 
 // Provider registry. Real gateways register here when their merchant
 // credentials are configured; without credentials everything falls back to the
 // manual (no-gateway) provider, preserving pre-gateway behaviour.
 //   click — live (env-gated). Callbacks: app/api/payments/click.
-//   payme — not yet implemented.
+//   payme — live (env-gated). Merchant API: app/api/payments/payme.
 // Resolved per call (not at module init) so the env is always the runtime env,
 // never a build-time snapshot.
 function getProviders(): Partial<Record<PaymentProviderId, PaymentProvider>> {
   return {
     manual: manualProvider,
     ...(isClickConfigured() ? { click: clickProvider } : {}),
+    ...(isPaymeConfigured() ? { payme: paymeProvider } : {}),
   };
 }
 
