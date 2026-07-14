@@ -110,13 +110,21 @@ export function verifyClickSignature(p: ClickCallbackParams, secretKey: string):
 }
 
 /**
- * Deterministic merchant_prepare_id for a donation: the first 12 hex chars of
- * its UUID as an integer (48 bits — inside Number.MAX_SAFE_INTEGER). Being
- * derived (not stored) makes Prepare naturally idempotent, and lets Complete
- * verify the echoed id without an extra table.
+ * Deterministic merchant_prepare_id for a donation. Being derived (not stored)
+ * makes Prepare naturally idempotent, and lets Complete verify the echoed id
+ * without an extra table.
+ *
+ * Click types merchant_prepare_id as `int` (32-bit) — not `bigint` like
+ * click_trans_id/click_paydoc_id. So the value MUST fit a signed 32-bit int,
+ * or Click may truncate it and echo back a different id on Complete (failing
+ * verification after the card was already charged). We take the first 8 hex
+ * chars of the UUID (32 bits) and mask off the sign bit, yielding a stable,
+ * non-negative value in [0, 0x7FFFFFFF]. Uniqueness across donations is not
+ * required: the id is only ever compared against derivePrepareId(donation.id)
+ * for the one donation resolved by merchant_trans_id.
  */
 export function derivePrepareId(donationId: string): number {
-  return parseInt(donationId.replace(/-/g, '').slice(0, 12), 16);
+  return parseInt(donationId.replace(/-/g, '').slice(0, 8), 16) & 0x7fffffff;
 }
 
 export const clickProvider: PaymentProvider = {
