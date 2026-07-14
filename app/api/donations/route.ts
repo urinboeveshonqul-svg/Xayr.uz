@@ -115,15 +115,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not record donation' }, { status: 500 });
   }
 
-  // 5) Hand off to the payment provider abstraction (manual / no-gateway today).
+  // 5) Hand off to the payment provider abstraction. Real gateways (Click)
+  //    redirect to hosted checkout and land the donor back on the payment
+  //    status page; unconfigured methods fall back to the manual provider.
   const provider = getPaymentProvider(method);
-  const origin = new URL(request.url).origin;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
   const intent = await provider.createPayment({
     donationId: donation.id,
     amount,
     campaignId,
     campaignTitle: campaign.title,
-    returnUrl: `${origin}/campaigns`,
+    returnUrl: `${appUrl}/payment/success`,
   });
 
   // 6) Persist the provider reference for reconciliation/webhooks.

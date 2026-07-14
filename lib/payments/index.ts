@@ -1,23 +1,43 @@
+import type { PaymentMethod } from '@/types';
 import type { PaymentProvider, PaymentProviderId } from './types';
 import { manualProvider } from './providers/manual';
+import { clickProvider, isClickConfigured } from './providers/click';
 
-// Provider registry. As real gateways are implemented, register them here, e.g.
-//   click: clickProvider,
-//   payme: paymeProvider,
-// and the donation API + webhooks pick them up automatically — no other changes.
-const providers: Partial<Record<PaymentProviderId, PaymentProvider>> = {
-  manual: manualProvider,
-};
+// Provider registry. Real gateways register here when their merchant
+// credentials are configured; without credentials everything falls back to the
+// manual (no-gateway) provider, preserving pre-gateway behaviour.
+//   click — live (env-gated). Callbacks: app/api/payments/click.
+//   payme — not yet implemented.
+// Resolved per call (not at module init) so the env is always the runtime env,
+// never a build-time snapshot.
+function getProviders(): Partial<Record<PaymentProviderId, PaymentProvider>> {
+  return {
+    manual: manualProvider,
+    ...(isClickConfigured() ? { click: clickProvider } : {}),
+  };
+}
 
 /**
- * Resolve the provider for a chosen donation method. Until real gateways are
- * registered, everything falls back to the manual (no-gateway) provider.
+ * Resolve the provider for a chosen donation method. Methods without a
+ * registered (configured) provider fall back to the manual provider.
  */
 export function getPaymentProvider(method?: string | null): PaymentProvider {
+  const providers = getProviders();
   if (method && method in providers) {
     return providers[method as PaymentProviderId] ?? manualProvider;
   }
   return manualProvider;
+}
+
+/**
+ * Payment methods donors can actually check out with right now (configured
+ * real gateways — excludes the internal manual fallback). Server-only; the
+ * campaign page passes the result down to the donation form.
+ */
+export function getEnabledPaymentMethods(): PaymentMethod[] {
+  return (Object.keys(getProviders()) as PaymentProviderId[]).filter(
+    (id): id is PaymentMethod => id !== 'manual'
+  );
 }
 
 export * from './types';

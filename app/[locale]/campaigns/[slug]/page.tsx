@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { getEnabledPaymentMethods } from '@/lib/payments';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
 import { buildCampaignJsonLd } from '@/lib/campaign-jsonld';
@@ -262,7 +263,7 @@ export default async function CampaignDetailPage({ params }: Props) {
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <ViewTracker campaignId={campaign.id} />
-          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} hasApprovedReport={hasApprovedReport} />
+          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} hasApprovedReport={hasApprovedReport} paymentMethods={getEnabledPaymentMethods()} />
 
           <div className="max-w-5xl mx-auto">
             {/* Public lifecycle timeline — shown when the campaign was extended */}
