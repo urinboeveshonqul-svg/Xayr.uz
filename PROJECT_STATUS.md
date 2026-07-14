@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-07-14
-> **Branch:** feat/payout-accounts · **Latest at sync:** Click (SHOP API) payment integration + committed lockfile/`npm ci` CI (on top of `f729183` legal center, live on main)
+> **Branch:** feat/payout-accounts · **Latest at sync:** Click (SHOP API) payment integration + lockfile/`npm ci` CI + hero announcement-pill removal (all live on main)
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -486,7 +486,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 13. Localization
 
 - **Languages:** Uzbek (default), Russian, English. Config in `i18n/config.ts`; routing via `/[locale]/…` + `NEXT_LOCALE` cookie + middleware redirect.
-- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1352 lines** (parity maintained). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
+- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1350 lines** (parity maintained; `hero.badge`/`hero.badgeNew` removed with the hero announcement pill, 2026-07-14). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
 - **Missing translations:** No structural gaps detected (equal line counts). Some Uzbek UI strings are hardcoded in components/API error messages (e.g. toast text in `DonationForm`, API error strings) rather than dictionary-driven.
 - **Remaining work:** Extract hardcoded UI/toast/API strings into the dictionaries for full coverage; add a CI check that locale files stay key-aligned.
 
