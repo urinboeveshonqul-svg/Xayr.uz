@@ -34,7 +34,7 @@ export type CampaignCategory =
   | 'medical' | 'education' | 'disaster' | 'community'
   | 'environment' | 'animal' | 'sport' | 'other';
 export type DonationStatus = 'pending' | 'completed' | 'failed' | 'refunded';
-export type PaymentMethod = 'click' | 'payme' | 'uzcard' | 'humo' | 'cash';
+export type PaymentMethod = 'click' | 'payme' | 'paynet' | 'uzum' | 'uzcard' | 'humo' | 'cash';
 export type NotificationType =
   | 'general' | 'donation' | 'comment' | 'campaign_status' | 'update' | 'verification';
 export type PayoutStatus =
@@ -649,6 +649,33 @@ export type Database = {
           processed_at?: string | null;
           received_at?: string;
           error_message?: string | null;
+        };
+        Relationships: [];
+      };
+      payment_provider_settings: {
+        Row: {
+          id: string;
+          enabled: boolean;
+          coming_soon: boolean;
+          priority: number;
+          is_default: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          enabled?: boolean;
+          coming_soon?: boolean;
+          priority?: number;
+          is_default?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          enabled?: boolean;
+          coming_soon?: boolean;
+          priority?: number;
+          is_default?: boolean;
+          updated_at?: string;
         };
         Relationships: [];
       };

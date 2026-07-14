@@ -122,6 +122,9 @@ export function derivePrepareId(donationId: string): number {
 export const clickProvider: PaymentProvider = {
   id: 'click',
 
+  // Note: the donor's app-vs-card choice (params.submethod) is a UX hint only —
+  // Click's hosted checkout natively offers both CLICK-account and UzCard/Humo
+  // card payment on the same page, so the URL doesn't change per submethod.
   async createPayment({ donationId, amount, returnUrl }) {
     const reference = `click_${donationId}`;
 

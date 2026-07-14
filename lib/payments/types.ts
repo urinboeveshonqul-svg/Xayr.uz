@@ -17,6 +17,12 @@ export interface CreatePaymentParams {
   campaignId: string;
   campaignTitle: string;
   returnUrl: string;     // where the user lands after checkout
+  /**
+   * Donor's in-provider choice (e.g. CLICK app vs bank card). A hint only —
+   * providers may use it to preselect a checkout tab; hosted checkouts that
+   * offer the choice natively can ignore it.
+   */
+  submethod?: 'wallet' | 'card';
 }
 
 export interface PaymentIntent {

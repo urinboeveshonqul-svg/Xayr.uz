@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const { data: donation } = await admin
     .from('donations')
-    .select('amount, status, campaign_id')
+    .select('amount, status, campaign_id, payment_method')
     .eq('payment_ref', ref)
     .maybeSingle();
 
@@ -34,6 +34,8 @@ export async function GET(request: Request) {
     found: true,
     amount: donation.amount,
     status: donation.status,
+    provider: donation.payment_method ?? null,
+    campaignId: donation.campaign_id,
     campaignTitle: campaign?.title ?? null,
     campaignSlug: campaign?.slug ?? null,
   });

@@ -5,7 +5,7 @@
 > implemented — no aspirational or invented features.
 >
 > **Last synced:** 2026-07-14
-> **Branch:** feat/payout-accounts · **Latest at sync:** Click (SHOP API) payment integration + lockfile/`npm ci` CI + hero announcement-pill removal (all live on main)
+> **Branch:** feat/payout-accounts · **Latest at sync:** scalable payment provider selection (catalog + admin settings + CLICK sub-options, migration #47 pending) on top of Click (SHOP API) integration — live on main
 >
 > ⚠️ **Maintenance rule:** update this file whenever a feature, migration, route,
 > env var, or completion estimate changes. See [Maintenance Rules](#maintenance-rules) at the end.
@@ -39,7 +39,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 |---|---|---|
 | **Overall Platform** | **~80%** | Feature-rich and polished; Click gateway code-complete — real-money operation now blocked only on merchant credentials + sandbox verification. |
 | Frontend | 95% | Full page set, components, responsive, theming, i18n. |
-| Backend (API routes) | 92% | 21 routes, all validated + RBAC; Click provider live (env-gated), Payme missing. |
+| Backend (API routes) | 92% | 22 routes, all validated + RBAC; Click provider live (env-gated), Payme missing. |
 | Database | 95% | Schema + 46 migrations; live application unverified. |
 | Security | 88% | Strong model; live RLS unverified + minor hardening items. |
 | Mobile | 95% | Bottom nav, touch targets, responsive throughout, PWA manifest. |
@@ -90,7 +90,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 ### Donations
 - **What:** Donation modal with preset/custom amounts, optional message, and a 3-way **name display** (Display my name / First name only / Anonymous). Works for **guests and registered users** on the same campaign page. **Guests** provide name + email (+ optional phone) and pass **Turnstile**; logged-in donors reuse their profile (linked via `donor_id`) and skip those fields. Server creates a **pending** record; client can never set status. Anonymity is derived server-side from the display choice. Guest contact is PII (admin/owner-only via RLS); the public donor feed shows only the chosen display name (`campaign_donors` view handles guest + registered, first-word, and anonymous). The payment-success page shows an on-screen **receipt** (amount/campaign/transaction ref/date) and offers guests a **"Create a XAYR account"** CTA (never forced). Admin donations view distinguishes **guest vs registered**, shows the real name/email/phone even for anonymous donations, and filters by donor type; owner analytics shows a **donor-type breakdown** (total / registered / guest / anonymous).
 - **Where:** `components/donations/DonationForm.tsx`, `app/api/donations/route.ts` (Turnstile + guest validation), `components/payments/PaymentSuccessView.tsx` (receipt + account CTA), `components/admin/AdminDonationsReconciliation.tsx` + `app/[locale]/admin/donations/page.tsx` (donor type/contact/filter), `app/[locale]/campaigns/[slug]/analytics/page.tsx` (breakdown); migration `supabase/guest-donations.sql` (#44). Table: `donations` (+ `donor_name`/`donor_email`/`donor_phone`/`name_display`).
-- **Status:** ✅ Guest-donation workflow complete (security: Turnstile + rate-limit + server-side validation; status never client-trusted). ✅ **Click checkout wired** (env-gated — see §11): the form shows a payment-method selector when a gateway is configured and redirects to hosted checkout; donations complete automatically via the signed Click callback. ⚠️ **Email** receipts need a transactional-email provider (not yet integrated) — the receipt is shown on-screen meanwhile.
+- **Status:** ✅ Guest-donation workflow complete (security: Turnstile + rate-limit + server-side validation; status never client-trusted). ✅ **Click checkout wired** (env-gated — see §11). ✅ **Payment method selection** (`components/payments/PaymentMethodSelector.tsx`): "Choose Payment Method" card list fed by the server-resolved provider catalog — CLICK selectable (Recommended badge) with two in-card choices (Pay with CLICK / Pay by bank card — UzCard/Humo, both belong to CLICK, never separate providers; the choice is a provider hint, Click's hosted checkout offers both natively); Payme/Paynet/Uzum Bank visible as disabled "Coming Soon" cards. The server validates the chosen method against the catalog (`isProviderEnabled`) — a disabled/unknown gateway is rejected 422. The success page shows amount/campaign/**provider**/transaction ref/date/status + **Share campaign** + Return to campaign. ⚠️ **Email** receipts need a transactional-email provider (not yet integrated) — the receipt is shown on-screen meanwhile.
 
 ### Notifications (in-app)
 - **What:** Bell + notifications view; auto-generated on new donation, comment, campaign milestone, campaign status change, updates, completion reports, payout status, and verification decisions.
@@ -174,8 +174,8 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **Status:** ✅ Complete and strong.
 
 ### Admin
-- **What:** Dashboard with stats; manage campaigns, reconcile donations, resolve flags, manage users + roles, review verifications, manage payouts, read contact messages.
-- **Where:** `app/[locale]/admin/*`, `components/admin/*`, `app/api/admin/{set-role,verifications}/route.ts`, `admin_stats` view.
+- **What:** Dashboard with stats; manage campaigns, reconcile donations, resolve flags, manage users + roles, review verifications, manage payouts, read contact messages, **manage payment providers** (`/admin/payments` — enable/disable, Coming Soon flag, display order, default provider; pure configuration via `payment_provider_settings`, no code changes; a provider only goes live when its implementation + merchant env also exist).
+- **Where:** `app/[locale]/admin/*`, `components/admin/*` (incl. `AdminPaymentProviders.tsx`), `app/api/admin/{set-role,verifications,payment-providers}/route.ts`, `admin_stats` view.
 - **Status:** ✅ Complete. Rate-limited at the middleware layer; RBAC re-verified server-side on each route.
 
 ### Payouts
@@ -272,6 +272,7 @@ maintained by `set_updated_at()` triggers where present.
 | `payment_events` | Webhook audit / idempotency / reconciliation | `donation_id → donations` | Admin-only read; written by service role. `provider_event_id` dedupe. |
 | `campaign_shares` | Share tracking | `campaign_id` | Anonymous insert (source CHECK-restricted); `get_share_stats` owner-only read. |
 | `notification_preferences` | Push preference matrix | `user_id (PK)` | Own-row scoped. |
+| `payment_provider_settings` | Admin-managed payment provider catalog (enable/coming-soon/order/default) | `id` = provider id (text PK) | Select all (public availability); write admin-only; admin API writes via service role. |
 | `payout_requests` | Withdrawal requests | `campaign_id`, `user_id`, `reviewed_by` | Created/read via SECURITY DEFINER RPCs; state machine + 3% commission. |
 | `payout_request_events` | Payout audit trail | `request_id → payout_requests` | Written by payout RPCs; `notify_on_payout_event`. |
 | `verification_requests` | KYC submissions | `user_id`, `reviewed_by` | Insert/read own + admin; status drives publish gate. |
@@ -346,6 +347,7 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 44 | `guest-donations.sql` | **Guest donations** — `donations.donor_name`/`donor_email`/`donor_phone` (PII, owner/admin RLS) + `name_display`; rebuilds `campaign_donors` view to render the chosen display name for guests + registered without exposing contact | Unknown | 7 |
 | 45 | `financial-ledger.sql` | **Financial ledger, summary & integrity** — immutable append-only `financial_ledger` (one row per money movement; signed amount; UPDATE/DELETE blocked); auto-record triggers on donations/payouts + backfill; `record_ledger_adjustment` (admin+reason→ledger+audit); `financial_summary` view; `public_financial_stats()` (anon, safe); `check_financial_integrity()`; `campaign_financials()` | Unknown | 18, 26, 31 |
 | 46 | `financial-snapshots.sql` | **Snapshots, ledger extension & reconciliation** — extends `financial_ledger` (`user_id`/`reference_id`; `campaign_credit`/granular withdrawal-lifecycle/`chargeback` types; 0-amount lifecycle events + backfill); `financial_snapshots` + idempotent `generate_financial_snapshot()` (daily cron); `reconciliation_report()`; `public_financial_series()`; `public_financial_stats()` +avg/largest | Unknown | 45 |
+| 47 | `payment-provider-settings.sql` | **Payment provider settings** — `payment_provider_settings` (enable/disable, coming-soon, priority, default; RLS select-all/admin-write; seeded: click active+default, payme/paynet/uzum coming-soon) + widens `donations.payment_method` CHECK with `paynet`/`uzum`. App fails open to safe defaults until applied | Unknown | 1 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 
@@ -375,6 +377,7 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/push/notify` | POST | Supabase DB-webhook → OneSignal push | Shared secret header | `503` if unset, `401` on mismatch | always `200`-style ack |
 | `/api/admin/extensions` | POST | Approve/reject a campaign extension (calls RPC; revalidates home on approve) | Required | **Admin** (RPC re-checks `is_admin()`) | `{ ok }` / error |
 | `/api/admin/finance/export` | GET | Download the financial ledger as CSV (UTF-8 BOM; formula-injection-safe) | Required | **Admin** | `text/csv` attachment |
+| `/api/admin/payment-providers` | POST | Update payment provider settings (enable/coming-soon/priority/default; single-default enforced) | Required | **Admin** | `{ ok }` / error |
 | `/api/contact` | POST | Store a contact-form message (rate-limited, Turnstile) | Public | — | `201 { ok }` / error |
 | `/api/cron/expire-campaigns` | GET | Daily sweep: archive due campaigns via `expire_due_campaigns()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, expired }` |
 | `/api/cron/financial-snapshot` | GET | Daily idempotent financial snapshot via `generate_financial_snapshot()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, created }` |
@@ -437,8 +440,10 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 11. Payment System Status
 
 **Architecture.** Provider-agnostic abstraction in `lib/payments/`:
-- `types.ts` — `PaymentProvider` contract (`createPayment`, optional `verifyWebhook`), `PaymentIntent`, `WebhookResult`.
-- `index.ts` — provider registry (resolved per call from runtime env) + `getPaymentProvider()` + `getEnabledPaymentMethods()` (drives the donation form's method selector).
+- `types.ts` — `PaymentProvider` contract (`createPayment` — now with an optional `submethod` wallet/card hint —, optional `verifyWebhook`), `PaymentIntent`, `WebhookResult`.
+- `index.ts` — provider registry (resolved per call from runtime env) + `getPaymentProvider()`.
+- `providers-meta.ts` — client-safe catalog metadata (id/name/logo mark/supported sub-methods/default order) for CLICK, Payme, Paynet, Uzum Bank; adding a provider = one entry + one implementation, no UI redesign.
+- `catalog.ts` — **server-side catalog resolver**: merges code (implemented) + env (configured) + `payment_provider_settings` (admin: enabled/coming-soon/priority/default) into a single availability answer, fail-open to safe defaults pre-migration-#47. Feeds the donation form (via the campaign page), the admin panel, and donation-API validation — availability is never hardcoded twice.
 - `providers/manual.ts` — no-gateway fallback (records pending, no charge).
 - `providers/click.ts` — **Click SHOP API provider**: `createPayment` builds the hosted-checkout redirect (`transaction_param = click_<donationId>`, return to `/payment/success?ref=…`); exports the MD5 signature verifier (timing-safe via `lib/security/timing-safe.ts`) + deterministic `merchant_prepare_id` derivation. Env-gated by `CLICK_MERCHANT_ID`/`CLICK_SERVICE_ID`/`CLICK_SECRET_KEY` — unset ⇒ exact pre-gateway behaviour. Click's two-phase, spec-mandated response contract lives in the dedicated `app/api/payments/click/route.ts` (see §8), built on the same helpers/confirm path as the generic webhook. Setup: `docs/click-setup.md`.
 - `confirm.ts` — `confirmDonation()` (service-role, idempotent; amount **and** currency are **mandatory** and fail closed; a definitive mismatch marks the donation `failed` + alerts admins, never left pending).
@@ -486,7 +491,7 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 ## 13. Localization
 
 - **Languages:** Uzbek (default), Russian, English. Config in `i18n/config.ts`; routing via `/[locale]/…` + `NEXT_LOCALE` cookie + middleware redirect.
-- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1350 lines** (parity maintained; `hero.badge`/`hero.badgeNew` removed with the hero announcement pill, 2026-07-14). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
+- **Coverage:** `locales/{uz,ru,en}/common.json` — all three are **1354 lines** (parity maintained; +`admin.navPayments`, `payment.provider/shareCampaign/linkCopied`, 2026-07-14). Server dictionaries loaded lazily (`i18n/dictionaries.ts`).
 - **Missing translations:** No structural gaps detected (equal line counts). Some Uzbek UI strings are hardcoded in components/API error messages (e.g. toast text in `DonationForm`, API error strings) rather than dictionary-driven.
 - **Remaining work:** Extract hardcoded UI/toast/API strings into the dictionaries for full coverage; add a CI check that locale files stay key-aligned.
 

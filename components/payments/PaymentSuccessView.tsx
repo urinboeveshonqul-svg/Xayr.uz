@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Loader2, XCircle, UserPlus } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { CheckCircle, Loader2, XCircle, UserPlus, Share2 } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { providerDisplayName } from '@/lib/payments/providers-meta';
+import { trackShare } from '@/lib/share';
 
 type State = 'pending' | 'completed' | 'failed' | 'unknown';
 
@@ -26,6 +29,8 @@ export function PaymentSuccessView({
   const [amount, setAmount] = useState<number | null>(null);
   const [title, setTitle] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(campaignSlug);
+  const [provider, setProvider] = useState<string | null>(null);
+  const [campaignId, setCampaignId] = useState<string | null>(null);
   // Show the "create an account" offer only to guests.
   const [isGuest, setIsGuest] = useState(false);
 
@@ -49,6 +54,8 @@ export function PaymentSuccessView({
           if (typeof j.amount === 'number') setAmount(j.amount);
           if (j.campaignTitle) setTitle(j.campaignTitle);
           if (j.campaignSlug) setSlug(j.campaignSlug);
+          if (j.provider) setProvider(j.provider);
+          if (j.campaignId) setCampaignId(j.campaignId);
           if (j.status === 'completed') { setState('completed'); return; }
           if (j.status === 'failed') { setState('failed'); return; }
         }
@@ -62,6 +69,27 @@ export function PaymentSuccessView({
   }, [reference]);
 
   const campaignHref = slug ? `/${locale}/campaigns/${slug}` : `/${locale}/campaigns`;
+
+  // Share the campaign the donor just supported (native share → clipboard fallback).
+  const shareCampaign = async () => {
+    const url = `${window.location.origin}${campaignHref}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: title ?? 'XAYR', url });
+        if (campaignId) trackShare(campaignId, 'native');
+        return;
+      }
+    } catch {
+      return; // user dismissed the native share sheet — not an error
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(t('payment.linkCopied'));
+      if (campaignId) trackShare(campaignId, 'copy_link');
+    } catch {
+      /* clipboard unavailable — nothing to do */
+    }
+  };
 
   return (
     <div className="card p-8 text-center max-w-md mx-auto" role="status" aria-live="polite">
@@ -83,6 +111,9 @@ export function PaymentSuccessView({
               <Row label={t('payment.amount')} value={`${formatMoney(amount)} so'm`} />
             )}
             {title && <Row label={t('payment.campaign')} value={title} />}
+            {provider && providerDisplayName(provider) && (
+              <Row label={t('payment.provider')} value={providerDisplayName(provider)!} />
+            )}
             {reference && <Row label={t('payment.reference')} value={reference} mono />}
             <Row label={t('payment.date')} value={new Date().toLocaleDateString(locale)} />
             <Row label={t('payment.status')} value={t('payment.stCompleted')} />
@@ -100,6 +131,13 @@ export function PaymentSuccessView({
           )}
 
           <Link href={campaignHref} className="btn-primary w-full py-3">{t('payment.backToCampaign')}</Link>
+          <button
+            type="button"
+            onClick={shareCampaign}
+            className="w-full py-3 mt-3 min-h-[48px] rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-700 dark:text-gray-300 hover:border-brand-500 hover:text-brand-600 transition-all flex items-center justify-center gap-2"
+          >
+            <Share2 className="w-4 h-4" /> {t('payment.shareCampaign')}
+          </button>
         </>
       )}
 
