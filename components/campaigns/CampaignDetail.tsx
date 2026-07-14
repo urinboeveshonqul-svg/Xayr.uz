@@ -12,6 +12,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Gallery } from '@/components/ui/Gallery';
 import { Avatar } from '@/components/ui/Avatar';
 import { DonationForm } from '@/components/donations/DonationForm';
+import type { PaymentProviderOption } from '@/lib/payments/providers-meta';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { SaveButton } from '@/components/campaigns/SaveButton';
 import { ShareModal } from '@/components/campaigns/ShareModal';
@@ -27,11 +28,11 @@ interface CampaignDetailProps {
   pendingExtension?: boolean;
   /** True when this campaign has an admin-approved completion report (verified success). */
   hasApprovedReport?: boolean;
-  /** Real payment gateways enabled on the server (e.g. ['click']). */
-  paymentMethods?: string[];
+  /** Server-resolved payment provider catalog (enabled + coming-soon). */
+  providers?: PaymentProviderOption[];
 }
 
-export function CampaignDetail({ campaign, donors, pendingExtension = false, hasApprovedReport = false, paymentMethods = [] }: CampaignDetailProps) {
+export function CampaignDetail({ campaign, donors, pendingExtension = false, hasApprovedReport = false, providers = [] }: CampaignDetailProps) {
   const { t, locale } = useI18n();
   const [showDonation, setShowDonation] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -323,7 +324,7 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false, has
               <DonationForm
                 campaignId={campaign.id}
                 onClose={() => setShowDonation(false)}
-                paymentMethods={paymentMethods}
+                providers={providers}
               />
             )}
 

@@ -1,4 +1,3 @@
-import type { PaymentMethod } from '@/types';
 import type { PaymentProvider, PaymentProviderId } from './types';
 import { manualProvider } from './providers/manual';
 import { clickProvider, isClickConfigured } from './providers/click';
@@ -29,15 +28,8 @@ export function getPaymentProvider(method?: string | null): PaymentProvider {
   return manualProvider;
 }
 
-/**
- * Payment methods donors can actually check out with right now (configured
- * real gateways — excludes the internal manual fallback). Server-only; the
- * campaign page passes the result down to the donation form.
- */
-export function getEnabledPaymentMethods(): PaymentMethod[] {
-  return (Object.keys(getProviders()) as PaymentProviderId[]).filter(
-    (id): id is PaymentMethod => id !== 'manual'
-  );
-}
+// Donor-facing availability (enabled/coming-soon/order/default) is resolved by
+// lib/payments/catalog.ts, which layers admin settings + env on top of this
+// registry. Use getPaymentCatalog() for UI and validation.
 
 export * from './types';

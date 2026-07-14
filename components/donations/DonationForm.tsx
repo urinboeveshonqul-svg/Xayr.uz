@@ -9,16 +9,12 @@ import { Loader2, X, CreditCard } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
+import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
+import type { PaymentProviderOption, PaymentSubmethod } from '@/lib/payments/providers-meta';
 
 const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
 
 type NameDisplay = 'full' | 'first' | 'anonymous';
-
-// Donor-facing labels for the real gateways the server reports as enabled.
-const METHOD_LABELS: Record<string, { name: string; note: string }> = {
-  click: { name: 'CLICK', note: "Click ilovasi yoki bank kartasi orqali xavfsiz to'lov" },
-  payme: { name: 'Payme', note: "Payme ilovasi yoki bank kartasi orqali xavfsiz to'lov" },
-};
 
 const schema = z.object({
   amount: z.coerce
@@ -32,8 +28,8 @@ type FormData = z.infer<typeof schema>;
 interface DonationFormProps {
   campaignId: string;
   onClose: () => void;
-  /** Real gateways enabled on the server (e.g. ['click']). Empty → manual fallback. */
-  paymentMethods?: string[];
+  /** Server-resolved provider catalog (enabled + coming-soon). Empty → manual fallback. */
+  providers?: PaymentProviderOption[];
 }
 
 /**
@@ -43,11 +39,16 @@ interface DonationFormProps {
  * name-display option. The server creates the (pending) record — the client can
  * never set payment status.
  */
-export function DonationForm({ campaignId, onClose, paymentMethods = [] }: DonationFormProps) {
+export function DonationForm({ campaignId, onClose, providers = [] }: DonationFormProps) {
   const [customAmount, setCustomAmount] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
-  // Pre-select the first enabled gateway; null = manual (record-only) fallback.
-  const [method, setMethod] = useState<string | null>(paymentMethods[0] ?? null);
+  // Pre-select the default (recommended) gateway, else the first enabled one;
+  // null = manual (record-only) fallback when no gateway is live.
+  const [method, setMethod] = useState<string | null>(
+    (providers.find((p) => p.recommended && p.enabled) ?? providers.find((p) => p.enabled))?.id ?? null
+  );
+  const [submethod, setSubmethod] = useState<PaymentSubmethod>('wallet');
+  const selectedProvider = providers.find((p) => p.id === method) ?? null;
   const [isGuest, setIsGuest] = useState<boolean | null>(null); // null = still resolving
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
@@ -101,6 +102,9 @@ export function DonationForm({ campaignId, onClose, paymentMethods = [] }: Donat
           campaignId,
           amount: data.amount,
           method,
+          // The in-provider choice (e.g. CLICK app vs bank card) travels with
+          // the provider — it is never a separate provider.
+          submethod: selectedProvider && selectedProvider.methods.length > 1 ? submethod : undefined,
           message: data.message || null,
           anonymous: nameDisplay === 'anonymous',
           name_display: nameDisplay,
@@ -168,6 +172,15 @@ export function DonationForm({ campaignId, onClose, paymentMethods = [] }: Donat
           {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
         </div>
 
+        {/* Payment method (amount → method → continue) */}
+        <PaymentMethodSelector
+          providers={providers}
+          selected={method}
+          onSelect={setMethod}
+          submethod={submethod}
+          onSubmethod={setSubmethod}
+        />
+
         {/* Guest contact (logged-in donors reuse their profile) */}
         {isGuest && (
           <div className="space-y-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3">
@@ -203,36 +216,6 @@ export function DonationForm({ campaignId, onClose, paymentMethods = [] }: Donat
           <textarea {...register('message')} rows={2} className="input resize-none" placeholder="Kampaniya uchun tilaklaringizni yozing..." />
         </div>
 
-        {/* Payment method (shown only when a real gateway is enabled) */}
-        {paymentMethods.length > 0 && (
-          <div>
-            <label className="label">To&apos;lov usuli</label>
-            <div className="space-y-2">
-              {paymentMethods.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMethod(m)}
-                  aria-pressed={method === m}
-                  className={`w-full min-h-[48px] flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all active:scale-[0.99] ${
-                    method === m
-                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-700'
-                  }`}
-                >
-                  <CreditCard className={`w-5 h-5 flex-shrink-0 ${method === m ? 'text-brand-600' : 'text-gray-400'}`} />
-                  <span className="min-w-0">
-                    <span className={`block text-sm font-bold ${method === m ? 'text-brand-700 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                      {METHOD_LABELS[m]?.name ?? m}
-                    </span>
-                    <span className="block text-xs text-gray-400">{METHOD_LABELS[m]?.note ?? ''}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Turnstile (guests) */}
         {isGuest && <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} className="flex justify-center" />}
 
@@ -240,8 +223,8 @@ export function DonationForm({ campaignId, onClose, paymentMethods = [] }: Donat
         <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl px-3 py-2 leading-relaxed flex items-start gap-2">
           <CreditCard className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>
-            {method
-              ? `Davom etsangiz, xavfsiz to'lov uchun ${METHOD_LABELS[method]?.name ?? method} sahifasiga yo'naltirilasiz.`
+            {selectedProvider
+              ? `Davom etsangiz, xavfsiz to'lov uchun ${selectedProvider.name} sahifasiga yo'naltirilasiz.`
               : "To'lov tizimi tez orada ulanadi. Xayriyangiz qayd etiladi va siz bilan bog'laniladi."}
           </span>
         </p>

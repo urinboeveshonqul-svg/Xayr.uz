@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPaymentProvider } from '@/lib/payments';
+import { isProviderEnabled } from '@/lib/payments/catalog';
+import { PROVIDER_IDS } from '@/lib/payments/providers-meta';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import { verifyTurnstile, tokenFromBody, TURNSTILE_FAILED_MESSAGE } from '@/lib/security/turnstile';
 
@@ -13,7 +15,8 @@ const schema = z.object({
   amount: z.number().int().min(1000).max(1_000_000_000),
   anonymous: z.boolean().optional().default(false),
   message: z.string().max(300).nullable().optional(),
-  method: z.enum(['click', 'payme', 'uzcard', 'humo', 'cash']).nullable().optional(),
+  method: z.enum(['click', 'payme', 'paynet', 'uzum', 'uzcard', 'humo', 'cash']).nullable().optional(),
+  submethod: z.enum(['wallet', 'card']).optional(),
   name_display: z.enum(['full', 'first', 'anonymous']).optional().default('full'),
   // Guest contact (required for guests; ignored for logged-in donors).
   donor_name: z.string().max(120).nullable().optional(),
@@ -43,9 +46,19 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
-  const { campaignId, amount, message, method, name_display, donor_name, donor_email, donor_phone } = parsed.data;
+  const { campaignId, amount, message, method, submethod, name_display, donor_name, donor_email, donor_phone } = parsed.data;
   // Anonymity is derived from the display choice — never trusted as a separate flag.
   const anonymous = name_display === 'anonymous';
+
+  // 1a) Never trust the client's provider choice: a cataloged provider must be
+  //     enabled server-side (implemented + configured + admin-enabled). Legacy
+  //     non-gateway values keep the manual (record-only) fallback.
+  if (method && PROVIDER_IDS.includes(method) && !(await isProviderEnabled(method))) {
+    return NextResponse.json(
+      { error: "Tanlangan to'lov usuli hozircha mavjud emas" },
+      { status: 422 }
+    );
+  }
 
   // 2) Identify the donor (optional — anonymous/guest donations are allowed).
   const supabase = await createClient();
@@ -126,6 +139,7 @@ export async function POST(request: Request) {
     campaignId,
     campaignTitle: campaign.title,
     returnUrl: `${appUrl}/payment/success`,
+    submethod,
   });
 
   // 6) Persist the provider reference for reconciliation/webhooks.
