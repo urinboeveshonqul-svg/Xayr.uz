@@ -44,7 +44,9 @@ export default async function AdminOverviewPage({
     { label: ad.cCampaigns, value: String(stats?.campaigns_count ?? 0), icon: Megaphone, color: 'text-green-500', bg: 'bg-green-50' },
     { label: ad.cPending, value: String(stats?.pending_count ?? 0), icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-50' },
     { label: ad.cActive, value: String(stats?.active_count ?? 0), icon: CheckCircle, color: 'text-teal-500', bg: 'bg-teal-50' },
-    { label: ad.cDonations, value: String(stats?.donations_count ?? 0), icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
+    // Successful donations only — admin_stats.donations_count is completed-only
+    // as of migration #50 (it previously counted pending/failed/refunded too).
+    { label: ad.cDonationsSuccessful, value: String(stats?.donations_count ?? 0), icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
     { label: ad.cRaised, value: `${formatMoney(stats?.total_raised ?? 0)} so'm`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50' },
     { label: ad.cRevenue, value: `${formatMoney(stats?.revenue ?? 0)} so'm`, icon: Wallet, color: 'text-brand-600', bg: 'bg-brand-50' },
   ];

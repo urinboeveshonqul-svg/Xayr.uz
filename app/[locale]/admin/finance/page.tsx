@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {
   TrendingUp, Hash, BarChart3, Trophy, Clock, RotateCcw, Percent, CreditCard,
   Banknote, HandCoins, Hourglass, Wallet, AlertTriangle, Download, ShieldCheck,
-  CalendarDays, FileSpreadsheet, FileText, LineChart,
+  CalendarDays, FileSpreadsheet, FileText, LineChart, XCircle,
 } from 'lucide-react';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
@@ -64,17 +64,22 @@ export default async function AdminFinancePage({
     values: [p.donations, p.withdrawals],
   }));
 
-  // Primary money metrics.
+  // Primary money metrics. Every "money in" figure below is SUCCESSFUL
+  // (status='completed') only; pending/failed/refunded are reported as their
+  // own independent metrics and never folded into a total.
   const metrics: { label: string; value: string; sub?: string; icon: typeof TrendingUp; color: string; bg: string }[] = [
-    { label: fin.totalDonations, value: money(s.total_donations_amount), sub: `${s.donations_count.toLocaleString('uz-UZ')} ${fin.donationsWord}`, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
+    { label: fin.successfulDonations, value: money(s.total_donations_amount), sub: `${s.donations_count.toLocaleString('uz-UZ')} ${fin.donationsWord}`, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
     { label: fin.netToCreators, value: money(s.net_to_creators), icon: HandCoins, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { label: fin.withdrawnGross, value: money(s.withdrawn_gross), icon: Banknote, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: fin.platformFees, value: money(s.platform_fees_collected), icon: Percent, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-900/20' },
     { label: fin.providerFees, value: money(s.provider_fees_collected), icon: CreditCard, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20' },
-    { label: fin.refunded, value: money(s.refunded_amount), icon: RotateCcw, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
+    { label: fin.refunded, value: money(s.refunded_amount), sub: `${s.refunded_count.toLocaleString('uz-UZ')} ${fin.donationsWord}`, icon: RotateCcw, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
     { label: fin.availableForWithdrawal, value: money(s.available_for_withdrawal), icon: Wallet, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-teal-900/20' },
     { label: fin.pendingWithdrawals, value: money(s.pending_withdrawals_amount), sub: `${s.pending_withdrawals_count} ${fin.requestsWord}`, icon: Hourglass, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+    // Never counted as money — shown so admins can see attempts in flight.
     { label: fin.pendingPayments, value: money(s.pending_payments_amount), sub: `${s.pending_payments_count} ${fin.donationsWord}`, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+    // 'failed' also covers cancelled / expired / rejected / timed-out attempts.
+    { label: fin.failedPayments, value: money(s.failed_payments_amount), sub: `${s.failed_payments_count} ${fin.donationsWord}`, icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
     { label: fin.avgDonation, value: money(s.avg_donation), icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
     { label: fin.largestDonation, value: money(s.largest_donation), icon: Trophy, color: 'text-pink-600', bg: 'bg-pink-50 dark:bg-pink-900/20' },
     { label: fin.donationsCount, value: s.donations_count.toLocaleString('uz-UZ'), icon: Hash, color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-800' },

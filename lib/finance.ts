@@ -9,12 +9,27 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ * Platform-wide financial totals.
+ *
+ * Every "successful money" field (total_donations_amount, donations_count,
+ * largest/avg, the today/week/month/year windows) counts ONLY donations with
+ * status='completed'. Pending, failed and refunded attempts are reported in
+ * their own fields below and are never folded into a total.
+ *
+ * There is no separate 'cancelled'/'expired' donation status — donor
+ * cancellations, expired sessions, rejected and timed-out payments are all
+ * recorded as 'failed', so failed_payments_* covers them.
+ */
 export interface FinancialSummary {
   total_donations_amount: number;
   donations_count: number;
   refunded_amount: number;
+  refunded_count: number;
   pending_payments_amount: number;
   pending_payments_count: number;
+  failed_payments_amount: number;
+  failed_payments_count: number;
   withdrawn_gross: number;
   net_to_creators: number;
   platform_fees_collected: number;
@@ -121,8 +136,9 @@ export interface MonthlySeriesPoint {
 }
 
 const ZERO_SUMMARY: FinancialSummary = {
-  total_donations_amount: 0, donations_count: 0, refunded_amount: 0,
+  total_donations_amount: 0, donations_count: 0, refunded_amount: 0, refunded_count: 0,
   pending_payments_amount: 0, pending_payments_count: 0,
+  failed_payments_amount: 0, failed_payments_count: 0,
   withdrawn_gross: 0, net_to_creators: 0, platform_fees_collected: 0,
   provider_fees_collected: 0, pending_withdrawals_amount: 0, pending_withdrawals_count: 0,
   available_for_withdrawal: 0, largest_donation: 0, avg_donation: 0,
@@ -142,8 +158,13 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
       total_donations_amount: num(d.total_donations_amount),
       donations_count: num(d.donations_count),
       refunded_amount: num(d.refunded_amount),
+      // Pre-#50 databases don't expose these columns yet — num() degrades them
+      // to 0 rather than NaN, so the dashboard stays correct either way.
+      refunded_count: num(d.refunded_count),
       pending_payments_amount: num(d.pending_payments_amount),
       pending_payments_count: num(d.pending_payments_count),
+      failed_payments_amount: num(d.failed_payments_amount),
+      failed_payments_count: num(d.failed_payments_count),
       withdrawn_gross: num(d.withdrawn_gross),
       net_to_creators: num(d.net_to_creators),
       platform_fees_collected: num(d.platform_fees_collected),
