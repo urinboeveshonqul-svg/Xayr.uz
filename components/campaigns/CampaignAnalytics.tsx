@@ -68,10 +68,16 @@ export async function CampaignAnalytics({
   const sh = dict.share;
 
   // Order + label the share sources; sum for the total + percentage bars.
-  const SHARE_ORDER = ['whatsapp', 'telegram', 'facebook', 'x', 'copy_link', 'native', 'other'] as const;
+  // 'x' is retired from the share sheet but still listed: historical rows exist
+  // and must keep being reported (rows with 0 total are filtered out below).
+  const SHARE_ORDER = [
+    'telegram', 'whatsapp', 'facebook', 'instagram', 'email', 'qr',
+    'copy_link', 'native', 'x', 'other',
+  ] as const;
   const shareLabel: Record<string, string> = {
-    whatsapp: sh.srcWhatsapp, telegram: sh.srcTelegram, facebook: sh.srcFacebook,
-    x: sh.srcX, copy_link: sh.srcCopyLink, native: sh.srcNative, other: sh.srcOther,
+    telegram: sh.srcTelegram, whatsapp: sh.srcWhatsapp, facebook: sh.srcFacebook,
+    instagram: sh.srcInstagram, email: sh.srcEmail, qr: sh.srcQr,
+    copy_link: sh.srcCopyLink, native: sh.srcNative, x: sh.srcX, other: sh.srcOther,
   };
   const shareBySource = new Map(shareStats.map((s) => [s.source, Number(s.total)] as const));
   const shareTotal = shareStats.reduce((sum, s) => sum + Number(s.total), 0);
