@@ -17,8 +17,11 @@ const schema = z.object({
   message: z.string().max(300).nullable().optional(),
   method: z.enum(['click', 'payme', 'paynet', 'uzum', 'uzcard', 'humo', 'cash']).nullable().optional(),
   submethod: z.enum(['wallet', 'card']).optional(),
-  name_display: z.enum(['full', 'first', 'anonymous']).optional().default('full'),
-  // Guest contact (required for guests; ignored for logged-in donors).
+  // Two donor-display modes. ('first' is retired — the DB CHECK + campaign_donors
+  // view still honour it for historical rows, but new donations can't pick it.)
+  name_display: z.enum(['full', 'anonymous']).optional().default('full'),
+  // Guest contact — required only when a guest donates under their name.
+  // Anonymous guests send nothing identifying (enforced below, not just in the UI).
   donor_name: z.string().max(120).nullable().optional(),
   donor_email: z.string().email().max(254).nullable().optional(),
   donor_phone: z.string().max(40).nullable().optional(),
@@ -66,16 +69,22 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2a) Guests must provide a name + email and pass Turnstile (bot/fraud gate).
-  //     Logged-in donors reuse their profile (linked via donor_id).
+  // 2a) Validation mirrors the chosen donation mode — the server decides, never
+  //     the client. A guest donating under their name must supply name + email
+  //     (receipt / payment confirmation / support / refunds); an anonymous guest
+  //     supplies nothing identifying. Logged-in donors reuse their profile
+  //     (linked via donor_id). Turnstile gates EVERY guest, named or not.
   const isGuest = !user;
-  if (isGuest) {
+  const namedGuest = isGuest && name_display === 'full';
+  if (namedGuest) {
     if (!donor_name || donor_name.trim().length < 2) {
       return NextResponse.json({ error: 'name_required' }, { status: 422 });
     }
     if (!donor_email) {
       return NextResponse.json({ error: 'email_required' }, { status: 422 });
     }
+  }
+  if (isGuest) {
     const ts = await verifyTurnstile(tokenFromBody(body), ip);
     if (!ts.success) {
       return NextResponse.json({ error: TURNSTILE_FAILED_MESSAGE }, { status: 400 });
@@ -115,11 +124,13 @@ export async function POST(request: Request) {
       payment_method: method ?? null,
       status: 'pending',
       name_display,
-      // Guest contact is PII (admin/owner-only via RLS). Logged-in donors reuse
-      // their profile, so these stay null for them.
-      donor_name: isGuest ? donor_name!.trim() : null,
-      donor_email: isGuest ? donor_email!.trim() : null,
-      donor_phone: isGuest ? (donor_phone?.trim() || null) : null,
+      // Guest contact is PII (admin/owner-only via RLS). Stored ONLY for a named
+      // guest — an anonymous donation never records identity from the form, and
+      // logged-in donors reuse their profile. (Any payer info the gateway
+      // returns is captured separately in payment_events, admin-only.)
+      donor_name: namedGuest ? donor_name!.trim() : null,
+      donor_email: namedGuest ? donor_email!.trim() : null,
+      donor_phone: namedGuest ? (donor_phone?.trim() || null) : null,
     })
     .select('id')
     .single();

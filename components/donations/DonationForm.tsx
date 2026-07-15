@@ -14,7 +14,9 @@ import type { PaymentProviderOption, PaymentSubmethod } from '@/lib/payments/pro
 
 const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
 
-type NameDisplay = 'full' | 'first' | 'anonymous';
+// Two donor-display modes. ('first' is retired from the UI but still honoured in
+// the DB/view for historical rows — see supabase/guest-donations.sql.)
+type NameDisplay = 'full' | 'anonymous';
 
 const schema = z.object({
   amount: z.coerce
@@ -52,8 +54,10 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   const [isGuest, setIsGuest] = useState<boolean | null>(null); // null = still resolving
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
-  const [donorPhone, setDonorPhone] = useState('');
   const [nameDisplay, setNameDisplay] = useState<NameDisplay>('full');
+  // Guests only identify themselves when donating under their name. Anonymous
+  // donors give nothing — the fields are hidden AND never validated/sent.
+  const needsContact = isGuest === true && nameDisplay === 'full';
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileHandle>(null);
 
@@ -86,13 +90,15 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   };
 
   const onSubmit = async (data: FormData) => {
-    if (isGuest) {
+    // Only validate what is actually shown — hidden fields never error.
+    if (needsContact) {
       if (donorName.trim().length < 2) { toast.error("Ismingizni kiriting"); return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail.trim())) { toast.error("Email manzilini to'g'ri kiriting"); return; }
-      if (isTurnstileEnabled() && !captchaToken) {
-        toast.error("Xavfsizlik tekshiruvidan o'ting. Qayta urinib ko'ring.");
-        return;
-      }
+    }
+    // Bot protection applies to every guest, named or anonymous.
+    if (isGuest && isTurnstileEnabled() && !captchaToken) {
+      toast.error("Xavfsizlik tekshiruvidan o'ting. Qayta urinib ko'ring.");
+      return;
     }
     try {
       const res = await fetch('/api/donations', {
@@ -108,14 +114,12 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
           message: data.message || null,
           anonymous: nameDisplay === 'anonymous',
           name_display: nameDisplay,
-          ...(isGuest
-            ? {
-                donor_name: donorName.trim(),
-                donor_email: donorEmail.trim(),
-                donor_phone: donorPhone.trim() || null,
-                turnstileToken: captchaToken,
-              }
+          // Contact travels only when the donor chose to be named. Anonymous
+          // guests send nothing identifying (the server enforces this too).
+          ...(needsContact
+            ? { donor_name: donorName.trim(), donor_email: donorEmail.trim() }
             : {}),
+          ...(isGuest ? { turnstileToken: captchaToken } : {}),
         }),
       });
 
@@ -135,7 +139,7 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   };
 
   const radio = (value: NameDisplay, label: string) => (
-    <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+    <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300 min-h-[40px]">
       <input type="radio" name="name_display" checked={nameDisplay === value} onChange={() => setNameDisplay(value)} className="w-4 h-4 accent-brand-600" />
       {label}
     </label>
@@ -172,17 +176,18 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
           {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
         </div>
 
-        {/* Payment method (amount → method → continue) */}
-        <PaymentMethodSelector
-          providers={providers}
-          selected={method}
-          onSelect={setMethod}
-          submethod={submethod}
-          onSubmethod={setSubmethod}
-        />
+        {/* How the donor appears — drives which fields are shown below. */}
+        <div>
+          <label className="label">Xayriyani qanday qilasiz?</label>
+          <div className="space-y-1">
+            {radio('full', isGuest === false ? 'Profil ismim bilan' : 'Ismim bilan')}
+            {radio('anonymous', 'Anonim xayriya qilish')}
+          </div>
+        </div>
 
-        {/* Guest contact (logged-in donors reuse their profile) */}
-        {isGuest && (
+        {/* Guest contact — shown ONLY when donating under a name. Logged-in
+            donors reuse their profile, anonymous donors give nothing. */}
+        {needsContact && (
           <div className="space-y-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3">
             <div>
               <label className="label">To&apos;liq ism</label>
@@ -191,24 +196,25 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
             <div>
               <label className="label">Email</label>
               <input className="input" type="email" value={donorEmail} onChange={(e) => setDonorEmail(e.target.value)} autoComplete="email" placeholder="email@example.com" />
-              <p className="text-xs text-gray-400 mt-1">Kvitansiya shu manzilga yuboriladi.</p>
-            </div>
-            <div>
-              <label className="label">Telefon (ixtiyoriy)</label>
-              <input className="input" type="tel" inputMode="tel" value={donorPhone} onChange={(e) => setDonorPhone(e.target.value)} autoComplete="tel" placeholder="+998 90 123 45 67" />
+              <p className="text-xs text-gray-400 mt-1">Kvitansiya va to&apos;lov tasdig&apos;i shu manzilga yuboriladi.</p>
             </div>
           </div>
         )}
 
-        {/* Name display */}
-        <div>
-          <label className="label">Ismingizni qanday ko&apos;rsatamiz?</label>
-          <div className="space-y-1.5">
-            {radio('full', 'Ismimni ko\'rsatish')}
-            {radio('first', 'Faqat ismni ko\'rsatish')}
-            {radio('anonymous', 'Anonim xayriya qilish')}
-          </div>
-        </div>
+        {isGuest && nameDisplay === 'anonymous' && (
+          <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl px-3 py-2">
+            Xayriyangiz kampaniya sahifasida <strong>Anonim xayriyachi</strong> sifatida ko&apos;rinadi. Ism va email talab qilinmaydi.
+          </p>
+        )}
+
+        {/* Payment method (amount → method → continue) */}
+        <PaymentMethodSelector
+          providers={providers}
+          selected={method}
+          onSelect={setMethod}
+          submethod={submethod}
+          onSubmethod={setSubmethod}
+        />
 
         {/* Message */}
         <div>
