@@ -29,7 +29,17 @@ export interface FundBreakdownItem { category: string; description: string; amou
 export interface TimelineItem { label: string; date: string }
 
 // Donor name visibility on the public donor feed (guest-donations.sql).
+//
+// READ type — includes the retired 'first' (first-name-only) mode. Do NOT remove
+// it: the donations CHECK constraint still permits it and historical rows still
+// hold it, so narrowing this would misrepresent what the column can contain.
+// Those donors' privacy choice keeps being honoured by the campaign_donors view.
 export type NameDisplay = 'full' | 'first' | 'anonymous';
+
+// WRITE type — what a NEW donation may choose. 'first' is retired from the UI
+// and the API (z.enum(['full','anonymous'])); keeping it out of Insert/Update
+// enforces that in the type system too, so no new code can reintroduce it.
+export type NewNameDisplay = Exclude<NameDisplay, 'first'>;
 export type CampaignCategory =
   | 'medical' | 'education' | 'disaster' | 'community'
   | 'environment' | 'animal' | 'sport' | 'other';
@@ -279,7 +289,7 @@ export type Database = {
           donor_name?: string | null;
           donor_email?: string | null;
           donor_phone?: string | null;
-          name_display?: NameDisplay;
+          name_display?: NewNameDisplay;
           created_at?: string;
         };
         Update: {
@@ -295,7 +305,7 @@ export type Database = {
           donor_name?: string | null;
           donor_email?: string | null;
           donor_phone?: string | null;
-          name_display?: NameDisplay;
+          name_display?: NewNameDisplay;
           created_at?: string;
         };
         Relationships: [];
