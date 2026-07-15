@@ -29,6 +29,50 @@ export function isClickConfigured(): boolean {
   );
 }
 
+/**
+ * Opt-in flag for the in-page card experience (checkout.js). DEFAULT OFF: until
+ * it is validated against a real merchant, every donor keeps the proven
+ * redirect. Flip NEXT_PUBLIC_CLICK_EMBEDDED_CARD=1 to enable; unset it to roll
+ * back instantly with no deploy.
+ *
+ * Read on the SERVER (this file is server-only) so embedded-vs-redirect is
+ * decided in exactly one place, like provider availability in the catalog. The
+ * NEXT_PUBLIC_ prefix is required for Next to inline it at build time; it is
+ * not a secret — it is a boolean toggle.
+ */
+export function isClickEmbeddedCardEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_CLICK_EMBEDDED_CARD === '1';
+}
+
+// ============================================================
+// ⚠️ G1 — UNRESOLVED, AWAITING CLICK. Do not guess.
+//
+// Question: does a payment made through the checkout.js overlay trigger the
+// SHOP API Prepare/Complete callbacks, exactly as the redirect flow does?
+//
+// The docs never state it. checkout.js reuses the same service_id / merchant_id
+// / transaction_param as the redirect, which HINTS the callbacks fire — but a
+// hint is not a specification, so nothing here depends on it.
+//
+// How money is credited today, and why this is safe either way:
+//   • The ONLY crediting path is confirmDonation(), reached from a verified
+//     server-to-server callback (app/api/payments/click). Unchanged.
+//   • checkout.js's client-side `status` is UX ONLY. It is never trusted to
+//     credit — it is attacker-controlled and the donor could simply edit it.
+//   • So if the callbacks DO fire, the donation credits exactly as it does for
+//     the redirect. If they do NOT, the donation stays 'pending' and no money is
+//     ever wrongly credited — the failure is visible and safe, not silent.
+//
+// Two integration points exist for whichever answer Click gives:
+//   (a) SHOP API callbacks — ALREADY IMPLEMENTED, no work needed.
+//   (b) Merchant API confirmation — NOT IMPLEMENTED. Would poll the documented
+//       GET /v2/merchant/payment/status_by_mti/:service_id/:merchant_trans_id/YYYY-MM-DD
+//       and finalize through the same confirmDonation(). It needs the Auth
+//       header (sha1(timestamp + secret_key)) and therefore a new
+//       CLICK_MERCHANT_USER_ID env var. Build it ONLY if Click confirms (a)
+//       does not fire — see docs/click-embedded-card.md.
+// ============================================================
+
 // Click SHOP API actions.
 export const CLICK_ACTION_PREPARE = '0';
 export const CLICK_ACTION_COMPLETE = '1';
@@ -130,11 +174,15 @@ export function derivePrepareId(donationId: string): number {
 export const clickProvider: PaymentProvider = {
   id: 'click',
 
-  // Note: the donor's app-vs-card choice (params.submethod) is a UX hint only —
-  // Click's hosted checkout natively offers both CLICK-account and UzCard/Humo
-  // card payment on the same page, so the URL doesn't change per submethod.
-  async createPayment({ donationId, amount, returnUrl }) {
+  // The donor's app-vs-card choice (params.submethod) does not change the
+  // redirect URL — Click's hosted page offers both natively. It only decides
+  // whether an embedded card checkout is offered alongside it (below).
+  async createPayment({ donationId, amount, returnUrl, submethod }) {
     const reference = `click_${donationId}`;
+    const serviceId = process.env.CLICK_SERVICE_ID ?? '';
+    const merchantId = process.env.CLICK_MERCHANT_ID ?? '';
+    // Documented N.NN format, shared by the redirect and checkout.js.
+    const amountStr = amount.toFixed(2);
 
     // Land the donor back on the payment-status page, which polls until the
     // server-to-server Complete callback confirms (or fails) the donation.
@@ -142,17 +190,26 @@ export const clickProvider: PaymentProvider = {
     ret.searchParams.set('ref', reference);
 
     const url = new URL(CLICK_CHECKOUT_URL);
-    url.searchParams.set('service_id', process.env.CLICK_SERVICE_ID ?? '');
-    url.searchParams.set('merchant_id', process.env.CLICK_MERCHANT_ID ?? '');
-    url.searchParams.set('amount', amount.toFixed(2)); // integer so'm, Click expects a float string
+    url.searchParams.set('service_id', serviceId);
+    url.searchParams.set('merchant_id', merchantId);
+    url.searchParams.set('amount', amountStr); // integer so'm, Click expects a float string
     url.searchParams.set('transaction_param', reference);
     url.searchParams.set('return_url', ret.toString());
+
+    // Offer the in-page card overlay ONLY for the card submethod and only when
+    // explicitly enabled. redirectUrl is always returned too, so the client
+    // silently falls back to the proven redirect if anything is missing.
+    const embedded =
+      submethod === 'card' && isClickEmbeddedCardEnabled()
+        ? ({ kind: 'click_checkout_js', serviceId, merchantId, amount: amountStr } as const)
+        : null;
 
     return {
       provider: 'click',
       reference,
       status: 'pending',
       redirectUrl: url.toString(),
+      embedded,
     };
   },
 
