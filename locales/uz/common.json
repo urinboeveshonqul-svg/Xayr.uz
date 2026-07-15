@@ -109,7 +109,15 @@
     "srcX": "X (Twitter)",
     "srcCopyLink": "Havola nusxasi",
     "srcNative": "Qurilma ulashuvi",
-    "srcOther": "Boshqa"
+    "srcOther": "Boshqa",
+    "srcInstagram": "Instagram",
+    "srcEmail": "Email",
+    "srcQr": "QR kod",
+    "qrLabel": "QR kodni yuklab olish",
+    "qrDownloaded": "QR kod yuklab olindi",
+    "qrFailed": "QR kodni yaratib bo'lmadi",
+    "instagramCopied": "Havola nusxalandi — uni Instagram story yoki profilingizga joylang",
+    "shareCampaign": "Kampaniyani ulashish"
   },
   "payment": {
     "successTitle": "To'lov muvaffaqiyatli",

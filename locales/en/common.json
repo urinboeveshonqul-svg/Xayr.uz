@@ -109,7 +109,15 @@
     "srcX": "X (Twitter)",
     "srcCopyLink": "Copy link",
     "srcNative": "Device share",
-    "srcOther": "Other"
+    "srcOther": "Other",
+    "srcInstagram": "Instagram",
+    "srcEmail": "Email",
+    "srcQr": "QR code",
+    "qrLabel": "Download QR Code",
+    "qrDownloaded": "QR code downloaded",
+    "qrFailed": "Could not generate the QR code",
+    "instagramCopied": "Link copied — paste it into your Instagram story or bio",
+    "shareCampaign": "Share Campaign"
   },
   "payment": {
     "successTitle": "Payment Successful",

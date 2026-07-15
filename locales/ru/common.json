@@ -109,7 +109,15 @@
     "srcX": "X (Twitter)",
     "srcCopyLink": "Копирование ссылки",
     "srcNative": "Системный доступ",
-    "srcOther": "Другое"
+    "srcOther": "Другое",
+    "srcInstagram": "Instagram",
+    "srcEmail": "Эл. почта",
+    "srcQr": "QR-код",
+    "qrLabel": "Скачать QR-код",
+    "qrDownloaded": "QR-код скачан",
+    "qrFailed": "Не удалось создать QR-код",
+    "instagramCopied": "Ссылка скопирована — вставьте её в Instagram story или профиль",
+    "shareCampaign": "Поделиться кампанией"
   },
   "payment": {
     "successTitle": "Платёж выполнен",

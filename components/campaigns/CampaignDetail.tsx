@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import {
   Clock, Users, MapPin, Calendar, Share2, Heart,
-  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, CalendarClock, Send, Facebook, Link2, MessageCircle, ShieldCheck
+  ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, CalendarClock, ShieldCheck
 } from 'lucide-react';
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -18,7 +17,6 @@ import { SaveButton } from '@/components/campaigns/SaveButton';
 import { ShareModal } from '@/components/campaigns/ShareModal';
 import { FollowButton } from '@/components/profile/FollowButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { trackShare, shareLinks } from '@/lib/share';
 import type { Campaign, Donor } from '@/types';
 
 interface CampaignDetailProps {
@@ -91,33 +89,10 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false, has
     </div>
   );
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl || window.location.href);
-      trackShare(campaign.id, 'copy_link');
-      toast.success(t('ux.linkCopied'));
-    } catch {
-      /* clipboard unavailable */
-    }
-  };
-
-  // Native device share sheet (WhatsApp/Telegram/Instagram/SMS/Email/…) with a
-  // custom modal fallback when the Web Share API is unavailable (most desktops).
-  const handleShare = async () => {
-    const url = shareUrl || window.location.href;
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({ title: campaign.title, text: campaign.description, url });
-        trackShare(campaign.id, 'native');
-      } catch {
-        /* user dismissed the share sheet — not an error */
-      }
-    } else {
-      setShowShare(true);
-    }
-  };
-
-  const links = shareLinks(shareUrl || (typeof window !== 'undefined' ? window.location.href : ''), campaign.title);
+  // Always open the in-app share sheet — on every device and both entry points.
+  // The OS share sheet was the old mobile path, but it can't offer the campaign
+  // URL row or the QR download, so the modal is now the single share surface.
+  const openShare = () => setShowShare(true);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -328,67 +303,20 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false, has
               />
             )}
 
+            {/* Share — one prominent action; every channel lives in the sheet. */}
+            <button
+              onClick={openShare}
+              className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 px-4 py-4 min-h-[56px] lg:min-h-[48px] lg:py-3 text-base lg:text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-brand-500 hover:text-brand-600 dark:hover:border-brand-600 transition-colors"
+            >
+              <Share2 className="w-5 h-5 lg:w-4 lg:h-4" />
+              {t('share.shareCampaign')}
+            </button>
+
             {/* Save (bookmark) — reuses the shared SaveButton */}
             <div className="mt-4">
               <p className="text-xs text-gray-400 mb-2 text-center">{t('ux.saveLbl')}</p>
               <div className="flex justify-center">
                 <SaveButton campaignId={campaign.id} />
-              </div>
-            </div>
-
-            {/* Share buttons */}
-            <div className="mt-4">
-              <p className="text-xs text-gray-400 mb-2 text-center">{t('ux.share')}</p>
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={handleShare}
-                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
-                  title={t('ux.share')}
-                  aria-label={t('ux.share')}
-                >
-                  <Share2 className="w-4 h-4" />
-                </button>
-                <a
-                  href={links.whatsapp}
-                  onClick={() => trackShare(campaign.id, 'whatsapp')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-green-600 hover:bg-green-50 flex items-center justify-center transition-all"
-                  title="WhatsApp"
-                  aria-label="WhatsApp"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </a>
-                <a
-                  href={links.telegram}
-                  onClick={() => trackShare(campaign.id, 'telegram')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-500 hover:bg-blue-50 flex items-center justify-center transition-all"
-                  title="Telegram"
-                  aria-label="Telegram"
-                >
-                  <Send className="w-4 h-4" />
-                </a>
-                <a
-                  href={links.facebook}
-                  onClick={() => trackShare(campaign.id, 'facebook')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-all"
-                  title="Facebook"
-                  aria-label="Facebook"
-                >
-                  <Facebook className="w-4 h-4" />
-                </a>
-                <button
-                  onClick={copyLink}
-                  className="w-11 h-11 lg:w-10 lg:h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 hover:text-brand-600 hover:bg-brand-50 flex items-center justify-center transition-all"
-                  title={t('ux.copyLink')}
-                  aria-label={t('ux.copyLink')}
-                >
-                  <Link2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
 
@@ -456,7 +384,7 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false, has
               </div>
             </div>
             <button
-              onClick={handleShare}
+              onClick={openShare}
               className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
               title={t('ux.share')}
               aria-label={t('ux.share')}
@@ -479,6 +407,7 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false, has
         <ShareModal
           campaignId={campaign.id}
           title={campaign.title}
+          description={campaign.description}
           imageUrl={campaign.image_url}
           url={shareUrl || (typeof window !== 'undefined' ? window.location.href : '')}
           onClose={() => setShowShare(false)}
