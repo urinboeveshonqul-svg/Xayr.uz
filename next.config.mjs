@@ -9,6 +9,11 @@ const isProd = process.env.NODE_ENV === 'production';
 //   • Supabase  — REST/Auth/Storage over https + Realtime over wss (*.supabase.co)
 //   • OneSignal — SDK from cdn.onesignal.com; API/iframes on *.onesignal.com
 //   • Turnstile — challenges.cloudflare.com (script + iframe)
+//   • Click     — my.click.uz serves checkout.js and the in-page card window it
+//                 opens over the site (docs.click.uz/click-pay-by-card). Granted
+//                 script/frame/connect because the docs don't specify how the
+//                 window is rendered; without these the library cannot load and
+//                 the donor silently falls back to the redirect.
 // 'unsafe-inline' is required for scripts/styles because the Next.js App Router
 // injects inline bootstrap scripts/styles and we don't use per-request nonces.
 // img-src allows any https origin so Supabase Storage / Unsplash / Google avatars
@@ -16,12 +21,12 @@ const isProd = process.env.NODE_ENV === 'production';
 // same-origin, so 'self' covers font-src / worker-src.
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.onesignal.com https://onesignal.com https://*.onesignal.com https://challenges.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' https://cdn.onesignal.com https://onesignal.com https://*.onesignal.com https://challenges.cloudflare.com https://my.click.uz",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://onesignal.com https://*.onesignal.com wss://*.onesignal.com https://cdn.onesignal.com https://challenges.cloudflare.com",
-  "frame-src 'self' https://challenges.cloudflare.com https://onesignal.com https://*.onesignal.com https://*.os.tc",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://onesignal.com https://*.onesignal.com wss://*.onesignal.com https://cdn.onesignal.com https://challenges.cloudflare.com https://my.click.uz https://api.click.uz",
+  "frame-src 'self' https://challenges.cloudflare.com https://onesignal.com https://*.onesignal.com https://*.os.tc https://my.click.uz",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "media-src 'self' https: blob:",

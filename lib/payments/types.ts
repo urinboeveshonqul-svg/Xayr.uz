@@ -25,6 +25,29 @@ export interface CreatePaymentParams {
   submethod?: 'wallet' | 'card';
 }
 
+/**
+ * Data for an in-page ("embedded") checkout, when the provider supports one.
+ *
+ * Discriminated by `kind` so additional embedded experiences can be added
+ * without touching the donation flow: a future Click Card Token integration
+ * would add its own kind here, and the client would render it — no change to
+ * /api/donations, the donations table, or confirmDonation.
+ *
+ * `redirectUrl` is ALWAYS still returned alongside this, so the redirect flow
+ * remains a working fallback.
+ */
+export type EmbeddedCheckout = {
+  /** Click's checkout.js overlay (docs.click.uz/click-pay-by-card). */
+  kind: 'click_checkout_js';
+  /** Public identifiers — already visible in the redirect URL, not secrets. */
+  serviceId: string;
+  merchantId: string;
+  /** Amount as the documented N.NN string. */
+  amount: string;
+  /** Optional UZCARD/HUMO hint. */
+  cardType?: 'uzcard' | 'humo';
+};
+
 export interface PaymentIntent {
   provider: PaymentProviderId;
   /** Reference stored on the donation row for reconciliation. */
@@ -34,6 +57,12 @@ export interface PaymentIntent {
   redirectUrl: string | null;
   /** Optional human-readable next steps shown to the donor. */
   instructions?: string;
+  /**
+   * Present when the donor can pay in-page instead of being redirected. The
+   * client falls back to `redirectUrl` whenever this is absent, so the embedded
+   * flow is a pure opt-in layer on top of the redirect.
+   */
+  embedded?: EmbeddedCheckout | null;
 }
 
 export interface WebhookResult {
