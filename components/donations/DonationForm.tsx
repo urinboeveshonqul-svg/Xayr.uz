@@ -231,8 +231,8 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
 
         <button type="submit" disabled={isSubmitting || isGuest === null} className="btn-primary w-full py-3 min-h-[48px] text-base">
           {isSubmitting
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> {method ? "Yo'naltirilmoqda..." : 'Saqlanmoqda...'}</>
-            : method ? "To'lovga o'tish" : 'Xayriya qilish'}
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> {selectedProvider ? "Yo'naltirilmoqda..." : 'Saqlanmoqda...'}</>
+            : selectedProvider ? `${selectedProvider.name} bilan davom etish` : 'Xayriya qilish'}
         </button>
       </form>
     </div>
