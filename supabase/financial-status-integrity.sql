@@ -51,18 +51,22 @@ grant select on public.admin_stats to service_role;
 -- ── 2. financial_summary: independent unsuccessful-payment metrics ──────────
 -- Every successful metric below is unchanged (completed-only). The new columns
 -- are reported SEPARATELY and never folded into any total.
+--
+-- COLUMN ORDER IS LOAD-BEARING: `create or replace view` requires the existing
+-- columns to keep the same names, types AND positions — new columns may only be
+-- APPENDED to the end (Postgres errors 42P16 otherwise). So the 19 columns from
+-- #45 stay byte-for-byte in their original order and the three new ones are
+-- appended last. lib/finance.ts reads columns by name, so order is irrelevant
+-- to the app. This avoids a `drop view` (nothing depends on it today, but a
+-- drop would silently take dependents with it via CASCADE).
 create or replace view public.financial_summary
   with (security_invoker = false) as
 select
   (select coalesce(sum(amount), 0) from public.donations where status = 'completed')::bigint as total_donations_amount,
   (select count(*) from public.donations where status = 'completed')::int                     as donations_count,
   (select coalesce(sum(amount), 0) from public.donations where status = 'refunded')::bigint    as refunded_amount,
-  (select count(*) from public.donations where status = 'refunded')::int                       as refunded_count,
   (select coalesce(sum(amount), 0) from public.donations where status = 'pending')::bigint     as pending_payments_amount,
   (select count(*) from public.donations where status = 'pending')::int                        as pending_payments_count,
-  -- 'failed' covers cancelled / expired / rejected / timed-out attempts.
-  (select coalesce(sum(amount), 0) from public.donations where status = 'failed')::bigint      as failed_payments_amount,
-  (select count(*) from public.donations where status = 'failed')::int                         as failed_payments_count,
   (select coalesce(sum(amount), 0) from public.payout_requests where status = 'paid')::bigint            as withdrawn_gross,
   (select coalesce(sum(payout_amount), 0) from public.payout_requests where status = 'paid')::bigint     as net_to_creators,
   (select coalesce(sum(commission_amount), 0) from public.payout_requests where status = 'paid')::bigint as platform_fees_collected,
@@ -87,7 +91,13 @@ select
   (select coalesce(sum(amount), 0) from public.donations
      where status = 'completed' and created_at >= date_trunc('month', now()))::bigint                   as month_amount,
   (select coalesce(sum(amount), 0) from public.donations
-     where status = 'completed' and created_at >= date_trunc('year', now()))::bigint                    as year_amount;
+     where status = 'completed' and created_at >= date_trunc('year', now()))::bigint                    as year_amount,
+  -- ── NEW in #50 — appended last (see the column-order note above) ──────────
+  -- Unsuccessful attempts, each counted independently. Never part of a total.
+  (select count(*) from public.donations where status = 'refunded')::int                                as refunded_count,
+  -- 'failed' covers cancelled / expired / rejected / timed-out attempts.
+  (select coalesce(sum(amount), 0) from public.donations where status = 'failed')::bigint               as failed_payments_amount,
+  (select count(*) from public.donations where status = 'failed')::int                                  as failed_payments_count;
 
 revoke all on public.financial_summary from anon, authenticated;
 grant select on public.financial_summary to service_role;
