@@ -18,15 +18,18 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   const { data: donation } = await admin
     .from('donations')
-    .select('amount, status, campaign_id, payment_method')
+    .select('amount, status, campaign_id, payment_method, created_at')
     .eq('payment_ref', ref)
     .maybeSingle();
 
   if (!donation) return NextResponse.json({ found: false }, { status: 404 });
 
+  // Campaign fields below are all PUBLIC (already rendered on the campaign page
+  // and in the share sheet), so exposing them to the holder of a payment_ref
+  // adds no disclosure. Still no donor PII, no raw payloads.
   const { data: campaign } = await admin
     .from('campaigns')
-    .select('title, slug')
+    .select('title, slug, description, image_url, current_amount, goal_amount')
     .eq('id', donation.campaign_id)
     .maybeSingle();
 
@@ -35,8 +38,15 @@ export async function GET(request: Request) {
     amount: donation.amount,
     status: donation.status,
     provider: donation.payment_method ?? null,
+    // The donation's OWN timestamp — the success page previously rendered
+    // new Date(), which showed today rather than when the donation was made.
+    createdAt: donation.created_at,
     campaignId: donation.campaign_id,
     campaignTitle: campaign?.title ?? null,
     campaignSlug: campaign?.slug ?? null,
+    campaignDescription: campaign?.description ?? null,
+    campaignImage: campaign?.image_url ?? null,
+    campaignRaised: campaign?.current_amount ?? null,
+    campaignGoal: campaign?.goal_amount ?? null,
   });
 }
