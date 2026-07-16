@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,6 @@ import { safeNextPath } from '@/lib/security/redirect';
 
 export function LoginForm() {
   const { t, locale } = useI18n();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -66,8 +65,24 @@ export function LoginForm() {
       // open-redirect targets) then prefix the locale so the redirect lands
       // directly without an extra middleware hop.
       const next = safeNextPath(searchParams.get('next'));
-      router.push(next === '/' ? `/${locale}` : `/${locale}${next}`);
-      router.refresh();
+      const dest = next === '/' ? `/${locale}` : `/${locale}${next}`;
+
+      // Full document navigation — NOT router.push()/router.refresh().
+      //
+      // The session cookies were just set by the /api/auth/login response, but a
+      // client-side push can serve the destination from Next's client Router
+      // Cache, which still holds the SIGNED-OUT render (static/ISR routes like
+      // the homepage are cached for staleTimes.static = 300s). The server is
+      // never contacted, middleware never runs, and the user appears logged out
+      // until they log in a second time — at which point the AUTH_ONLY middleware
+      // redirect finally forces a real server round-trip.
+      //
+      // router.refresh() cannot fix that ordering: it returns void, so it can be
+      // neither awaited nor sequenced against push(). A document navigation is
+      // the deterministic option — it always sends the new cookies, always runs
+      // middleware, and cannot read the per-document Router Cache. This is the
+      // same approach logout already uses (components/layout/Navbar.tsx).
+      window.location.assign(dest);
     } catch {
       toast.error(t('auth.unexpected'));
     }

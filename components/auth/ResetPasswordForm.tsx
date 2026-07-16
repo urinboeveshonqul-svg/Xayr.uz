@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +15,6 @@ type Phase = 'checking' | 'ready' | 'invalid';
 
 export function ResetPasswordForm() {
   const { t, locale } = useI18n();
-  const router = useRouter();
   const [show, setShow] = useState(false);
   const [phase, setPhase] = useState<Phase>('checking');
 
@@ -72,8 +70,10 @@ export function ResetPasswordForm() {
       // Invalidate the temporary recovery session, then send to login.
       await supabase.auth.signOut();
       toast.success(t('auth.passwordUpdated'));
-      router.push(`/${locale}/auth/login`);
-      router.refresh();
+      // Document navigation, like the other auth transitions — a client push can
+      // serve a Router-Cache render produced while the recovery session was still
+      // valid. See the note in LoginForm.
+      window.location.assign(`/${locale}/auth/login`);
     } catch {
       toast.error(t('auth.unexpected'));
     }

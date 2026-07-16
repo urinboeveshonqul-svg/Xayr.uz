@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,7 +16,6 @@ type AvailState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'sho
 
 export function RegisterForm() {
   const { t, locale } = useI18n();
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -120,8 +118,14 @@ export function RegisterForm() {
       // the dismissible banner nudges them to confirm later, and email
       // confirmation is only enforced at campaign creation.
       toast.success(t('auth.signupSuccess'));
-      router.push(`/${locale}`);
-      router.refresh();
+
+      // Full document navigation — see the note in LoginForm. A client-side
+      // push can serve the homepage from Next's Router Cache (static/ISR, held
+      // 300s), which still holds the signed-out render, so a brand-new account
+      // would land looking logged out. router.refresh() returns void and cannot
+      // be sequenced against push(), so a document navigation is the only
+      // deterministic fix. Matches logout (components/layout/Navbar.tsx).
+      window.location.assign(`/${locale}`);
     } catch {
       toast.error(t('auth.unexpected'));
     }
