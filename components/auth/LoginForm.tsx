@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Clock } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
@@ -16,6 +16,10 @@ import { safeNextPath } from '@/lib/security/redirect';
 export function LoginForm() {
   const { t, locale } = useI18n();
   const searchParams = useSearchParams();
+  // Set by middleware ONLY when the request carried auth cookies that no longer
+  // validate — i.e. a real session ended. Never shown to someone who simply
+  // wasn't signed in.
+  const sessionExpired = searchParams.get('reason') === 'expired';
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileHandle>(null);
@@ -90,6 +94,16 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {sessionExpired && (
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3"
+        >
+          <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden />
+          <p className="text-sm text-amber-900 dark:text-amber-300">{t('auth.sessionExpired')}</p>
+        </div>
+      )}
+
       <div>
         <RequiredLabel>{t('auth.emailOrUsername')}</RequiredLabel>
         <input

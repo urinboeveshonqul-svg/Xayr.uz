@@ -141,6 +141,15 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = `/${pathLocale}/auth/login`;
       url.searchParams.set('next', bare);
+      // Only claim the session EXPIRED when one actually existed: the request
+      // carried Supabase auth cookies but getUser() rejected them (expired or
+      // revoked). A visitor who was never signed in must not be told their
+      // session ended — that would simply be false, and more confusing than
+      // saying nothing. Chunked cookies (…auth-token.0/.1) match too.
+      const hadSession = request.cookies
+        .getAll()
+        .some((c) => /^sb-.*-auth-token/.test(c.name));
+      if (hadSession) url.searchParams.set('reason', 'expired');
       return copyCookies(supabaseResponse, NextResponse.redirect(url));
     }
 

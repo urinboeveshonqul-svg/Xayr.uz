@@ -526,6 +526,7 @@
     "contact": "Contact Us"
   },
   "auth": {
+    "sessionExpired": "Your session has expired. Please sign in again.",
     "loginTitle": "Sign in to your account",
     "loginSubtitle": "Don't have an account yet?",
     "registerTitle": "Create an account",

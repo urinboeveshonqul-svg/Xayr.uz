@@ -526,6 +526,7 @@
     "contact": "Bog'lanish"
   },
   "auth": {
+    "sessionExpired": "Sessiyangiz muddati tugadi. Iltimos, qaytadan kiring.",
     "loginTitle": "Hisobingizga kiring",
     "loginSubtitle": "Hali hisobingiz yo'qmi?",
     "registerTitle": "Hisob yaratish",
