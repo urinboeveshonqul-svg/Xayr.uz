@@ -9,6 +9,7 @@ import { EmailVerifyBanner } from '@/components/EmailVerifyBanner';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { OneSignalProvider } from '@/components/push/OneSignalProvider';
 import { METADATA_BASE, SITE_URL, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/seo';
+import { serializeJsonLd } from '@/lib/security/json-ld';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter' });
@@ -125,11 +126,11 @@ export default async function LocaleLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationLd) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteLd) }}
         />
         <I18nProvider locale={locale as Locale} messages={messages}>
           <OneSignalProvider />

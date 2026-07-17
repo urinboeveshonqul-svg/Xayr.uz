@@ -5,6 +5,7 @@ import { FaqList } from '@/components/faq/FaqList';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
+import { serializeJsonLd } from '@/lib/security/json-ld';
 
 interface Props {
   params: Promise<{ locale: string }>;
@@ -43,7 +44,7 @@ export default async function FaqPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqLd) }}
       />
       <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">

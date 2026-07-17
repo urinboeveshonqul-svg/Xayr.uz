@@ -7,6 +7,7 @@ import { getPaymentCatalog, toProviderOptions } from '@/lib/payments/catalog';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
 import { buildCampaignJsonLd } from '@/lib/campaign-jsonld';
+import { serializeJsonLd } from '@/lib/security/json-ld';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
@@ -257,7 +258,7 @@ export default async function CampaignDetailPage({ params }: Props) {
       {/* Per-campaign structured data (BreadcrumbList + WebPage + DonateAction) */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
