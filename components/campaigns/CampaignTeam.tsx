@@ -65,17 +65,17 @@ export function CampaignTeam({
         .eq('email', target)
         .maybeSingle();
       if (!u) {
-        toast.error('Bunday email bilan foydalanuvchi topilmadi');
+        toast.error(t('toasts.teamUserNotFound'));
         return;
       }
       const { error } = await supabase
         .from('campaign_team_members')
         .insert({ campaign_id: campaignId, user_id: u.id, role });
       if (error) {
-        toast.error(error.code === '23505' ? 'Bu foydalanuvchi allaqachon jamoada' : 'Xatolik yuz berdi');
+        toast.error(error.code === '23505' ? t('toasts.teamAlready') : t('toasts.generic'));
         return;
       }
-      toast.success("Jamoaga qo'shildi");
+      toast.success(t('toasts.teamAdded'));
       setEmail('');
       router.refresh();
     } finally {
@@ -91,10 +91,10 @@ export function CampaignTeam({
         .update({ role: next })
         .eq('id', memberId);
       if (error) {
-        toast.error('Xatolik yuz berdi');
+        toast.error(t('toasts.generic'));
         return;
       }
-      toast.success("Rol o'zgartirildi");
+      toast.success(t('toasts.teamRoleChanged'));
       router.refresh();
     } finally {
       setBusyId(null);
@@ -102,7 +102,7 @@ export function CampaignTeam({
   };
 
   const remove = async (memberId: string) => {
-    if (!window.confirm("Jamoadan chiqarmoqchimisiz?")) return;
+    if (!window.confirm(t('toasts.teamRemoveConfirm'))) return;
     setBusyId(memberId);
     try {
       const { error } = await createClient()
@@ -110,10 +110,10 @@ export function CampaignTeam({
         .delete()
         .eq('id', memberId);
       if (error) {
-        toast.error('Xatolik yuz berdi');
+        toast.error(t('toasts.generic'));
         return;
       }
-      toast.success('Jamoadan chiqarildi');
+      toast.success(t('toasts.teamRemoved'));
       router.refresh();
     } finally {
       setBusyId(null);

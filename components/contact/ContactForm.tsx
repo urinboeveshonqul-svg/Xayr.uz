@@ -33,7 +33,7 @@ export function ContactForm() {
 
   const onSubmit = async (data: FormData) => {
     if (isTurnstileEnabled() && !captchaToken) {
-      toast.error('Security verification failed. Please try again.');
+      toast.error(t('toasts.turnstile'));
       return;
     }
     // Routed server-side so the message is Turnstile-gated before it lands in

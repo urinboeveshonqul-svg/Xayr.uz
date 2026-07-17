@@ -57,17 +57,18 @@ const ACTION: Record<string, string> = {
   cancelled:      'Bekor qilindi',
 };
 
-const ERR: Record<string, string> = {
-  auth_required:            'Kirish talab qilinadi',
-  not_campaign_owner:       "Ruxsat yo'q",
-  campaign_not_approved:    'Kampaniya tasdiqlanmagan',
-  owner_not_verified:       'Hisobingiz tasdiqlanmagan',
-  payout_info_required:     "Avval to'lov ma'lumotlarini kiriting",
-  invalid_amount:           "Noto'g'ri miqdor",
-  below_minimum:            `Minimal miqdor ${formatMoney(MIN_WITHDRAWAL)} so'm`,
-  invalid_method:           "Noto'g'ri usul",
-  active_request_exists:    "Sizda faol so'rov allaqachon mavjud",
-  amount_exceeds_available: "Mablag' yetarli emas",
+// RPC error code → translation key. Resolved through t() at call time so the
+// message follows the active language (was a hardcoded Uzbek map).
+const ERR_KEYS: Record<string, string> = {
+  auth_required:            'toasts.payoutErrAuthRequired',
+  not_campaign_owner:       'toasts.payoutErrNotOwner',
+  campaign_not_approved:    'toasts.payoutErrNotApproved',
+  owner_not_verified:       'toasts.payoutErrNotVerified',
+  payout_info_required:     'toasts.payoutErrInfoRequired',
+  invalid_amount:           'toasts.payoutErrInvalidAmount',
+  invalid_method:           'toasts.payoutErrInvalidMethod',
+  active_request_exists:    'toasts.payoutErrActiveExists',
+  amount_exceeds_available: 'toasts.payoutErrExceedsAvailable',
 };
 
 export function CampaignPayouts({
@@ -99,6 +100,15 @@ export function CampaignPayouts({
 }) {
   const router = useRouter();
   const { t } = useI18n();
+
+  // Resolve an RPC error code to a localized message. below_minimum carries the
+  // configurable minimum; anything unmapped falls back to a generic message
+  // rather than surfacing a raw backend string.
+  const errMsg = (code: string): string => {
+    if (code === 'below_minimum') return t('toasts.payoutErrBelowMinimum', { min: formatMoney(MIN_WITHDRAWAL) });
+    const key = ERR_KEYS[code];
+    return key ? t(key) : t('toasts.generic');
+  };
   const psLabel: Record<string, string> = {
     pending_review: t('dash.psPending'),
     approved: t('dash.psApproved'),
@@ -191,10 +201,10 @@ export function CampaignPayouts({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amt = Math.floor(Number(amount));
-    if (!amt || amt <= 0) { toast.error("Noto'g'ri miqdor"); return; }
-    if (amt < MIN_WITHDRAWAL) { toast.error(ERR.below_minimum); return; }
-    if (amt > available) { toast.error("Mablag' yetarli emas"); return; }
-    if (!agree) { toast.error("Komissiya shartlarini tasdiqlang"); return; }
+    if (!amt || amt <= 0) { toast.error(t('toasts.withdrawInvalidAmount')); return; }
+    if (amt < MIN_WITHDRAWAL) { toast.error(errMsg('below_minimum')); return; }
+    if (amt > available) { toast.error(t('toasts.withdrawInsufficient')); return; }
+    if (!agree) { toast.error(t('toasts.withdrawAgreeFee')); return; }
 
     setSubmitting(true);
     try {
@@ -205,8 +215,8 @@ export function CampaignPayouts({
         p_amount: amt,
         p_notes: notes.trim(),
       });
-      if (error) { toast.error(ERR[error.message] ?? error.message); return; }
-      toast.success("So'rov yuborildi");
+      if (error) { toast.error(errMsg(error.message)); return; }
+      toast.success(t('toasts.withdrawRequested'));
       resetForm();
       router.refresh();
     } finally {

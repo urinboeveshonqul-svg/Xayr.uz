@@ -71,7 +71,7 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_IMAGE_SIZE) {
-      toast.error('Rasm hajmi 5MB dan oshmasligi kerak');
+      toast.error(t('toasts.imageSize5mb'));
       return;
     }
     const url = URL.createObjectURL(file);
@@ -136,7 +136,7 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
     }
     // Stop the submission if Turnstile is enabled but hasn't issued a token yet.
     if (isTurnstileEnabled() && !captchaToken) {
-      toast.error('Security verification failed. Please try again.');
+      toast.error(t('toasts.turnstile'));
       return;
     }
 
@@ -175,17 +175,17 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
 
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        toast.error('Xatolik: ' + (json.error || ''));
+        toast.error(json.error ? `${t('toasts.errorLabel')}: ${json.error}` : t('toasts.generic'));
         turnstileRef.current?.reset();
         setCaptchaToken(null);
         return;
       }
 
-      toast.success('Kampaniya yaratildi! Moderatsiyadan o\'tgach faollashadi.');
+      toast.success(t('toasts.campaignCreated'));
       router.push(`/${locale}/campaigns`);
       router.refresh();
     } catch (err) {
-      toast.error('Rasm yuklashda yoki saqlashda xatolik');
+      toast.error(t('toasts.imageUploadFailed'));
       console.error(err);
     } finally {
       setUploading(false);
