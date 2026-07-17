@@ -163,6 +163,13 @@ export async function POST(request: Request) {
       reference: intent.reference,
       redirectUrl: intent.redirectUrl,
       instructions: intent.instructions ?? null,
+      // Non-null only when the provider offers an in-page checkout (Click's
+      // checkout.js, card submethod, NEXT_PUBLIC_CLICK_EMBEDDED_CARD=1).
+      // redirectUrl is always sent alongside it, so a client that cannot open
+      // the embedded window falls back to the redirect instead of stranding
+      // the donor. Never a crediting signal — confirmDonation() still runs only
+      // from the verified server-to-server callback.
+      embedded: intent.embedded ?? null,
     },
     { status: 201 }
   );
