@@ -1,9 +1,16 @@
 -- ============================================================
--- XAYR — 3% platform commission on withdrawals
+-- XAYR — platform commission on withdrawals (columns + integrity)
 -- The fee is charged to CREATORS at withdrawal time only (donors pay nothing).
 --   amount            = gross requested (deducted from campaign balance)
---   commission_amount = round(amount * 3%)  — platform revenue
---   payout_amount     = amount - commission — what the creator receives
+--   commission_amount = round(amount * rate)  — platform revenue
+--   payout_amount     = amount - commission   — what the creator receives
+--
+-- ⚠️ RATE: this file's 5-arg create_payout_request is DEAD — #40
+-- (payout-info.sql) drops that signature and replaces it with the 3-arg version.
+-- The live rate is 4%, set by #51 (payout-commission-4pct.sql). The body below
+-- is kept at the same rate only so a stray re-run of this file cannot resurrect
+-- a 3% code path. This migration's real contribution is the columns + the
+-- `payout_commission_sum` CHECK, which are rate-independent.
 -- Computed ONLY inside create_payout_request() (SECURITY DEFINER); clients have
 -- no insert/update policies on payout_requests, so the fee cannot be bypassed
 -- or manipulated. Existing rows are backfilled fee-free (backwards compatible).
@@ -88,8 +95,8 @@ begin
     raise exception 'amount_exceeds_available';
   end if;
 
-  -- 3% platform commission, computed server-side only.
-  v_commission := round(p_amount * 0.03)::integer;
+  -- 4% platform commission, computed server-side only (see #51).
+  v_commission := round(p_amount * 0.04)::integer;
 
   insert into public.payout_requests
     (campaign_id, user_id, amount, method, account_details, notes,

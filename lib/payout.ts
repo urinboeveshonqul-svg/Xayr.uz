@@ -14,6 +14,40 @@ import type { CardType } from '@/types';
  */
 export const MIN_WITHDRAWAL = 50000;
 
+/**
+ * Platform commission, charged to the CREATOR at withdrawal time only.
+ * Donors are never charged: nothing in the donation flow reads these.
+ *
+ * ⚠️ DISPLAY ONLY. The authoritative fee is computed inside
+ * create_payout_request() (SECURITY DEFINER) and stored on the row, because
+ * clients have no insert/update policy on payout_requests. These constants exist
+ * so the preview the creator sees matches what the server will charge — they
+ * MUST stay in sync with v_commission in supabase/payout-commission-4pct.sql (#51).
+ *
+ * NEVER use these to re-derive the fee for an EXISTING request. Historical rows
+ * hold the rate that was actually charged (0% pre-#26, 3% for #26..#50), and the
+ * DB CHECK `commission_amount + payout_amount = amount` guarantees they
+ * reconcile. Recomputing would show users a fee that was never taken. Always
+ * read commission_amount / payout_amount from the row.
+ */
+export const PLATFORM_FEE_RATE = 0.04;
+
+/** The same rate as a whole number, for UI copy ("Platform fee (4%)"). */
+export const PLATFORM_FEE_PERCENT = 4;
+
+/**
+ * Preview the commission for a NEW withdrawal of `amount` so'm.
+ * Mirrors the server's `round(p_amount * 0.04)` exactly.
+ */
+export function calcPlatformFee(amount: number): number {
+  return Math.round(amount * PLATFORM_FEE_RATE);
+}
+
+/** Preview the net a creator receives for a NEW withdrawal of `amount` so'm. */
+export function calcNetPayout(amount: number): number {
+  return amount - calcPlatformFee(amount);
+}
+
 export const CARD_TYPES: { value: CardType; label: string }[] = [
   { value: 'uzcard', label: 'UzCard' },
   { value: 'humo', label: 'Humo' },

@@ -137,7 +137,9 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
 
   return (
     <div>
-      {/* Platform revenue (3% commissions, collected at payout) */}
+      {/* Platform revenue (withdrawal commissions, collected at payout).
+          Summed from stored commission_amount, so mixed historical rates total
+          correctly. */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
           { label: 'Jami komissiya', value: revenue.total },
@@ -255,14 +257,16 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
                 </div>
               </div>
 
-              {/* Commission breakdown (3% platform fee, charged to the creator) */}
+              {/* Commission breakdown, charged to the creator. Values are read
+                  from the row — never re-derived — because the rate has changed
+                  over time (0% pre-#26, 3% under #26..#50, 4% from #51). */}
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">So&apos;ralgan miqdor</span>
                   <span className="font-bold text-gray-900 dark:text-white">{formatMoney(selected.amount)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Platforma komissiyasi (3%)</span>
+                  <span className="text-gray-500">Platforma komissiyasi</span>
                   <span className="font-bold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">

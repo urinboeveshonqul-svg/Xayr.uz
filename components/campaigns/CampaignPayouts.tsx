@@ -8,7 +8,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
 import { formatMoney, timeAgo } from '@/lib/utils';
-import { MIN_WITHDRAWAL, maskCard, cardTypeLabel } from '@/lib/payout';
+import {
+  MIN_WITHDRAWAL,
+  PLATFORM_FEE_PERCENT,
+  calcPlatformFee,
+  calcNetPayout,
+  maskCard,
+  cardTypeLabel,
+} from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { PayoutRequest, PayoutRequestEvent, PayoutAccount } from '@/types';
 
@@ -178,8 +185,8 @@ export function CampaignPayouts({
 
   // Display-only preview; the authoritative fee is computed in the DB function.
   const previewAmt = Math.floor(Number(amount)) || 0;
-  const previewFee = Math.round(previewAmt * 0.03);
-  const previewNet = previewAmt - previewFee;
+  const previewFee = calcPlatformFee(previewAmt);
+  const previewNet = calcNetPayout(previewAmt);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -424,6 +431,15 @@ export function CampaignPayouts({
               </div>
             )}
 
+            {/* Fee notice — shown before confirming, independent of the amount
+                preview so it is visible even before an amount is entered. */}
+            <p
+              role="note"
+              className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 px-3.5 py-2.5 text-xs font-semibold text-amber-900 dark:text-amber-200"
+            >
+              {t('dash.feeNotice')}
+            </p>
+
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -432,8 +448,7 @@ export function CampaignPayouts({
                 className="w-4 h-4 accent-brand-600 mt-0.5"
               />
               <span className="text-xs text-gray-500 leading-relaxed">
-                3% platforma komissiyasiga roziman. Bu komissiya hosting, xavfsizlik,
-                tasdiqlash, to&apos;lov tizimlari va platforma rivojini qoplaydi.
+                {t('dash.feeConsent')}
               </span>
             </label>
 
@@ -467,7 +482,11 @@ export function CampaignPayouts({
             </div>
 
             <div className="text-sm space-y-1.5">
-              <p className="text-gray-500">Komissiya (3%): <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
+              {/* Historical request: show the fee ACTUALLY charged on this row.
+                  The rate is deliberately not printed — rows predate the fee (0%),
+                  or were made at 3% before #51 — so asserting today's rate here
+                  would misstate money that already moved. */}
+              <p className="text-gray-500">Komissiya: <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
               <p className="text-gray-500">Sizga to&apos;lanadi: <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">To&apos;lov ma&apos;lumotlari</p>

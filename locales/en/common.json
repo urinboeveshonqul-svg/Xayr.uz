@@ -1171,8 +1171,10 @@
     "psPaid": "Paid",
     "psCancelled": "Cancelled",
     "withdrawAmount": "Withdrawal amount",
-    "feeRow": "Platform fee (3%)",
+    "feeRow": "Platform fee (4%)",
     "youReceive": "You receive",
+    "feeNotice": "XAYR charges a 4% service fee on successful withdrawals.",
+    "feeConsent": "I agree to the 4% platform fee. It covers hosting, security, verification, payment processing and platform development.",
     "withdrawInfoTitle": "Withdrawal Processing",
     "withdrawInfoDays": "1–3 business days",
     "withdrawInfoText": "Withdrawal requests are usually reviewed within {days}. Once approved, funds are manually transferred to your verified bank card. You will receive a notification after the transfer is completed.",
@@ -1323,9 +1325,9 @@
       { "cat": "withdrawals", "q": "How do I withdraw funds?", "a": "Send a \"Withdraw funds\" request on your campaign analytics page — once approved by an administrator, funds are transferred to your bank or card." },
       { "cat": "withdrawals", "q": "How long do withdrawals take?", "a": "Requests are reviewed within 1-3 business days; a bank transfer may take another 1-2 days." },
       { "cat": "withdrawals", "q": "Why was my request rejected?", "a": "The reason is shown in your notification — usually incorrect account details or insufficient available balance." },
-      { "cat": "fees", "q": "Does the platform charge a commission?", "a": "Donating and creating campaigns are free. A 3% platform fee applies only when withdrawing funds." },
+      { "cat": "fees", "q": "Does the platform charge a commission?", "a": "Donating and creating campaigns are free. A 4% platform fee applies only when withdrawing funds." },
       { "cat": "fees", "q": "What do payment providers charge?", "a": "Click, Payme and others may charge their own transaction fees — that is not a platform fee." },
-      { "cat": "fees", "q": "Is there a withdrawal fee?", "a": "Yes — a 3% platform fee is deducted from the withdrawal amount. Bank transfer costs may apply separately." },
+      { "cat": "fees", "q": "Is there a withdrawal fee?", "a": "Yes — a 4% platform fee is deducted from the withdrawal amount. Bank transfer costs may apply separately." },
       { "cat": "security", "q": "Are my payments secure?", "a": "Yes — payments run through licensed providers; we never store card details." },
       { "cat": "security", "q": "How do I report a suspicious campaign?", "a": "Use the \"Report\" button on the campaign page — moderators will review it." },
       { "cat": "security", "q": "Is my personal data protected?", "a": "Yes — data is transmitted over encrypted channels and stored with strict access control." }
@@ -1350,15 +1352,15 @@
     "cards": [
       { "title": "Platform commission", "value": "0 so'm", "text": "Using the platform is completely free — both creating campaigns and donating." },
       { "title": "Payment provider", "value": "Provider tariff", "text": "Click, Payme and other providers may charge their own transaction fees." },
-      { "title": "Withdrawals", "value": "3%", "text": "A 3% platform fee is deducted at withdrawal — it covers hosting, security, verification, payment processing and platform development." }
+      { "title": "Withdrawals", "value": "4%", "text": "A 4% platform fee is deducted only when funds are withdrawn — it covers hosting, security, verification, payment processing and platform development." }
     ],
     "exampleTitle": "Example",
     "exampleDonation": "Donation",
     "exampleDonationValue": "1,000,000 so'm",
-    "exampleFee": "Platform fee (3%, on withdrawal)",
-    "exampleFeeValue": "30,000 so'm",
+    "exampleFee": "Platform fee (4%, on withdrawal)",
+    "exampleFeeValue": "40,000 so'm",
     "exampleReceives": "Creator receives",
-    "exampleReceivesValue": "970,000 so'm",
+    "exampleReceivesValue": "960,000 so'm",
     "exampleNote": "The fee is charged only when withdrawing — donors pay nothing. The payment provider may withhold its own transaction fee per its tariff."
   },
   "contactPage": {

@@ -2,7 +2,9 @@
 -- XAYR — Admin workflow improvements
 -- ============================================================
 -- 1. Campaign rejection reasons (admin enters, owner sees).
--- 2. Platform revenue in the admin stats view (3% commission on paid payouts).
+-- 2. Platform revenue in the admin stats view (withdrawal commission on paid
+--    payouts; summed from stored commission_amount, so mixed historical rates
+--    total correctly — the rate itself is set by #51).
 -- 3. Reject notification to the owner now includes the reason.
 --
 -- Run in: Supabase Dashboard -> SQL Editor (after platform-notifications.sql +

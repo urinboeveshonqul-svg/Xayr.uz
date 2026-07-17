@@ -40,7 +40,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 | **Overall Platform** | **~80%** | Feature-rich and polished; Click gateway code-complete — real-money operation now blocked only on merchant credentials + sandbox verification. |
 | Frontend | 95% | Full page set, components, responsive, theming, i18n. |
 | Backend (API routes) | 93% | 23 routes, all validated + RBAC; Click + Payme providers live (env-gated). |
-| Database | 95% | Schema + 46 migrations; live application unverified. |
+| Database | 95% | Schema + 50 migrations; live application unverified. |
 | Security | 88% | Strong model; live RLS unverified + minor hardening items. |
 | Mobile | 95% | Bottom nav, touch targets, responsive throughout, PWA manifest. |
 | SEO | 95% | Metadata, OG images, JSON-LD, sitemap, robots, canonical/hreflang. |
@@ -203,7 +203,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 - **Status:** ✅ Complete. Rate-limited at the middleware layer; RBAC re-verified server-side on each route.
 
 ### Payouts
-- **What:** Creator requests a withdrawal (bank/card) against available balance; 3% platform commission computed; admin state machine (`pending_review → approved → paid`, plus `info_requested`/`rejected`/`cancelled`); full event log. The whole flow lives on a **dedicated Withdrawal page** (`/[locale]/campaigns/[slug]/withdraw`) — payout information appears ONLY here, never on the Profile or Analytics pages. Order on the page: **Available Balance → Saved Payout Information (or the form when missing) → Withdrawal Request Form → Withdrawal History**. No account yet → the `PayoutAccountForm` shows inline first; account exists → a **read-only masked card** (legal name, phone, card type, masked card `8600 **** **** 9012`, cardholder, bank) with an inline **Edit** (same form, no page change). Saving reveals the card and enables the withdraw button; the request snapshots the account server-side, so card details are never re-entered. The full card number is masked for creators (BIN + last 4) and never serialized to the page payload — the unmasked record is fetched on demand (RLS owner-only) just for the edit form; admins still see the full PAN in the admin payout dashboard. The dashboard "Withdraw" button and an Analytics-page button both link to `/withdraw`.
+- **What:** Creator requests a withdrawal (bank/card) against available balance; **4% platform commission** computed server-side at withdrawal time only — donors are never charged (raised from 3% by migration #51; **historical requests keep the rate actually charged**, so pre-fee rows stay at 0% and #26..#50 rows stay at 3%); admin state machine (`pending_review → approved → paid`, plus `info_requested`/`rejected`/`cancelled`); full event log. The whole flow lives on a **dedicated Withdrawal page** (`/[locale]/campaigns/[slug]/withdraw`) — payout information appears ONLY here, never on the Profile or Analytics pages. Order on the page: **Available Balance → Saved Payout Information (or the form when missing) → Withdrawal Request Form → Withdrawal History**. No account yet → the `PayoutAccountForm` shows inline first; account exists → a **read-only masked card** (legal name, phone, card type, masked card `8600 **** **** 9012`, cardholder, bank) with an inline **Edit** (same form, no page change). Saving reveals the card and enables the withdraw button; the request snapshots the account server-side, so card details are never re-entered. The full card number is masked for creators (BIN + last 4) and never serialized to the page payload — the unmasked record is fetched on demand (RLS owner-only) just for the edit form; admins still see the full PAN in the admin payout dashboard. The dashboard "Withdraw" button and an Analytics-page button both link to `/withdraw`.
 - **Where:** Page `app/[locale]/campaigns/[slug]/withdraw/page.tsx` (builds the masked projection + balance) renders `components/campaigns/CampaignPayouts.tsx`, which hosts the inline `components/profile/PayoutAccountForm.tsx` via its `embedded`/`onSaved`/`onCancel` props. Admin side: `components/admin/AdminPayouts.tsx`, `app/[locale]/admin/payouts/page.tsx`. Masking helper `maskCardDisplay` in `lib/payout.ts`. RPCs: `create_payout_request`, `approve_payout_request`, `reject_payout_request`, `request_payout_info`, `mark_payout_paid`, `campaign_available_balance`. Tables: `payout_requests`, `payout_request_events`, `payout_accounts`.
 - **Status:** ✅ Code-complete; ⚠️ functionally meaningless until donations actually complete (depends on payments).
 
@@ -306,7 +306,7 @@ maintained by `set_updated_at()` triggers where present.
 | `notification_preferences` | Push preference matrix | `user_id (PK)` | Own-row scoped. |
 | `payment_provider_settings` | Admin-managed payment provider catalog (enable/coming-soon/order/default) | `id` = provider id (text PK) | Select all (public availability); write admin-only; admin API writes via service role. |
 | `payme_transactions` | Payme merchant-API transaction state machine (create/perform/cancel + ms timestamps) | `donation_id → donations`; `paycom_id` unique | Admin-only read; service-role writes; one active txn per donation (partial unique index). |
-| `payout_requests` | Withdrawal requests | `campaign_id`, `user_id`, `reviewed_by` | Created/read via SECURITY DEFINER RPCs; state machine + 3% commission. |
+| `payout_requests` | Withdrawal requests | `campaign_id`, `user_id`, `reviewed_by` | Created/read via SECURITY DEFINER RPCs; state machine + 4% withdrawal commission (#51). `commission_amount + payout_amount = amount` CHECK; historical rows keep their original rate. |
 | `payout_request_events` | Payout audit trail | `request_id → payout_requests` | Written by payout RPCs; `notify_on_payout_event`. |
 | `verification_requests` | KYC submissions | `user_id`, `reviewed_by` | Insert/read own + admin; status drives publish gate. |
 | `identity_documents` | KYC document pointers | `request_id`, `user_id` | Paths in private bucket; admin signed-URL access only. |
@@ -359,7 +359,7 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 23 | `campaign-teams.sql` | Team members + team-aware RLS | Unknown | 1 |
 | 24 | `contact-messages.sql` | Contact inbox | Unknown | 1 |
 | 25 | `campaign-resubmit.sql` | `resubmit_campaign` | Unknown | 2 |
-| 26 | `payout-commission.sql` | 3% commission columns | Unknown | 18 |
+| 26 | `payout-commission.sql` | Withdrawal commission columns + `payout_commission_sum` CHECK (rate now set by #51) | Unknown | 18 |
 | 27 | `google-oauth.sql` | OAuth profile creation (name/picture) | Unknown | 1 + dashboard config |
 | 28 | `platform-notifications.sql` | Owner/verification decision notifications | Unknown | 1, 2 |
 | 29 | `push-notifications.sql` | `notification_preferences` | Unknown | 1 + OneSignal/webhook config |
@@ -384,6 +384,7 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 48 | `payme-transactions.sql` | **Payme merchant-API transactions** — `payme_transactions` state table (paycom_id unique, state 1/2/-1/-2, create/perform/cancel ms timestamps echoed verbatim, cancel reason; one ACTIVE txn per donation via partial unique index; RLS admin-read, service-role writes) backing Create/Perform/Cancel/Check/GetStatement | Unknown — **required before enabling Payme** | 1, 39, 47 |
 | 49 | `share-channels.sql` | **Share channels** — widens `campaign_shares.source` CHECK **and** the `shares_insert_any` RLS policy to allow `instagram`/`email`/`qr` (retains `x` so historical rows stay valid + reportable). Without it those share rows are silently dropped — `trackShare` is fire-and-forget, so sharing never breaks | Unknown | 30 |
 | 50 | `financial-status-integrity.sql` | **Only successful donations count** — fixes `admin_stats.donations_count` (was `count(*)` over every status, inflating the /admin Donations tile with pending/failed/refunded) to completed-only; adds independent `failed_payments_amount`/`failed_payments_count`/`refunded_count` to `financial_summary` so unsuccessful attempts are reported separately and never folded into a total. View definitions only — no data modified | Unknown | 45 |
+| 51 | `payout-commission-4pct.sql` | **Withdrawal commission 3% → 4%** — replaces `create_payout_request(uuid,integer,text)` so new requests compute `commission_amount = round(amount * 0.04)`. Function body only: no columns/constraints/data/triggers/policies change; signature unchanged. **Existing rows are NOT re-rated** — they keep the rate actually charged. Donation flow untouched. | Unknown — **required for the 4% rate** | 40 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 
@@ -438,9 +439,10 @@ Names only — never commit real values. Template: `.env.example`.
 | `NEXT_PUBLIC_ONESIGNAL_APP_ID` | OneSignal app id (public) | ⏳ Optional (push off without it) | OneSignal web SDK |
 | `ONESIGNAL_REST_API_KEY` | OneSignal REST key — **secret** | ⏳ Optional | `/api/push/notify` |
 | `SUPABASE_WEBHOOK_SECRET` | Shared secret for push webhook — **secret** | ⏳ Optional (push webhook returns 503 without it) | `/api/push/notify` auth |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limiting — **secret** | ⏳ Optional (fails open if absent) | `lib/rate-limit.ts` |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limiting — **secret** | ✅ **Required in production** (rate-limited routes **fail closed** with 503 if absent). Disabled with a warning locally. | `lib/rate-limit.ts` |
+| `CRON_SECRET` | Bearer token gating the scheduled mutation endpoints — **secret** | ✅ **Required in production** (crons **fail closed** with 503 if absent ⇒ campaigns never auto-expire, no daily snapshots). Optional locally. | `lib/security/cron.ts`, `/api/cron/*`, `vercel.json` |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile widget (public) | ⏳ Optional (widget hidden if absent) | `components/security/Turnstile.tsx` |
-| `TURNSTILE_SECRET_KEY` | Turnstile server verification — **secret** | ⏳ Optional (verification skipped/fail-open if absent) | `lib/security/turnstile.ts` |
+| `TURNSTILE_SECRET_KEY` | Turnstile server verification — **secret** | ✅ **Required in production** (protected routes **fail closed** with 503 if absent). Skipped locally. | `lib/security/turnstile.ts` |
 | `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN (public by design) | ⏳ Optional (SDK inert if absent) | `sentry.*.config.ts` |
 | `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` | Sentry source-map upload — **secret**, build-time only | ⏳ Optional (upload skipped if absent) | `next.config.mjs` (`withSentryConfig`) |
 
@@ -466,9 +468,15 @@ Confirm storage buckets exist (`campaign-images`, `profile-photos`, `campaign-re
 **Environment setup** — Copy `.env.example` → `.env.local`, fill values; mirror into Vercel.
 
 **Production deployment steps**
-1. Merge to `main` → CI runs typecheck + build.
-2. Vercel auto-deploys on green.
-3. Apply any new migrations in Supabase **before** the deploy depends on them; re-run the verifier.
+1. **Set the fail-closed env vars FIRST** (see §9): `CRON_SECRET`, `TURNSTILE_SECRET_KEY`,
+   `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`. These guards **fail closed in
+   production**: if they are absent the affected routes answer `503` rather than silently
+   running with no bot protection, no rate limiting, or an open public cron. Missing
+   Turnstile or Upstash blocks login/signup/donations; missing `CRON_SECRET` stops campaign
+   expiry and daily snapshots. Verify before merging, not after.
+2. Merge to `main` → CI runs typecheck + build.
+3. Vercel auto-deploys on green.
+4. Apply any new migrations in Supabase **before** the deploy depends on them; re-run the verifier.
 
 **Rollback**
 - App: redeploy a previous Vercel deployment (instant) or revert the commit and let CI/Vercel rebuild.

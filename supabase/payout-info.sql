@@ -112,7 +112,11 @@ begin
   v_available := public.campaign_available_balance(p_campaign_id);
   if p_amount > v_available then raise exception 'amount_exceeds_available'; end if;
 
-  v_commission := round(p_amount * 0.03);
+  -- 4% platform commission. Raised from 3% by #51 (payout-commission-4pct.sql);
+  -- kept in sync here so a fresh install, or a re-run of this file, cannot
+  -- silently revert the rate. #51 remains the migration that must be applied to
+  -- databases where #40 already ran.
+  v_commission := round(p_amount * 0.04);
 
   -- Human-readable details (kept for the legacy account_details column + display).
   v_details := v_acct.full_legal_name

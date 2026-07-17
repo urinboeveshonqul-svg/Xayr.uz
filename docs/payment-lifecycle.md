@@ -86,7 +86,7 @@ Admins manage everything **except** individual donations:
 Creator requests a payout → admin reviews → state machine
 (`pending_review → approved → paid`, or `rejected` / `info_requested`). Each
 transition writes a `payout_request_events` row → `notify_on_payout_event`
-notifies the campaign owner. A 3% platform commission is computed server-side.
+notifies the campaign owner. A 4% platform commission is computed server-side (migration #51).
 See `payouts.sql`, `payout-notifications.sql`, `payout-commission.sql`.
 
 ## Foundation hardening (provider-ready)
