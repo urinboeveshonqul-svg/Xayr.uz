@@ -2,7 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { defaultLocale, isLocale, type Locale } from '@/i18n/config';
-import { enforceRateLimit, getClientIp, rateLimitHeaders } from '@/lib/rate-limit';
+import {
+  enforceRateLimit,
+  getClientIp,
+  rateLimitHeaders,
+  RATE_LIMIT_MISCONFIGURED_MESSAGE,
+} from '@/lib/rate-limit';
 
 // Routes (locale-stripped) that require an authenticated user.
 const PROTECTED = ['/profile', '/campaigns/create', '/admin'];
@@ -21,12 +26,18 @@ export async function middleware(request: NextRequest) {
     const ip = getClientIp(request);
     const rl = await enforceRateLimit('admin', `admin:${ip}`);
     if (!rl.success) {
+      // configError = rate limiting is unconfigured in production (503), not a
+      // caller who exceeded their quota (429).
+      const status = rl.configError ? 503 : 429;
+      const message = rl.configError
+        ? RATE_LIMIT_MISCONFIGURED_MESSAGE
+        : 'Too many requests. Please slow down.';
       const headers = rateLimitHeaders(rl);
       if (isAdminApi) {
-        return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers });
+        return NextResponse.json({ error: message }, { status, headers });
       }
-      return new NextResponse('Too many requests. Please slow down.', {
-        status: 429,
+      return new NextResponse(message, {
+        status,
         headers: { ...headers, 'Content-Type': 'text/plain; charset=utf-8' },
       });
     }
@@ -44,8 +55,8 @@ export async function middleware(request: NextRequest) {
   if (!isPrefetch && isLocale(segments[1])) {
     const sectionIp = getClientIp(request);
     const plainText = (rl: Awaited<ReturnType<typeof enforceRateLimit>>, msg: string) =>
-      new NextResponse(msg, {
-        status: 429,
+      new NextResponse(rl.configError ? RATE_LIMIT_MISCONFIGURED_MESSAGE : msg, {
+        status: rl.configError ? 503 : 429,
         headers: { ...rateLimitHeaders(rl), 'Content-Type': 'text/plain; charset=utf-8' },
       });
 

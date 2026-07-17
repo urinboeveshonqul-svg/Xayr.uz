@@ -1,6 +1,6 @@
 # Xayr — Migration Status
 
-How to confirm which of the 46 database migrations ([supabase/MIGRATIONS.md](../supabase/MIGRATIONS.md))
+How to confirm which of the 50 database migrations ([supabase/MIGRATIONS.md](../supabase/MIGRATIONS.md))
 are actually live in the Supabase project. This is **read-only** — it never
 changes the database. Fill in the "Live status" column after running the script.
 
@@ -69,6 +69,10 @@ changes the database. Fill in the "Live status" column after running the script.
 | 44 | guest-donations.sql | `donations.donor_name`,`donations.name_display` |
 | 45 | financial-ledger.sql | table `financial_ledger`; view `financial_summary`; fns `public_financial_stats`,`check_financial_integrity`,`campaign_financials`,`record_ledger_adjustment`; trigger `trg_ledger_on_donation`; append-only guard `trg_ledger_no_delete` |
 | 46 | financial-snapshots.sql | table `financial_snapshots`; fns `generate_financial_snapshot`,`reconciliation_report`,`public_financial_series`; `financial_ledger.user_id`/`reference_id`; trigger `trg_ledger_payout_lifecycle` |
+| 47 | payment-provider-settings.sql | table `payment_provider_settings`; policies `payment_provider_settings_select_all`/`_admin_write`; `donations_payment_method_check` allows `paynet`/`uzum` |
+| 48 | payme-transactions.sql | table `payme_transactions`; unique index `payme_transactions_active_donation_key`; index `idx_payme_transactions_donation`; policy `payme_transactions_select_admin` |
+| 49 | share-channels.sql | `campaign_shares_source_check` allows `instagram`/`email`/`qr`; policy `shares_insert_any` with-check allows them too |
+| 50 | financial-status-integrity.sql | view `admin_stats` (donations_count completed-only); `financial_summary.failed_payments_amount`/`failed_payments_count`/`refunded_count` |
 
 ## Live status (fill in after running the verifier)
 
@@ -80,7 +84,11 @@ changes the database. Fill in the "Live status" column after running the script.
 | 1 | schema.sql | _unverified_ | |
 | 2 | verification.sql | _unverified_ | |
 | … | … | _unverified_ | run `verify-migrations.sql` to populate |
-| 46 | financial-snapshots.sql | _unverified_ | newest — daily snapshots + ledger extension + reconciliation report (run before the charts/snapshot cron go live) |
+| 46 | financial-snapshots.sql | _unverified_ | daily snapshots + ledger extension + reconciliation report (run before the charts/snapshot cron go live) |
+| 47 | payment-provider-settings.sql | _reported applied 2026-07-14 (user-confirmed) — re-verify_ | admin payment catalog; app fails open to safe defaults until applied |
+| 48 | payme-transactions.sql | _unverified_ | **REQUIRED before enabling Payme** — without it every Payme JSON-RPC call fails |
+| 49 | share-channels.sql | _unverified_ | until applied, instagram/email/qr share rows are silently dropped (sharing itself still works) |
+| 50 | financial-status-integrity.sql | _unverified_ | newest — until applied the /admin Donations tile counts every status, and the new failed/refunded counters read 0 |
 
 ## Notes / known dependencies
 

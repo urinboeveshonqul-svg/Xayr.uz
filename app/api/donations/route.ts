@@ -6,7 +6,7 @@ import { getPaymentProvider } from '@/lib/payments';
 import { isProviderEnabled } from '@/lib/payments/catalog';
 import { PROVIDER_IDS } from '@/lib/payments/providers-meta';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
-import { verifyTurnstile, tokenFromBody, TURNSTILE_FAILED_MESSAGE } from '@/lib/security/turnstile';
+import { verifyTurnstile, tokenFromBody, turnstileFailureResponse } from '@/lib/security/turnstile';
 
 export const runtime = 'nodejs';
 
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
   if (isGuest) {
     const ts = await verifyTurnstile(tokenFromBody(body), ip);
     if (!ts.success) {
-      return NextResponse.json({ error: TURNSTILE_FAILED_MESSAGE }, { status: 400 });
+      return turnstileFailureResponse(ts);
     }
   }
 

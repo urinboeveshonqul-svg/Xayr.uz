@@ -2,8 +2,12 @@
 -- XAYR — Migration verification (READ-ONLY)
 -- ============================================================
 -- Paste into Supabase Dashboard -> SQL Editor and Run. Changes NOTHING — it only
--- inspects the catalog and reports which of the 46 runbook migrations
+-- inspects the catalog and reports which of the 50 runbook migrations
 -- (supabase/MIGRATIONS.md) are applied to THIS database.
+--
+-- ⚠️ #5 (secure-donations-rls) is the security prerequisite for payouts: without
+-- it clients can insert donations with status='completed' and forge campaign
+-- totals. #48 is REQUIRED before Payme is enabled. Check both explicitly.
 --
 -- Object names are taken verbatim from the migration files, so a ❌ means the
 -- object truly isn't there. Run each section; each returns its own result table.
@@ -222,7 +226,31 @@ with raw(mig, feature, label, present) as (values
   (46, 'financial snapshots',    'fn public_financial_series',      exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='public_financial_series')),
   (46, 'financial snapshots',    'col financial_ledger.user_id',    exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_ledger' and column_name='user_id')),
   (46, 'financial snapshots',    'col financial_ledger.reference_id', exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_ledger' and column_name='reference_id')),
-  (46, 'financial snapshots',    'trigger trg_ledger_payout_lifecycle', exists(select 1 from pg_trigger where tgname='trg_ledger_payout_lifecycle' and not tgisinternal))
+  (46, 'financial snapshots',    'trigger trg_ledger_payout_lifecycle', exists(select 1 from pg_trigger where tgname='trg_ledger_payout_lifecycle' and not tgisinternal)),
+
+  -- 47 — payment provider settings (admin catalog: enable / coming-soon / order / default)
+  (47, 'payment providers',      'table payment_provider_settings', (to_regclass('public.payment_provider_settings') is not null)),
+  (47, 'payment providers',      'policy select_all',               exists(select 1 from pg_policies where schemaname='public' and tablename='payment_provider_settings' and policyname='payment_provider_settings_select_all')),
+  (47, 'payment providers',      'policy admin_write',              exists(select 1 from pg_policies where schemaname='public' and tablename='payment_provider_settings' and policyname='payment_provider_settings_admin_write')),
+  (47, 'payment providers',      'payment_method allows paynet/uzum', exists(select 1 from pg_constraint where conname='donations_payment_method_check' and pg_get_constraintdef(oid) ilike '%paynet%' and pg_get_constraintdef(oid) ilike '%uzum%')),
+
+  -- 48 — Payme merchant-API transaction state table (REQUIRED before enabling Payme)
+  (48, 'payme transactions',     'table payme_transactions',        (to_regclass('public.payme_transactions') is not null)),
+  (48, 'payme transactions',     'unique active txn per donation',  exists(select 1 from pg_indexes where schemaname='public' and indexname='payme_transactions_active_donation_key')),
+  (48, 'payme transactions',     'index on donation_id',            exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_payme_transactions_donation')),
+  (48, 'payme transactions',     'policy select_admin',             exists(select 1 from pg_policies where schemaname='public' and tablename='payme_transactions' and policyname='payme_transactions_select_admin')),
+
+  -- 49 — share channels (instagram / email / qr allowed in CHECK *and* RLS)
+  (49, 'share channels',         'source CHECK allows instagram',   exists(select 1 from pg_constraint where conname='campaign_shares_source_check' and pg_get_constraintdef(oid) ilike '%instagram%')),
+  (49, 'share channels',         'source CHECK allows email',       exists(select 1 from pg_constraint where conname='campaign_shares_source_check' and pg_get_constraintdef(oid) ilike '%email%')),
+  (49, 'share channels',         'source CHECK allows qr',          exists(select 1 from pg_constraint where conname='campaign_shares_source_check' and pg_get_constraintdef(oid) ilike '%qr%')),
+  (49, 'share channels',         'RLS insert policy allows qr',     exists(select 1 from pg_policies where schemaname='public' and tablename='campaign_shares' and policyname='shares_insert_any' and coalesce(with_check,'') ilike '%qr%')),
+
+  -- 50 — only successful donations count (view definitions only; no data changed)
+  (50, 'financial integrity',    'admin_stats donations_count completed-only', exists(select 1 from pg_views where schemaname='public' and viewname='admin_stats' and definition ilike '%completed%')),
+  (50, 'financial integrity',    'financial_summary.failed_payments_amount',   exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='failed_payments_amount')),
+  (50, 'financial integrity',    'financial_summary.failed_payments_count',    exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='failed_payments_count')),
+  (50, 'financial integrity',    'financial_summary.refunded_count',           exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='refunded_count'))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
@@ -323,7 +351,15 @@ with raw(mig, feature, label, present) as (values
   (46,'financial snapshots','fn generate_financial_snapshot',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='generate_financial_snapshot')),
   (46,'financial snapshots','fn reconciliation_report',exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='reconciliation_report')),
   (46,'financial snapshots','col financial_ledger.reference_id',exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_ledger' and column_name='reference_id')),
-  (46,'financial snapshots','trigger trg_ledger_payout_lifecycle',exists(select 1 from pg_trigger where tgname='trg_ledger_payout_lifecycle' and not tgisinternal))
+  (46,'financial snapshots','trigger trg_ledger_payout_lifecycle',exists(select 1 from pg_trigger where tgname='trg_ledger_payout_lifecycle' and not tgisinternal)),
+  (47,'payment providers','table payment_provider_settings',(to_regclass('public.payment_provider_settings') is not null)),
+  (47,'payment providers','payment_method allows paynet/uzum',exists(select 1 from pg_constraint where conname='donations_payment_method_check' and pg_get_constraintdef(oid) ilike '%paynet%' and pg_get_constraintdef(oid) ilike '%uzum%')),
+  (48,'payme transactions','table payme_transactions',(to_regclass('public.payme_transactions') is not null)),
+  (48,'payme transactions','unique active txn per donation',exists(select 1 from pg_indexes where schemaname='public' and indexname='payme_transactions_active_donation_key')),
+  (49,'share channels','source CHECK allows instagram',exists(select 1 from pg_constraint where conname='campaign_shares_source_check' and pg_get_constraintdef(oid) ilike '%instagram%')),
+  (49,'share channels','RLS insert policy allows qr',exists(select 1 from pg_policies where schemaname='public' and tablename='campaign_shares' and policyname='shares_insert_any' and coalesce(with_check,'') ilike '%qr%')),
+  (50,'financial integrity','admin_stats donations_count completed-only',exists(select 1 from pg_views where schemaname='public' and viewname='admin_stats' and definition ilike '%completed%')),
+  (50,'financial integrity','financial_summary.failed_payments_amount',exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='failed_payments_amount'))
 )
 select mig as "#", feature, label as object,
   case when present then '✅' else '❌' end as ok

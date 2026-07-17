@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyCronSecret } from '@/lib/security/cron';
 
 export const runtime = 'nodejs';
 // Never cache — this is a scheduled mutation.
@@ -11,20 +12,17 @@ export const dynamic = 'force-dynamic';
  * (see vercel.json); the DB function expire_due_campaigns() does the work and
  * the campaign-status trigger notifies each owner.
  *
- * Auth: when CRON_SECRET is set, the request must present it as a Bearer token
- * (Vercel attaches this header automatically to scheduled invocations). When it
- * is unset we still run but warn — matching the app's other
- * fail-open-when-unconfigured guards (rate-limit, turnstile).
+ * Auth: CRON_SECRET must be presented as a Bearer token (Vercel attaches this
+ * header automatically to scheduled invocations). Compared in constant time.
+ *
+ * PRODUCTION FAILS CLOSED: without CRON_SECRET this endpoint refuses every
+ * request. It is a publicly-routable mutation, so running it unauthenticated
+ * would let anyone trigger the sweep at will. Locally the secret is optional so
+ * the cron can be exercised by hand.
  */
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    if (request.headers.get('authorization') !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
-  } else if (process.env.NODE_ENV === 'production') {
-    console.warn('[cron/expire-campaigns] CRON_SECRET not set — running unauthenticated.');
-  }
+  const authError = verifyCronSecret(request);
+  if (authError) return authError;
 
   try {
     const admin = createAdminClient();

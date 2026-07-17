@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { normalizeLoginIdentifier } from '@/lib/username';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
-import { verifyTurnstile, tokenFromBody, TURNSTILE_FAILED_MESSAGE } from '@/lib/security/turnstile';
+import { verifyTurnstile, tokenFromBody, turnstileFailureResponse } from '@/lib/security/turnstile';
 
 export const runtime = 'nodejs';
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   // Bot/abuse gate — server-side Turnstile verification (never trust the client).
   const ts = await verifyTurnstile(tokenFromBody(body), ip);
   if (!ts.success) {
-    return NextResponse.json({ error: TURNSTILE_FAILED_MESSAGE }, { status: 400 });
+    return turnstileFailureResponse(ts);
   }
 
   // Resolve username → email when the identifier isn't an email address.
