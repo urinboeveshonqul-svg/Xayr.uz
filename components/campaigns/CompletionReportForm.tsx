@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Loader2, ImagePlus, FileText, Video, X, CheckCircle2, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney } from '@/lib/utils';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import type { FundBreakdownItem, TimelineItem, BeneficiaryStatus } from '@/types';
 
 const IMG_MAX = 5 * 1024 * 1024;   // 5MB per image/doc
@@ -54,6 +55,7 @@ export function CompletionReportForm({
   onDone?: () => void;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const isEdit = !!report;
   const [title, setTitle] = useState(report?.title ?? '');
   const [message, setMessage] = useState(report?.message ?? '');
@@ -97,12 +99,12 @@ export function CompletionReportForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (title.trim().length < 3) { toast.error('Sarlavha juda qisqa'); return; }
+    if (title.trim().length < 3) { toast.error(t('toasts.reportTitleShort')); return; }
     if (message.trim().length < MIN_SUMMARY) {
-      toast.error(`Xulosa kamida ${MIN_SUMMARY} ta belgidan iborat bo'lishi kerak`);
+      toast.error(t('toasts.reportSummaryMin', { n: MIN_SUMMARY }));
       return;
     }
-    if (overCap) { toast.error("Hisobot summasi yechib olingan summadan oshmasligi kerak"); return; }
+    if (overCap) { toast.error(t('toasts.reportSumExceeds')); return; }
     // Drop incomplete fund-breakdown rows.
     const cleanFund = fundBreakdown
       .filter((i) => i.category.trim() && (Number(i.amount) || 0) >= 0)
@@ -126,17 +128,17 @@ export function CompletionReportForm({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         const map: Record<string, string> = {
-          reported_exceeds_withdrawn: "Hisobot summasi yechib olingan summadan oshib ketdi",
-          report_locked: 'Tasdiqlangan hisobotni tahrirlab bo\'lmaydi',
+          reported_exceeds_withdrawn: t('toasts.reportErrExceedsWithdrawn'),
+          report_locked: t('toasts.reportErrLocked'),
         };
-        toast.error(map[json.error] ?? json.error ?? 'Xatolik yuz berdi');
+        toast.error(map[json.error] ?? json.error ?? t('toasts.generic'));
         return;
       }
-      toast.success(report ? 'Hisobot ko\'rib chiqishga yuborildi' : 'Yakuniy hisobot yuborildi');
+      toast.success(report ? t('toasts.reportSubmittedReview') : t('toasts.reportSubmittedFinal'));
       if (report) onDone?.();
       router.refresh();
     } catch {
-      toast.error('Kutilmagan xatolik yuz berdi');
+      toast.error(t('toasts.unexpected'));
     } finally {
       setSubmitting(false);
     }

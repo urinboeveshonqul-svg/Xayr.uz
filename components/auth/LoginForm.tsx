@@ -40,7 +40,7 @@ export function LoginForm() {
     // Stop the submission if Turnstile is enabled but hasn't issued a token yet
     // (common on mobile while the challenge resolves). Show the error, never hang.
     if (isTurnstileEnabled() && !captchaToken) {
-      toast.error('Security verification failed. Please try again.');
+      toast.error(t('toasts.turnstile'));
       return;
     }
     try {

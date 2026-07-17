@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { UZ, nationalDigitsFrom, formatNational, isValidNational, toE164 } from '@/lib/phone';
 import { CARD_TYPES, cardDigits, formatCard, isValidCard } from '@/lib/payout';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import type { PayoutAccount, CardType } from '@/types';
 
 /**
@@ -35,6 +36,7 @@ export function PayoutAccountForm({
   onCancel?: () => void;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
 
   const [legalName, setLegalName] = useState(initial?.full_legal_name ?? '');
   const [phone, setPhone] = useState(initial ? nationalDigitsFrom(initial.phone_number) : '');
@@ -53,7 +55,7 @@ export function PayoutAccountForm({
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) {
-      toast.error("Ma'lumotlarni to'g'ri to'ldiring");
+      toast.error(t('toasts.payoutFillCorrect'));
       return;
     }
     setSaving(true);
@@ -73,7 +75,7 @@ export function PayoutAccountForm({
         toast.error(error.message);
         return;
       }
-      toast.success("To'lov ma'lumotlari saqlandi");
+      toast.success(t('toasts.payoutSaved'));
       router.refresh();
       onSaved?.();
     } finally {

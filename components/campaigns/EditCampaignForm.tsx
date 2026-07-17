@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2, Save } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useI18n } from '@/components/i18n/I18nProvider';
 
 export interface EditableCampaign {
   id: string;
@@ -25,6 +26,7 @@ export interface EditableCampaign {
  */
 export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampaign; locale: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [title, setTitle] = useState(campaign.title);
   const [description, setDescription] = useState(campaign.description);
   const [story, setStory] = useState(campaign.story ?? '');
@@ -36,9 +38,9 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const goalNum = Math.floor(Number(goal));
-    if (title.trim().length < 5) { toast.error("Sarlavha kamida 5 ta belgidan iborat bo'lsin"); return; }
-    if (description.trim().length < 10) { toast.error("Tavsif kamida 10 ta belgidan iborat bo'lsin"); return; }
-    if (!goalNum || goalNum <= 0) { toast.error("Maqsad summasi noto'g'ri"); return; }
+    if (title.trim().length < 5) { toast.error(t('toasts.editTitleMin')); return; }
+    if (description.trim().length < 10) { toast.error(t('toasts.editDescMin')); return; }
+    if (!goalNum || goalNum <= 0) { toast.error(t('toasts.editGoalInvalid')); return; }
 
     setSaving(true);
     try {
@@ -57,7 +59,7 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
         toast.error(error.message);
         return;
       }
-      toast.success('Kampaniya yangilandi');
+      toast.success(t('toasts.campaignUpdated'));
       router.push(`/${locale}/campaigns/${campaign.slug}`);
       router.refresh();
     } finally {

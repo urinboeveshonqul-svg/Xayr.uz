@@ -88,7 +88,7 @@ export function CampaignUpdates({
 
   const upload = async (file: File, kind: 'image' | 'doc') => {
     if (file.size > MAX) {
-      toast.error('Maksimal 5MB');
+      toast.error(t('toasts.max5mb'));
       return;
     }
     setUploading(true);
@@ -96,7 +96,7 @@ export function CampaignUpdates({
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Kirish talab qilinadi');
+        toast.error(t('toasts.authRequired'));
         return;
       }
       const ext = file.name.split('.').pop() ?? 'bin';
@@ -117,7 +117,7 @@ export function CampaignUpdates({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim().length < 1 || content.trim().length < 1) {
-      toast.error("Sarlavha va matn to'ldirilishi shart");
+      toast.error(t('toasts.updateFieldsRequired'));
       return;
     }
     setSubmitting(true);
@@ -125,7 +125,7 @@ export function CampaignUpdates({
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Kirish talab qilinadi');
+        toast.error(t('toasts.authRequired'));
         return;
       }
 
@@ -138,7 +138,7 @@ export function CampaignUpdates({
           toast.error(error.message);
           return;
         }
-        toast.success('Yangilik yangilandi');
+        toast.success(t('toasts.updateEdited'));
       } else {
         const { error } = await supabase.from('campaign_updates').insert({
           campaign_id: campaignId,
@@ -152,7 +152,7 @@ export function CampaignUpdates({
           toast.error(error.message);
           return;
         }
-        toast.success("Yangilik qo'shildi");
+        toast.success(t('toasts.updateAdded'));
       }
 
       resetForm();
@@ -172,7 +172,7 @@ export function CampaignUpdates({
         toast.error(error.message);
         return;
       }
-      toast.success("Yangilik o'chirildi");
+      toast.success(t('toasts.updateDeleted'));
       setUpdates((p) => p.filter((u) => u.id !== id));
     } finally {
       setBusyId(null);

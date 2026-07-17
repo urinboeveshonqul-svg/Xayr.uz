@@ -9,6 +9,7 @@ import { Loader2, X, CreditCard } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
+import { useI18n } from '@/components/i18n/I18nProvider';
 import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
 import type { PaymentProviderOption, PaymentSubmethod } from '@/lib/payments/providers-meta';
 
@@ -42,6 +43,7 @@ interface DonationFormProps {
  * never set payment status.
  */
 export function DonationForm({ campaignId, onClose, providers = [] }: DonationFormProps) {
+  const { t } = useI18n();
   const [customAmount, setCustomAmount] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   // Pre-select the default (recommended) gateway, else the first enabled one;
@@ -92,12 +94,12 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   const onSubmit = async (data: FormData) => {
     // Only validate what is actually shown — hidden fields never error.
     if (needsContact) {
-      if (donorName.trim().length < 2) { toast.error("Ismingizni kiriting"); return; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail.trim())) { toast.error("Email manzilini to'g'ri kiriting"); return; }
+      if (donorName.trim().length < 2) { toast.error(t('toasts.donorNameRequired')); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(donorEmail.trim())) { toast.error(t('toasts.donorEmailInvalid')); return; }
     }
     // Bot protection applies to every guest, named or anonymous.
     if (isGuest && isTurnstileEnabled() && !captchaToken) {
-      toast.error("Xavfsizlik tekshiruvidan o'ting. Qayta urinib ko'ring.");
+      toast.error(t('toasts.turnstile'));
       return;
     }
     try {
@@ -125,7 +127,7 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
 
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(json?.error ? `Xatolik: ${json.error}` : 'Xatolik yuz berdi');
+        toast.error(json?.error ? `${t('toasts.errorLabel')}: ${json.error}` : t('toasts.generic'));
         turnstileRef.current?.reset();
         setCaptchaToken(null);
         return;
@@ -155,7 +157,7 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
           }
           // status < 0 (error) or 0 (created, never paid) — donor closed or it
           // failed. The donation stays pending; let them retry.
-          toast.error("To'lov yakunlanmadi. Qayta urinib ko'ring.");
+          toast.error(t('toasts.paymentIncomplete'));
           return;
         } catch {
           // Library blocked/offline/CSP — fall back to the proven redirect.
@@ -164,10 +166,10 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
       }
 
       if (json.redirectUrl) { window.location.href = json.redirectUrl; return; }
-      toast.success(json.instructions || 'Xayriyangiz qabul qilindi!');
+      toast.success(json.instructions || t('toasts.donationThanks'));
       onClose();
     } catch {
-      toast.error('Kutilmagan xatolik yuz berdi');
+      toast.error(t('toasts.unexpected'));
     }
   };
 

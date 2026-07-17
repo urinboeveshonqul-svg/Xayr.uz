@@ -87,7 +87,7 @@ export function RegisterForm() {
     }
     // Stop the submission if Turnstile is enabled but hasn't issued a token yet.
     if (isTurnstileEnabled() && !captchaToken) {
-      toast.error('Security verification failed. Please try again.');
+      toast.error(t('toasts.turnstile'));
       return;
     }
     try {
