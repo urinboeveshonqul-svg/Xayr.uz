@@ -152,13 +152,32 @@ create or replace function public.mark_payout_paid(
   p_paid_at    timestamptz default null
 ) returns void
 language plpgsql security definer set search_path = public as $$
-declare v_status text;
+declare
+  v_status   text;
+  v_amount   bigint;
+  v_campaign uuid;
+  v_current  bigint;
+  v_paid     bigint;
 begin
   if not public.is_admin() then raise exception 'admin_required'; end if;
   if coalesce(btrim(p_reference), '') = '' then raise exception 'reference_required'; end if;
-  select status into v_status from public.payout_requests where id = p_request_id for update;
+  select status, amount, campaign_id
+    into v_status, v_amount, v_campaign
+    from public.payout_requests where id = p_request_id for update;
   if not found then raise exception 'request_not_found'; end if;
   if v_status <> 'approved' then raise exception 'invalid_transition'; end if;
+
+  -- F-2 pay-time balance guard (see payout-paid-balance-guard.sql / #52): a refund
+  -- reversal after the request was created must not let it over-withdraw. Kept in
+  -- sync here so a fresh install has the guard; #52 applies it where #40 already ran.
+  select coalesce(current_amount, 0) into v_current
+    from public.campaigns where id = v_campaign for update;
+  select coalesce(sum(amount), 0) into v_paid
+    from public.payout_requests
+   where campaign_id = v_campaign and status = 'paid';
+  if v_paid + v_amount > v_current then
+    raise exception 'insufficient_balance';
+  end if;
 
   update public.payout_requests
      set status = 'paid', payout_reference = p_reference, paid_at = coalesce(p_paid_at, now())

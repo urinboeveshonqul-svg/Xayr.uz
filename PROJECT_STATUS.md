@@ -385,6 +385,7 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 49 | `share-channels.sql` | **Share channels** — widens `campaign_shares.source` CHECK **and** the `shares_insert_any` RLS policy to allow `instagram`/`email`/`qr` (retains `x` so historical rows stay valid + reportable). Without it those share rows are silently dropped — `trackShare` is fire-and-forget, so sharing never breaks | Unknown | 30 |
 | 50 | `financial-status-integrity.sql` | **Only successful donations count** — fixes `admin_stats.donations_count` (was `count(*)` over every status, inflating the /admin Donations tile with pending/failed/refunded) to completed-only; adds independent `failed_payments_amount`/`failed_payments_count`/`refunded_count` to `financial_summary` so unsuccessful attempts are reported separately and never folded into a total. View definitions only — no data modified | Unknown | 45 |
 | 51 | `payout-commission-4pct.sql` | **Withdrawal commission 3% → 4%** — replaces `create_payout_request(uuid,integer,text)` so new requests compute `commission_amount = round(amount * 0.04)`. Function body only: no columns/constraints/data/triggers/policies change; signature unchanged. **Existing rows are NOT re-rated** — they keep the rate actually charged. Donation flow untouched. | Unknown — **required for the 4% rate** | 40 |
+| 52 | `payout-paid-balance-guard.sql` | **Payout pay-time balance guard (audit F-2)** — `mark_payout_paid` re-verifies `sum(paid)+this ≤ current_amount` (campaign row locked) so a post-request refund can't over-withdraw; raises `insufficient_balance`, leaves the request `approved`. Function body only; same signature; no schema/workflow change. | Unknown — **required to close F-2** | 40 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 
@@ -419,6 +420,7 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/contact` | POST | Store a contact-form message (rate-limited, Turnstile) | Public | — | `201 { ok }` / error |
 | `/api/cron/expire-campaigns` | GET | Daily sweep: archive due campaigns via `expire_due_campaigns()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, expired }` |
 | `/api/cron/financial-snapshot` | GET | Daily idempotent financial snapshot via `generate_financial_snapshot()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, created }` |
+| `/api/cron/reconcile-click-payments` | GET | Every 30 min: detect Click card payments captured-but-pending (audit F-1) via Merchant API `status_by_mti`; alert admins. Never credits/fails a donation. Inert unless `CLICK_MERCHANT_USER_ID` set | `CRON_SECRET` Bearer | — | `{ ok, skipped?, scanned, captured, alreadyFlagged }` |
 
 ---
 
@@ -436,6 +438,7 @@ Names only — never commit real values. Template: `.env.example`.
 | `PAYME_MERCHANT_ID` / `PAYME_SECRET_KEY` | Payme gateway — **secret** | ⏳ Optional (Payme stays Coming Soon until both set + admin-enabled) | `lib/payments/providers/payme.ts`, `/api/payments/payme` (see `docs/payme-setup.md`) |
 | `PAYME_CHECKOUT_URL` | Payme hosted-checkout base override | ⏳ Optional (defaults to production checkout) | Sandbox testing: `https://checkout.test.paycom.uz` |
 | `NEXT_PUBLIC_CLICK_EMBEDDED_CARD` | Opt-in: pay by card in-page via Click checkout.js. **Not a secret** — a boolean toggle | ⏳ Optional (**default OFF** ⇒ redirect for every donor; unset to roll back instantly) | `lib/payments/providers/click.ts` (`isClickEmbeddedCardEnabled`) — see `docs/click-embedded-card.md` |
+| `CLICK_MERCHANT_USER_ID` | Click Merchant API user id — **secret** | ⏳ Optional (reconciliation sweep inert if unset; **recommended before enabling embedded card**) | `lib/payments/providers/click-merchant.ts`, `/api/cron/reconcile-click-payments` (audit F-1) |
 | `NEXT_PUBLIC_ONESIGNAL_APP_ID` | OneSignal app id (public) | ⏳ Optional (push off without it) | OneSignal web SDK |
 | `ONESIGNAL_REST_API_KEY` | OneSignal REST key — **secret** | ⏳ Optional | `/api/push/notify` |
 | `SUPABASE_WEBHOOK_SECRET` | Shared secret for push webhook — **secret** | ⏳ Optional (push webhook returns 503 without it) | `/api/push/notify` auth |

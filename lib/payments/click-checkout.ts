@@ -27,7 +27,9 @@ export const CLICK_CHECKOUT_SRC = 'https://my.click.uz/pay/checkout.js';
  *
  * ⚠️ UX ONLY. This value arrives in the browser and is attacker-controlled, so
  * it MUST NEVER credit a donation. Money is only ever credited server-side by
- * confirmDonation() from a verified Click callback. See the G1 note in
+ * confirmDonation() from a verified Click callback; a captured-but-pending
+ * embedded payment is caught by the reconciliation sweep
+ * (lib/payments/reconcile-click.ts). See the resolved G1 note in
  * lib/payments/providers/click.ts.
  */
 export const ClickCheckoutStatus = {
