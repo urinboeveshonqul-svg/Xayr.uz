@@ -45,32 +45,25 @@ export function isClickEmbeddedCardEnabled(): boolean {
 }
 
 // ============================================================
-// ⚠️ G1 — UNRESOLVED, AWAITING CLICK. Do not guess.
+// G1 — RESOLVED (audit F-1). checkout.js's official docs
+// (docs.click.uz/en/click-pay-by-card) document ONLY a client-side `status`
+// field and never state that the SHOP-API Prepare/Complete callbacks fire, so
+// firing cannot be assumed. Rather than guess, the system now guarantees safety
+// from both directions:
 //
-// Question: does a payment made through the checkout.js overlay trigger the
-// SHOP API Prepare/Complete callbacks, exactly as the redirect flow does?
+//   • Crediting stays EXCLUSIVELY on the amount-verified SHOP-API callback →
+//     confirmDonation() path (app/api/payments/click). checkout.js's client
+//     `status` is UX only and never credits (it is attacker-controlled).
+//   • A reconciliation sweep (lib/payments/reconcile-click.ts, cron
+//     /api/cron/reconcile-click-payments) queries the Merchant API
+//     status_by_mti for any Click donation left 'pending', and alerts admins if
+//     Click has a captured payment on record — so an embedded card payment can
+//     never sit captured-but-pending silently.
 //
-// The docs never state it. checkout.js reuses the same service_id / merchant_id
-// / transaction_param as the redirect, which HINTS the callbacks fire — but a
-// hint is not a specification, so nothing here depends on it.
-//
-// How money is credited today, and why this is safe either way:
-//   • The ONLY crediting path is confirmDonation(), reached from a verified
-//     server-to-server callback (app/api/payments/click). Unchanged.
-//   • checkout.js's client-side `status` is UX ONLY. It is never trusted to
-//     credit — it is attacker-controlled and the donor could simply edit it.
-//   • So if the callbacks DO fire, the donation credits exactly as it does for
-//     the redirect. If they do NOT, the donation stays 'pending' and no money is
-//     ever wrongly credited — the failure is visible and safe, not silent.
-//
-// Two integration points exist for whichever answer Click gives:
-//   (a) SHOP API callbacks — ALREADY IMPLEMENTED, no work needed.
-//   (b) Merchant API confirmation — NOT IMPLEMENTED. Would poll the documented
-//       GET /v2/merchant/payment/status_by_mti/:service_id/:merchant_trans_id/YYYY-MM-DD
-//       and finalize through the same confirmDonation(). It needs the Auth
-//       header (sha1(timestamp + secret_key)) and therefore a new
-//       CLICK_MERCHANT_USER_ID env var. Build it ONLY if Click confirms (a)
-//       does not fire — see docs/click-embedded-card.md.
+// The Merchant status endpoints return no captured amount, so the reconciler
+// DETECTS and surfaces (never auto-credits) — auto-crediting an unverifiable
+// amount would reintroduce the wrong-amount hole the callback path closes.
+// See docs/click-embedded-card.md.
 // ============================================================
 
 // Click SHOP API actions.

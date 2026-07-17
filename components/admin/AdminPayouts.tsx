@@ -46,6 +46,7 @@ const ERR: Record<string, string> = {
   admin_required:     "Ruxsat yo'q",
   invalid_transition: "Bu amalni bajarib bo'lmaydi",
   request_not_found:  "So'rov topilmadi",
+  insufficient_balance: "Balans yetarli emas (qaytarilgan mablag'lardan so'ng). To'lovni tasdiqlab bo'lmadi.",
   reason_required:    'Sabab kiritilishi shart',
   note_required:      'Izoh kiritilishi shart',
   reference_required: "To'lov ma'lumotnomasi kiritilishi shart",

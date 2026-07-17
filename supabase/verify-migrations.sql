@@ -250,7 +250,13 @@ with raw(mig, feature, label, present) as (values
   (50, 'financial integrity',    'admin_stats donations_count completed-only', exists(select 1 from pg_views where schemaname='public' and viewname='admin_stats' and definition ilike '%completed%')),
   (50, 'financial integrity',    'financial_summary.failed_payments_amount',   exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='failed_payments_amount')),
   (50, 'financial integrity',    'financial_summary.failed_payments_count',    exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='failed_payments_count')),
-  (50, 'financial integrity',    'financial_summary.refunded_count',           exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='refunded_count'))
+  (50, 'financial integrity',    'financial_summary.refunded_count',           exists(select 1 from information_schema.columns where table_schema='public' and table_name='financial_summary' and column_name='refunded_count')),
+
+  -- 51 — withdrawal commission 4%
+  (51, 'commission 4%',          'create_payout_request charges 0.04',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='create_payout_request' and pg_get_functiondef(p.oid) like '%0.04%')),
+
+  -- 52 — payout pay-time balance guard (audit F-2)
+  (52, 'payout balance guard',   'mark_payout_paid re-checks balance',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='mark_payout_paid' and pg_get_functiondef(p.oid) like '%insufficient_balance%'))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
