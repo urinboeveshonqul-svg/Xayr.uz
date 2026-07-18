@@ -20,7 +20,11 @@ export function Navbar() {
   // Tri-state auth: until authReady, user===null means "unknown", NOT "logged
   // out" — the UI must show a placeholder instead of Login/Register.
   const [authReady, setAuthReady] = useState(false);
-  const [profile, setProfile]   = useState<Profile | null>(null);
+  // Only the public-safe columns the navbar renders (avatar + admin flag).
+  // Narrowed from the full Profile row because email/phone/rejection_reason are
+  // no longer selectable by authenticated clients (migration #53).
+  type NavProfile = Pick<Profile, 'id' | 'full_name' | 'avatar_url' | 'username' | 'role'>;
+  const [profile, setProfile]   = useState<NavProfile | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -43,7 +47,14 @@ export function Navbar() {
       userId: string
     ) => {
       try {
-        const { data: p } = await supabase.from('users').select('*').eq('id', userId).single();
+        // Explicit public-safe columns: `select('*')` would now fail, because
+        // email/phone/rejection_reason are no longer granted to authenticated
+        // (migration #53). The navbar only needs the avatar and the admin flag.
+        const { data: p } = await supabase
+          .from('users')
+          .select('id, full_name, avatar_url, username, role')
+          .eq('id', userId)
+          .single();
         setProfile(p);
       } catch {
         setProfile(null);

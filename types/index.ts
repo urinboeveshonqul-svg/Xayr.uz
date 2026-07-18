@@ -1123,6 +1123,15 @@ export type Database = {
       };
     };
     Functions: {
+      /**
+       * Own-row private profile fields (users-pii-hardening.sql / #53).
+       * SECURITY DEFINER, filtered to auth.uid() — email/phone/rejection_reason
+       * are no longer selectable directly by anon/authenticated.
+       */
+      my_private_profile: {
+        Args: Record<string, never>;
+        Returns: { email: string | null; phone: string | null; rejection_reason: string | null }[];
+      };
       increment_campaign_views: {
         Args: { p_campaign_id: string };
         Returns: undefined;
