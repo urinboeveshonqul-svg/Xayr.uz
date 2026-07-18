@@ -107,11 +107,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'encryption_failed' }, { status: 500 });
   }
 
+  // Encrypted storage only — the plaintext column was retired in #57.
   const { error } = await admin.from('payout_accounts').upsert({
     user_id: user.id,
     ...base,
-    // PHASE 2: still dual-writing. Phase 3 (#57) drops this column.
-    card_number: acct.card_number,
     instrument_type: 'card',
     secret_enc: ciphertext,
     secret_last4: last4(acct.card_number),

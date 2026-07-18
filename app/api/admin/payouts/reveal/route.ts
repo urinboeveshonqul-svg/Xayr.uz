@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: row, error } = await admin
     .from('payout_requests')
-    .select('id, snap_secret_enc, snap_key_version, snap_card_number, snap_secret_last4')
+    .select('id, snap_secret_enc, snap_key_version, snap_secret_last4')
     .eq('id', requestId)
     .maybeSingle();
 
@@ -67,23 +67,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'request_not_found' }, { status: 404 });
   }
 
-  // Resolve the PAN: encrypted first, legacy plaintext only as a phase-2 fallback.
-  let cardNumber: string | null = null;
-  let source: 'encrypted' | 'legacy_plaintext' = 'encrypted';
-  if (row.snap_secret_enc) {
-    try {
-      const payload = decryptSecret(row.snap_secret_enc, row.snap_key_version ?? 1);
-      cardNumber = payload.card_number ?? null;
-    } catch (err) {
-      // Wrong key, tampered ciphertext, or a truncated envelope. Never fall
-      // through to plaintext on a decrypt FAILURE — that would mask a real
-      // integrity problem. Fail loudly instead.
-      console.error('[payouts/reveal] decrypt failed for request', requestId, err);
-      return NextResponse.json({ error: 'decrypt_failed' }, { status: 500 });
-    }
-  } else if (row.snap_card_number) {
-    cardNumber = row.snap_card_number;
-    source = 'legacy_plaintext';
+  // Encrypted storage is the ONLY source (#57 retired the plaintext column).
+  if (!row.snap_secret_enc) {
+    return NextResponse.json({ error: 'no_card_on_record' }, { status: 404 });
+  }
+
+  let cardNumber: string | null;
+  try {
+    const payload = decryptSecret(row.snap_secret_enc, row.snap_key_version ?? 1);
+    cardNumber = payload.card_number ?? null;
+  } catch (err) {
+    // Wrong key, tampered ciphertext, or a truncated envelope. Fail loudly —
+    // never treat a decrypt failure as "no card", which would hide an
+    // integrity problem.
+    console.error('[payouts/reveal] decrypt failed for request', requestId, err);
+    return NextResponse.json({ error: 'decrypt_failed' }, { status: 500 });
   }
 
   if (!cardNumber) {
@@ -97,7 +95,6 @@ export async function POST(request: Request) {
     entity_type: 'payout_request',
     entity_id: requestId,
     meta: {
-      source,
       last4: row.snap_secret_last4 ?? cardNumber.slice(-4),
       ...(reason ? { reason } : {}),
     },

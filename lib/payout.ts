@@ -74,28 +74,10 @@ export function isValidCard(digits: string): boolean {
   return /^\d{16}$/.test(cardDigits(digits));
 }
 
-/** Masked card for non-internal display: "•••• •••• •••• 3456". */
-export function maskCard(cardNumber?: string | null): string {
-  const d = (cardNumber || '').replace(/\D/g, '');
-  if (d.length < 4) return '••••';
-  return `•••• •••• •••• ${d.slice(-4)}`;
-}
-
-/**
- * Card mask for the OWNER's read-only payout card: keeps the issuer BIN (first
- * 4 digits — the public card-scheme prefix, not sensitive) and the last 4,
- * hiding the middle 8: "8600 **** **** 9012". Creator-facing only; admins still
- * see the full PAN in the admin payout dashboard. Falls back to maskCard() when
- * there aren't enough digits to show a BIN.
- *
- * ⚠️ Requires the full PAN as input. Prefer the *FromLast4 helpers below, which
- * need only the stored last-4 and therefore never handle a PAN at all.
- */
-export function maskCardDisplay(cardNumber?: string | null): string {
-  const d = (cardNumber || '').replace(/\D/g, '');
-  if (d.length < 8) return maskCard(cardNumber);
-  return `${d.slice(0, 4)} **** **** ${d.slice(-4)}`;
-}
+// NOTE: maskCard() / maskCardDisplay() were removed in phase 3A. They took a
+// full PAN as input, which no longer exists at rest — card numbers are stored
+// only as ciphertext and the last 4 digits are persisted separately. Use the
+// *FromLast4 helpers below, which never handle a PAN.
 
 /**
  * Masked card built from the stored last-4 ALONE — "•••• •••• •••• 3456".

@@ -844,7 +844,6 @@ export type Database = {
           payout_reference: string | null;
           // Snapshot of the payout account at request time (immutable history).
           snap_card_type: CardType | null;
-          snap_card_number: string | null;
           snap_cardholder_name: string | null;
           snap_phone: string | null;
           snap_bank_name: string | null;
@@ -873,7 +872,6 @@ export type Database = {
           admin_note?: string | null;
           payout_reference?: string | null;
           snap_card_type?: CardType | null;
-          snap_card_number?: string | null;
           snap_cardholder_name?: string | null;
           snap_phone?: string | null;
           snap_bank_name?: string | null;
@@ -909,7 +907,6 @@ export type Database = {
           full_legal_name: string;
           phone_number: string;
           card_type: CardType;
-          card_number: string;
           cardholder_name: string;
           bank_name: string | null;
           // Encrypted payout payload (#56). AES-256-GCM, key is server-only.
@@ -925,7 +922,6 @@ export type Database = {
           full_legal_name: string;
           phone_number: string;
           card_type: CardType;
-          card_number: string;
           cardholder_name: string;
           bank_name?: string | null;
           instrument_type?: string;
@@ -939,7 +935,6 @@ export type Database = {
           full_legal_name?: string;
           phone_number?: string;
           card_type?: CardType;
-          card_number?: string;
           cardholder_name?: string;
           bank_name?: string | null;
           instrument_type?: string;

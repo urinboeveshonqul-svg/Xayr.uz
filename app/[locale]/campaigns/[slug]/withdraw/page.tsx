@@ -53,15 +53,9 @@ export default async function CampaignWithdrawPage({ params }: Props) {
     .eq('campaign_id', campaign.id)
     .order('created_at', { ascending: false });
 
-  // Never serialize the full card number into the page payload. Derive the
-  // masked last-4 server-side (falling back to the legacy plaintext snapshot for
-  // rows not yet backfilled) and strip the PAN.
-  const payoutRequests = (payoutRows ?? []).map((r) => ({
-    ...r,
-    snap_secret_last4:
-      r.snap_secret_last4 ?? ((r.snap_card_number ?? '').replace(/\D/g, '').slice(-4) || null),
-    snap_card_number: null,
-  }));
+  // snap_secret_last4 is the only card data in the payload — the full number is
+  // never serialized to the browser.
+  const payoutRequests = payoutRows ?? [];
 
   const { data: payoutEventRows } = await supabase
     .from('payout_request_events')
@@ -83,7 +77,6 @@ export default async function CampaignWithdrawPage({ params }: Props) {
     full_legal_name: string;
     phone_number: string;
     card_type: string;
-    card_number: string | null;
     secret_last4: string | null;
     cardholder_name: string;
     bank_name: string | null;
@@ -91,7 +84,7 @@ export default async function CampaignWithdrawPage({ params }: Props) {
   try {
     const { data } = await supabase
       .from('payout_accounts')
-      .select('full_legal_name, phone_number, card_type, card_number, secret_last4, cardholder_name, bank_name')
+      .select('full_legal_name, phone_number, card_type, secret_last4, cardholder_name, bank_name')
       .eq('user_id', user.id)
       .maybeSingle();
     payoutAccount = data ?? null;
@@ -99,12 +92,9 @@ export default async function CampaignWithdrawPage({ params }: Props) {
     payoutAccount = null;
   }
 
-  // PHASE 2: prefer the stored last-4 (no PAN involved at all); fall back to
-  // deriving it from the legacy plaintext column only while that column still
-  // exists. Phase 3 removes the fallback along with the column.
-  const cardLast4 = payoutAccount
-    ? payoutAccount.secret_last4 ?? (payoutAccount.card_number ?? '').replace(/\D/g, '').slice(-4)
-    : '';
+  // The stored last-4 is the only card data read anywhere — the PAN exists only
+  // as ciphertext and is never fetched here.
+  const cardLast4 = payoutAccount?.secret_last4 ?? '';
 
   const payoutSummary = payoutAccount
     ? `${cardTypeLabel(payoutAccount.card_type)} · ${maskFromLast4(cardLast4)}`

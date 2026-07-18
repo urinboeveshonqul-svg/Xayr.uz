@@ -389,6 +389,8 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 53 | `users-pii-hardening.sql` | **users PII lockdown (P1-1)** — column-level SELECT grants on `public.users` (14 safe columns); `email`/`phone`/`rejection_reason` no longer readable by anon/authenticated. Adds own-row `my_private_profile()`. RLS, UPDATE grants, service role, embedded joins unchanged. | Unknown — **closes the P1 PII exposure** | 1 |
 | 54 | `rls-storage-hardening.sql` | **RLS + storage hardening (P2-3, P2-4)** — RLS on `reserved_usernames` (admin-only writes); `campaign-images` INSERT scoped to the uploader’s own folder. Reads unchanged. | Unknown | 1, 34 |
 | 55 | `fk-indexes.sql` | **FK indexes (P2-5)** — 8 missing FK indexes (cascade-delete seq scans). Additive; CONCURRENTLY, run statements individually. | Unknown | 1 |
+| 56 | `payout-encryption-expand.sql` | **Phase 1 — payout encryption EXPAND** — encrypted-payload columns on `payout_accounts` + `payout_requests`; `create_payout_request` dual-snapshots. AES-256-GCM in the app layer; key only in `PAYOUT_ENCRYPTION_KEY`, never in the DB. Additive/reversible. | Unknown — **set + escrow the key first** | 40 |
+| 57 | `payout-plaintext-retirement.sql` | **Phase 3A — legacy plaintext retirement (REVERSIBLE)** — renames the plaintext card columns to `*_legacy_dropme`, drops NOT NULL, marks deprecated, revokes client privileges; RPC stops copying plaintext. Encrypted payload is the only runtime source. Data renamed, not dropped. **Permanent DROP deferred to #58.** | Unknown — **apply only after backfill verification passes** | 56 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 

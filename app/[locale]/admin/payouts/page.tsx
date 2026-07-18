@@ -24,17 +24,10 @@ export default async function AdminPayoutsPage({ params }: Props) {
     .select('*')
     .order('created_at', { ascending: false });
 
-  // The full card number must NEVER be serialized into the page payload. Derive
-  // the masked last-4 here (falling back to the legacy plaintext snapshot for
-  // rows the phase-2 backfill hasn't reached) and strip the PAN before this
-  // reaches the client. Admins retrieve the full number only through the audited
+  // snap_secret_last4 is the only card data in the payload. The full number is
+  // never serialized — admins retrieve it solely through the audited
   // /api/admin/payouts/reveal endpoint.
-  const requests = (requestData ?? []).map((r) => ({
-    ...r,
-    snap_secret_last4:
-      r.snap_secret_last4 ?? ((r.snap_card_number ?? '').replace(/\D/g, '').slice(-4) || null),
-    snap_card_number: null,
-  }));
+  const requests = requestData ?? [];
 
   let rows: PayoutRow[] = [];
 
