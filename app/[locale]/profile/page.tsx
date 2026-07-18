@@ -35,13 +35,29 @@ export default async function ProfilePage({
 
   if (!user) redirect('/auth/login?next=/profile');
 
-  const { data: profile } = await supabase
+  // Explicit public-safe columns — `select('*')` would now fail because
+  // email/phone/rejection_reason are no longer granted to authenticated
+  // (migration #53). `phone` is fetched separately below via the own-row
+  // SECURITY DEFINER function; `email` comes from the auth session (user.email).
+  const { data: publicProfile } = await supabase
     .from('users')
-    .select('*')
+    .select(
+      'id, full_name, avatar_url, username, username_changed_at, bio, verification_status, verified_at, donor_stats_public, preferred_language, role, email_confirmed, created_at, updated_at'
+    )
     .eq('id', user.id)
     .single();
 
-  if (!profile) redirect('/');
+  if (!publicProfile) redirect('/');
+
+  // Own-row private fields (own-row by construction: the function filters on
+  // auth.uid()). Only `phone` is needed here — the profile form renders it.
+  const { data: privateRows } = await supabase.rpc('my_private_profile');
+  const profile = {
+    ...publicProfile,
+    email: user.email ?? null,
+    phone: privateRows?.[0]?.phone ?? null,
+    rejection_reason: privateRows?.[0]?.rejection_reason ?? null,
+  };
 
   // Follower / following counts (public-read RLS; null counts → 0 if the
   // creator-followers migration hasn't been applied yet).

@@ -256,7 +256,28 @@ with raw(mig, feature, label, present) as (values
   (51, 'commission 4%',          'create_payout_request charges 0.04',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='create_payout_request' and pg_get_functiondef(p.oid) like '%0.04%')),
 
   -- 52 — payout pay-time balance guard (audit F-2)
-  (52, 'payout balance guard',   'mark_payout_paid re-checks balance',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='mark_payout_paid' and pg_get_functiondef(p.oid) like '%insufficient_balance%'))
+  (52, 'payout balance guard',   'mark_payout_paid re-checks balance',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='mark_payout_paid' and pg_get_functiondef(p.oid) like '%insufficient_balance%')),
+
+  -- 53 — users PII lockdown (column-level grants). These must be FALSE-for-sensitive.
+  (53, 'users PII lockdown',     'anon CANNOT select users.email',            not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='email')),
+  (53, 'users PII lockdown',     'anon CANNOT select users.phone',            not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='phone')),
+  (53, 'users PII lockdown',     'anon CANNOT select users.rejection_reason', not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='rejection_reason')),
+  (53, 'users PII lockdown',     'anon CAN still select users.full_name',     exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='full_name')),
+  (53, 'users PII lockdown',     'fn my_private_profile',                     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='my_private_profile')),
+
+  -- 54 — RLS + storage hardening
+  (54, 'rls/storage hardening',  'RLS on reserved_usernames',                 coalesce((select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.reserved_usernames')), false)),
+  (54, 'rls/storage hardening',  'campaign-images insert is folder-scoped',   exists(select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='campaign_images_insert' and coalesce(with_check,'') like '%foldername%')),
+
+  -- 55 — foreign-key indexes
+  (55, 'fk indexes',             'idx_updates_user',        exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_updates_user')),
+  (55, 'fk indexes',             'idx_comments_user',       exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_comments_user')),
+  (55, 'fk indexes',             'idx_creports_user',       exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_creports_user')),
+  (55, 'fk indexes',             'idx_idoc_user',           exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_idoc_user')),
+  (55, 'fk indexes',             'idx_cext_user',           exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_cext_user')),
+  (55, 'fk indexes',             'idx_recent_campaign',     exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_recent_campaign')),
+  (55, 'fk indexes',             'idx_payout_reviewed_by',  exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_payout_reviewed_by')),
+  (55, 'fk indexes',             'idx_vreq_reviewed_by',    exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_vreq_reviewed_by'))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok

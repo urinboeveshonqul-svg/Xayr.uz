@@ -24,11 +24,17 @@ export default async function CreateCampaignPage() {
   // server-side by RLS + the publish trigger, so this can't be bypassed.
   const { data: profile } = await supabase
     .from('users')
-    .select('verification_status, rejection_reason')
+    .select('verification_status')
     .eq('id', user.id)
     .single();
   const kyc = toKycStatus(profile?.verification_status);
   const approved = kyc === 'approved';
+
+  // rejection_reason is no longer selectable by authenticated clients (it is KYC
+  // moderation data — migration #53). Read the caller's OWN copy through the
+  // own-row SECURITY DEFINER function instead.
+  const { data: privateRows } = await supabase.rpc('my_private_profile');
+  const rejectionReason = privateRows?.[0]?.rejection_reason ?? null;
 
   const { data: categories } = await supabase
     .from('categories')
@@ -50,7 +56,7 @@ export default async function CreateCampaignPage() {
               <CreateCampaignForm userId={user.id} categories={categories ?? []} />
             </div>
           ) : (
-            <CampaignKycGate status={kyc} rejectionReason={profile?.rejection_reason ?? null} />
+            <CampaignKycGate status={kyc} rejectionReason={rejectionReason} />
           )}
         </div>
       </main>
