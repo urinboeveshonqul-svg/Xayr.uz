@@ -19,7 +19,15 @@ import {
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { PayoutRequest, PayoutRequestEvent } from '@/types';
 
-export interface CampaignPayoutRow extends PayoutRequest {
+/**
+ * A payout request as the CREATOR's UI sees it.
+ *
+ * `snap_secret_enc` is deliberately omitted: the ciphertext is revoked from
+ * `authenticated` in #57 and is never selected for this surface. Omitting it
+ * here enforces that at the type level — a future `select('*')` reintroducing
+ * the ciphertext would not type-check against this row shape.
+ */
+export interface CampaignPayoutRow extends Omit<PayoutRequest, 'snap_secret_enc'> {
   events: PayoutRequestEvent[];
 }
 

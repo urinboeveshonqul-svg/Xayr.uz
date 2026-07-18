@@ -36,6 +36,36 @@
 -- Idempotent.
 -- ============================================================
 
+-- ── 0. PRECONDITION GUARD ───────────────────────────────────────────────────
+-- The rename below is guarded by `if exists(card_number)`, so this file would
+-- otherwise SUCCEED even if #56 had never run — leaving a create_payout_request
+-- that reads secret_last4 (a column #56 creates). plpgsql resolves identifiers
+-- at RUNTIME, so the migration would report success and every withdrawal would
+-- fail afterwards. Assert #56's columns exist first.
+do $$
+begin
+  if to_regclass('public.payout_accounts') is null then
+    raise exception
+      'payout_accounts does not exist — apply #40 (payout-info.sql) first.';
+  end if;
+
+  if not exists (select 1 from information_schema.columns
+                  where table_schema='public' and table_name='payout_accounts'
+                    and column_name in ('secret_enc','secret_last4')
+                  having count(*) = 2) then
+    raise exception
+      'REFUSING TO RUN: migration #56 (payout-encryption-expand.sql) has not been applied — payout_accounts.secret_enc / secret_last4 are missing. Retiring the plaintext now would leave no readable card at runtime. Apply #56, run the backfill, and confirm verify-payout-encryption.sql reports remaining_plaintext = 0 first.';
+  end if;
+
+  if not exists (select 1 from information_schema.columns
+                  where table_schema='public' and table_name='payout_requests'
+                    and column_name in ('snap_secret_enc','snap_secret_last4')
+                  having count(*) = 2) then
+    raise exception
+      'REFUSING TO RUN: payout_requests snapshot columns from #56 are missing. Re-run payout-encryption-expand.sql.';
+  end if;
+end $$;
+
 -- ── 1. Rename the plaintext columns aside ───────────────────────────────────
 do $$
 begin
@@ -75,6 +105,18 @@ comment on column public.payout_requests.snap_card_number_legacy_dropme is
 -- recovery rename-back is possible during the soak.
 revoke all (card_number_legacy_dropme) on public.payout_accounts from anon, authenticated;
 revoke all (snap_card_number_legacy_dropme) on public.payout_requests from anon, authenticated;
+
+-- Also withhold the CIPHERTEXT from clients (defense in depth). It is
+-- AES-256-GCM and useless without the server-only key, but nothing in the
+-- browser needs it: the creator UI reads only secret_last4, and decryption
+-- happens exclusively in the service-role admin reveal endpoint. Revoking it
+-- means a stolen session cannot even exfiltrate the encrypted blobs.
+--
+-- ⚠️ Requires the matching app change: the withdraw page must select EXPLICIT
+-- columns rather than select('*') on payout_requests, or PostgREST returns
+-- "permission denied". That change ships in the same commit as this migration.
+revoke all (secret_enc) on public.payout_accounts from anon, authenticated;
+revoke all (snap_secret_enc) on public.payout_requests from anon, authenticated;
 
 -- ── 5. create_payout_request: stop copying plaintext ────────────────────────
 -- Identical to #56's version minus the plaintext snapshot. The last-4 now comes

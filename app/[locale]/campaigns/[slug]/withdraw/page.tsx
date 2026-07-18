@@ -47,9 +47,16 @@ export default async function CampaignWithdrawPage({ params }: Props) {
   if (campaign.user_id !== user.id) redirect(`/${loc}/campaigns/${slug}`);
 
   // ── Withdrawal / payout data (owner-only; RLS scopes reads to the owner) ──
+  // Explicit columns, NOT select('*'): the ciphertext (snap_secret_enc) is
+  // revoked from `authenticated` in #57, so a wildcard select would fail with
+  // "permission denied". Nothing in the creator UI needs the ciphertext — only
+  // the masked last-4.
   const { data: payoutRows } = await supabase
     .from('payout_requests')
-    .select('*')
+    // NOTE: must stay a single string literal — supabase-js infers the row type
+    // by parsing this at compile time, and string concatenation widens it to
+    // `string`, collapsing the result type to GenericStringError.
+    .select('id, campaign_id, user_id, amount, commission_amount, payout_amount, method, account_details, notes, status, reviewed_by, admin_note, payout_reference, snap_card_type, snap_cardholder_name, snap_phone, snap_bank_name, snap_instrument_type, snap_secret_last4, snap_key_version, created_at, updated_at, reviewed_at, paid_at')
     .eq('campaign_id', campaign.id)
     .order('created_at', { ascending: false });
 

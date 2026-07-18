@@ -31,6 +31,31 @@
 -- Run in: Supabase Dashboard -> SQL Editor (after #52). Idempotent.
 -- ============================================================
 
+-- ── 0. PRECONDITION GUARD ───────────────────────────────────────────────────
+-- This file is order-dependent: the create_payout_request body below reads
+-- v_acct.card_number, which #57 RENAMES to card_number_legacy_dropme. Because
+-- plpgsql resolves identifiers at RUNTIME, re-running this file after #57 would
+-- install successfully and then break EVERY withdrawal request. Every migration
+-- here is documented "safe to re-run", so that is a realistic accident.
+-- Fail loudly and immediately instead.
+do $$
+begin
+  if to_regclass('public.payout_accounts') is null then
+    raise exception
+      'payout_accounts does not exist — apply #40 (payout-info.sql) before this migration.';
+  end if;
+
+  if not exists (select 1 from information_schema.columns
+                  where table_schema='public' and table_name='payout_accounts'
+                    and column_name='card_number')
+     and exists (select 1 from information_schema.columns
+                  where table_schema='public' and table_name='payout_accounts'
+                    and column_name='card_number_legacy_dropme') then
+    raise exception
+      'REFUSING TO RUN: #57 has already retired the plaintext column. Re-running #56 now would install a create_payout_request that reads the renamed card_number and break every withdrawal. If you need to re-assert the RPC, run #57 (payout-plaintext-retirement.sql) instead.';
+  end if;
+end $$;
+
 -- ── 1. payout_accounts: encrypted payload alongside the plaintext column ────
 alter table public.payout_accounts
   add column if not exists instrument_type text not null default 'card',
