@@ -391,6 +391,7 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 55 | `fk-indexes.sql` | **FK indexes (P2-5)** — 8 missing FK indexes (cascade-delete seq scans). Additive; CONCURRENTLY, run statements individually. | Unknown | 1 |
 | 56 | `payout-encryption-expand.sql` | **Phase 1 — payout encryption EXPAND** — encrypted-payload columns on `payout_accounts` + `payout_requests`; `create_payout_request` dual-snapshots. AES-256-GCM in the app layer; key only in `PAYOUT_ENCRYPTION_KEY`, never in the DB. Additive/reversible. | Unknown — **set + escrow the key first** | 40 |
 | 57 | `payout-plaintext-retirement.sql` | **Phase 3A — legacy plaintext retirement (REVERSIBLE)** — renames the plaintext card columns to `*_legacy_dropme`, drops NOT NULL, marks deprecated, revokes client privileges; RPC stops copying plaintext. Encrypted payload is the only runtime source. Data renamed, not dropped. **Permanent DROP deferred to #58.** | Unknown — **apply only after backfill verification passes** | 56 |
+| 59 | `drop-legacy-payout-rpc.sql` | **Drop legacy 5-arg `create_payout_request`** — the retired client-trusting overload (accepted payout destination from the caller) can be resurrected by re-running #18/#26, which both create AND grant it. Forward-only cleanup; 3-arg function and all business logic untouched. | Unknown | 40 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 

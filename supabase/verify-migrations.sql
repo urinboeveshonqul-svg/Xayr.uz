@@ -277,7 +277,20 @@ with raw(mig, feature, label, present) as (values
   (55, 'fk indexes',             'idx_cext_user',           exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_cext_user')),
   (55, 'fk indexes',             'idx_recent_campaign',     exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_recent_campaign')),
   (55, 'fk indexes',             'idx_payout_reviewed_by',  exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_payout_reviewed_by')),
-  (55, 'fk indexes',             'idx_vreq_reviewed_by',    exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_vreq_reviewed_by'))
+  (55, 'fk indexes',             'idx_vreq_reviewed_by',    exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_vreq_reviewed_by')),
+
+  -- 59 — legacy payout RPC overload removed.
+  -- #18 and #26 both CREATE and GRANT the 5-arg create_payout_request, and every
+  -- migration here is "safe to re-run" — so re-running either after #40 silently
+  -- resurrects a retired, client-trusting signature (it accepted the payout
+  -- destination from the caller). These assertions fail loudly if that happens.
+  (59, 'legacy payout rpc',      'exactly one create_payout_request overload',
+       (select count(*) = 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = 'create_payout_request')),
+  (59, 'legacy payout rpc',      'the 3-arg overload is the surviving one',
+       to_regprocedure('public.create_payout_request(uuid, integer, text)') is not null),
+  (59, 'legacy payout rpc',      '5-arg overload is absent',
+       to_regprocedure('public.create_payout_request(uuid, integer, text, text, text)') is null)
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
