@@ -26,7 +26,9 @@ const schema = z.object({
   full_legal_name: z.string().trim().min(3).max(120),
   phone_number: z.string().trim().min(5).max(20), // already E.164 from the client
   card_type: z.enum(['uzcard', 'humo']),
-  card_number: z.string().regex(/^\d{16}$/, 'card_number must be 16 digits'),
+  // Optional: omitted when the owner edits an existing account without changing
+  // the card. The stored (encrypted) card is then left untouched.
+  card_number: z.string().regex(/^\d{16}$/, 'card_number must be 16 digits').optional(),
   cardholder_name: z.string().trim().min(2).max(120),
   bank_name: z.string().trim().max(120).nullable().optional(),
 });
@@ -61,8 +63,39 @@ export async function POST(request: Request) {
   }
   const acct = parsed.data;
 
-  // 4) Encrypt. The payload is an object so future instruments (IBAN, bank
-  //    account) reuse this exact shape with no schema change.
+  const admin = createAdminClient();
+
+  // Non-sensitive fields are always written.
+  const base = {
+    full_legal_name: acct.full_legal_name,
+    phone_number: acct.phone_number,
+    card_type: acct.card_type,
+    cardholder_name: acct.cardholder_name,
+    bank_name: acct.bank_name?.trim() || null,
+  };
+
+  // ── No new card supplied → update the other fields only ──────────────────
+  // Requires an existing account; the stored (encrypted) card is preserved.
+  if (!acct.card_number) {
+    const { data: existing } = await admin
+      .from('payout_accounts')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!existing) {
+      return NextResponse.json({ error: 'card_number_required' }, { status: 422 });
+    }
+    const { error } = await admin.from('payout_accounts').update(base).eq('user_id', user.id);
+    if (error) {
+      console.error('[payouts/account] update failed:', error.message);
+      return NextResponse.json({ error: 'save_failed' }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+
+  // ── New card supplied → encrypt and dual-write ───────────────────────────
+  // The payload is an object so future instruments (IBAN, bank account) reuse
+  // this exact shape with no schema change.
   let ciphertext: string;
   let keyVersion: number;
   try {
@@ -74,18 +107,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'encryption_failed' }, { status: 500 });
   }
 
-  // 5) Dual write via the service role (the client has no direct write path now).
-  const admin = createAdminClient();
   const { error } = await admin.from('payout_accounts').upsert({
     user_id: user.id,
-    full_legal_name: acct.full_legal_name,
-    phone_number: acct.phone_number,
-    card_type: acct.card_type,
-    cardholder_name: acct.cardholder_name,
-    bank_name: acct.bank_name?.trim() || null,
-    // PHASE 1: plaintext remains the read path. Phase 3 (#57) drops this column.
+    ...base,
+    // PHASE 2: still dual-writing. Phase 3 (#57) drops this column.
     card_number: acct.card_number,
-    // NEW encrypted payload.
     instrument_type: 'card',
     secret_enc: ciphertext,
     secret_last4: last4(acct.card_number),
@@ -97,5 +123,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'save_failed' }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
 }

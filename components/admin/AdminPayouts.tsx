@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney, timeAgo } from '@/lib/utils';
-import { formatCard, cardTypeLabel } from '@/lib/payout';
+import { formatCard, cardTypeLabel, maskFromLast4 } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { PayoutRequest, PayoutRequestEvent } from '@/types';
 
@@ -47,6 +47,7 @@ const ERR: Record<string, string> = {
   invalid_transition: "Bu amalni bajarib bo'lmaydi",
   request_not_found:  "So'rov topilmadi",
   insufficient_balance: "Balans yetarli emas (qaytarilgan mablag'lardan so'ng). To'lovni tasdiqlab bo'lmadi.",
+  reveal_failed:      "Karta raqamini ko'rsatib bo'lmadi",
   reason_required:    'Sabab kiritilishi shart',
   note_required:      'Izoh kiritilishi shart',
   reference_required: "To'lov ma'lumotnomasi kiritilishi shart",
@@ -65,6 +66,39 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [paidDate, setPaidDate] = useState('');
+  // Audited card reveal. The PAN lives only in transient component state for the
+  // open modal and is cleared as soon as another request is selected — it is
+  // never persisted, never cached and never part of the page payload.
+  const [revealedFor, setRevealedFor] = useState<string | null>(null);
+  const [revealedCard, setRevealedCard] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
+
+  const reveal = async (requestId: string) => {
+    setRevealing(true);
+    try {
+      const res = await fetch('/api/admin/payouts/reveal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ requestId, reason: 'admin payout review' }),
+      });
+      if (!res.ok) {
+        toast.error(ERR.reveal_failed);
+        return;
+      }
+      const json = (await res.json()) as { cardNumber?: string };
+      if (!json.cardNumber) {
+        toast.error(ERR.reveal_failed);
+        return;
+      }
+      setRevealedFor(requestId);
+      setRevealedCard(json.cardNumber);
+    } catch {
+      toast.error(ERR.reveal_failed);
+    } finally {
+      setRevealing(false);
+    }
+  };
   const [busy, setBusy] = useState(false);
 
   const visible = useMemo(
@@ -90,7 +124,12 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
     };
   }, [initialRows]);
 
-  const closeDetail = () => { setSelectedId(null); setNote(''); setPaidDate(''); };
+  // Clearing the revealed PAN on close/switch keeps it out of component state
+  // for any request other than the one actively being reviewed.
+  const closeDetail = () => {
+    setSelectedId(null); setNote(''); setPaidDate('');
+    setRevealedFor(null); setRevealedCard(null);
+  };
 
   const finish = (error: PostgrestError | null, okMsg: string) => {
     if (error) { toast.error(ERR[error.message] ?? error.message); return; }
@@ -186,7 +225,7 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
             return (
               <button
                 key={r.id}
-                onClick={() => { setSelectedId(r.id); setNote(''); }}
+                onClick={() => { setSelectedId(r.id); setNote(''); setRevealedFor(null); setRevealedCard(null); }}
                 className="w-full text-left card p-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:shadow-md transition-all"
               >
                 <div className="min-w-0 flex-1">
@@ -294,7 +333,31 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
                 {selected.snap_card_type ? (
                   <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm text-gray-800 dark:text-gray-200 space-y-1.5">
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Karta turi</span><span className="font-semibold">{cardTypeLabel(selected.snap_card_type)}</span></div>
-                    <div className="flex justify-between gap-3"><span className="text-gray-500">Karta raqami</span><span className="font-mono font-semibold tracking-wider break-all text-right">{formatCard(selected.snap_card_number ?? '')}</span></div>
+                    {/* Masked by default. The full PAN is never in the page
+                        payload — it is fetched on demand from the audited
+                        reveal endpoint, which logs every access. */}
+                    <div className="flex justify-between gap-3">
+                      <span className="text-gray-500">Karta raqami</span>
+                      <span className="text-right">
+                        {revealedFor === selected.id && revealedCard ? (
+                          <span className="font-mono font-semibold tracking-wider break-all">{formatCard(revealedCard)}</span>
+                        ) : (
+                          <>
+                            <span className="font-mono font-semibold tracking-wider break-all">
+                              {maskFromLast4(selected.snap_secret_last4)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => reveal(selected.id)}
+                              disabled={revealing}
+                              className="ml-2 text-xs font-semibold text-brand-600 hover:underline disabled:opacity-50"
+                            >
+                              {revealing ? '...' : "Ko'rsatish"}
+                            </button>
+                          </>
+                        )}
+                      </span>
+                    </div>
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Karta egasi</span><span className="font-semibold break-words text-right">{selected.snap_cardholder_name}</span></div>
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Telefon</span><span className="font-semibold break-all text-right">{selected.snap_phone}</span></div>
                     {selected.snap_bank_name && <div className="flex justify-between gap-3"><span className="text-gray-500">Bank</span><span className="font-semibold break-words text-right">{selected.snap_bank_name}</span></div>}

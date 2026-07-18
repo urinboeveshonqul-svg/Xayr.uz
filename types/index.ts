@@ -894,6 +894,12 @@ export type Database = {
           reviewed_at?: string | null;
           paid_at?: string | null;
           updated_at?: string;
+          // Encrypted snapshot columns — written ONLY by the phase-2 backfill.
+          // Money/status/date columns above stay untouched by that job.
+          snap_instrument_type?: string | null;
+          snap_secret_enc?: string | null;
+          snap_secret_last4?: string | null;
+          snap_key_version?: number | null;
         };
         Relationships: [];
       };

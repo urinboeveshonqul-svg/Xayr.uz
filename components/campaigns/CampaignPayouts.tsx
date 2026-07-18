@@ -6,18 +6,18 @@ import toast from 'react-hot-toast';
 import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
+import { PayoutAccountForm, type PayoutAccountInitial } from '@/components/profile/PayoutAccountForm';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import {
   MIN_WITHDRAWAL,
   PLATFORM_FEE_PERCENT,
   calcPlatformFee,
   calcNetPayout,
-  maskCard,
+  maskFromLast4,
   cardTypeLabel,
 } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
-import type { PayoutRequest, PayoutRequestEvent, PayoutAccount } from '@/types';
+import type { PayoutRequest, PayoutRequestEvent } from '@/types';
 
 export interface CampaignPayoutRow extends PayoutRequest {
   events: PayoutRequestEvent[];
@@ -127,7 +127,7 @@ export function CampaignPayouts({
   // (RLS-scoped to the owner) so the unmasked card number is never in the
   // initial page payload — only pulled when the owner actually edits.
   const [editingPayout, setEditingPayout] = useState(false);
-  const [payoutInitial, setPayoutInitial] = useState<PayoutAccount | null>(null);
+  const [payoutInitial, setPayoutInitial] = useState<PayoutAccountInitial | null>(null);
   const [loadingPayout, setLoadingPayout] = useState(false);
 
   const hasActive = requests.some((r) => ACTIVE.includes(r.status));
@@ -151,18 +151,20 @@ export function CampaignPayouts({
   // The inline payout form is open for first-time setup or an explicit edit.
   const showPayoutForm = showSetupForm || (hasPayoutInfo && editingPayout);
 
-  // Open the editor for an EXISTING account: fetch the full (unmasked) record so
-  // the form prefills, then mount it. RLS limits this to the owner's own row.
+  // Open the editor for an EXISTING account. PHASE 2: the card number is
+  // encrypted and is NEVER sent to the browser — we fetch only the non-sensitive
+  // fields plus the stored last-4 (for the masked placeholder). Leaving the card
+  // field blank on save keeps the existing encrypted card unchanged.
   const startEditPayout = async () => {
     setEditingPayout(true);
     setLoadingPayout(true);
     try {
       const { data } = await createClient()
         .from('payout_accounts')
-        .select('*')
+        .select('full_legal_name, phone_number, card_type, cardholder_name, bank_name, secret_last4')
         .eq('user_id', userId)
         .maybeSingle();
-      setPayoutInitial((data as PayoutAccount | null) ?? null);
+      setPayoutInitial((data as PayoutAccountInitial | null) ?? null);
     } catch {
       setPayoutInitial(null);
     } finally {
@@ -502,7 +504,10 @@ export function CampaignPayouts({
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">To&apos;lov ma&apos;lumotlari</p>
                 {selected.snap_card_type ? (
                   <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm text-gray-800 dark:text-gray-200 space-y-0.5">
-                    <p>{cardTypeLabel(selected.snap_card_type)} · {maskCard(selected.snap_card_number)}</p>
+                    {/* The last-4 is resolved server-side (encrypted value first,
+                        legacy plaintext as a phase-2 fallback) — the full card
+                        number is never sent to the browser. */}
+                    <p>{cardTypeLabel(selected.snap_card_type)} · {maskFromLast4(selected.snap_secret_last4)}</p>
                     {selected.snap_cardholder_name && <p>{selected.snap_cardholder_name}</p>}
                     {selected.snap_phone && <p>{selected.snap_phone}</p>}
                     {selected.snap_bank_name && <p>{selected.snap_bank_name}</p>}

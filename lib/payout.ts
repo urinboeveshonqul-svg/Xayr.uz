@@ -87,9 +87,32 @@ export function maskCard(cardNumber?: string | null): string {
  * hiding the middle 8: "8600 **** **** 9012". Creator-facing only; admins still
  * see the full PAN in the admin payout dashboard. Falls back to maskCard() when
  * there aren't enough digits to show a BIN.
+ *
+ * ⚠️ Requires the full PAN as input. Prefer the *FromLast4 helpers below, which
+ * need only the stored last-4 and therefore never handle a PAN at all.
  */
 export function maskCardDisplay(cardNumber?: string | null): string {
   const d = (cardNumber || '').replace(/\D/g, '');
   if (d.length < 8) return maskCard(cardNumber);
   return `${d.slice(0, 4)} **** **** ${d.slice(-4)}`;
+}
+
+/**
+ * Masked card built from the stored last-4 ALONE — "•••• •••• •••• 3456".
+ *
+ * Preferred over maskCard() now that card numbers are encrypted: the caller
+ * never needs (and never sees) the PAN. The BIN is not shown because it is not
+ * stored separately; only the last 4 is retained in clear.
+ */
+export function maskFromLast4(last4?: string | null): string {
+  const d = (last4 || '').replace(/\D/g, '').slice(-4);
+  if (!d) return '••••';
+  return `•••• •••• •••• ${d}`;
+}
+
+/** Same, in the owner's read-only card layout. */
+export function maskDisplayFromLast4(last4?: string | null): string {
+  const d = (last4 || '').replace(/\D/g, '').slice(-4);
+  if (!d) return '••••';
+  return `**** **** **** ${d}`;
 }

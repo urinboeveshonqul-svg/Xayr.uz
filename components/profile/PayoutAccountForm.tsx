@@ -6,9 +6,23 @@ import toast from 'react-hot-toast';
 import { Loader2, CreditCard } from 'lucide-react';
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { UZ, nationalDigitsFrom, formatNational, isValidNational, toE164 } from '@/lib/phone';
-import { CARD_TYPES, cardDigits, formatCard, isValidCard } from '@/lib/payout';
+import { CARD_TYPES, cardDigits, formatCard, isValidCard, maskFromLast4 } from '@/lib/payout';
 import { useI18n } from '@/components/i18n/I18nProvider';
-import type { PayoutAccount, CardType } from '@/types';
+import type { CardType } from '@/types';
+
+/**
+ * What the edit form is prefilled with. Deliberately EXCLUDES the card number:
+ * it is encrypted at rest and never sent to the browser (phase 2). `secret_last4`
+ * is shown as a masked placeholder so the owner can see which card is on file.
+ */
+export interface PayoutAccountInitial {
+  full_legal_name: string;
+  phone_number: string;
+  card_type: CardType;
+  cardholder_name: string;
+  bank_name: string | null;
+  secret_last4?: string | null;
+}
 
 /**
  * Payout information. One payout account per user (upsert into payout_accounts;
@@ -29,7 +43,7 @@ export function PayoutAccountForm({
   onCancel,
 }: {
   userId: string;
-  initial: PayoutAccount | null;
+  initial: PayoutAccountInitial | null;
   embedded?: boolean;
   onSaved?: () => void;
   onCancel?: () => void;
@@ -40,15 +54,23 @@ export function PayoutAccountForm({
   const [legalName, setLegalName] = useState(initial?.full_legal_name ?? '');
   const [phone, setPhone] = useState(initial ? nationalDigitsFrom(initial.phone_number) : '');
   const [cardType, setCardType] = useState<CardType>(initial?.card_type ?? 'uzcard');
-  const [card, setCard] = useState(initial ? cardDigits(initial.card_number) : '');
+  // The card number is never prefilled — it is encrypted and never leaves the
+  // server. Editing an existing account with this left blank keeps the stored
+  // card unchanged; typing a new one replaces it.
+  const [card, setCard] = useState('');
   const [cardholder, setCardholder] = useState(initial?.cardholder_name ?? '');
   const [bank, setBank] = useState(initial?.bank_name ?? '');
   const [saving, setSaving] = useState(false);
 
+  const isEditing = initial !== null;
+  // When editing, an untouched (empty) card field is valid — it means "keep the
+  // existing card". Any entered value must still be a complete 16-digit card.
+  const cardOk = isEditing ? card.length === 0 || isValidCard(card) : isValidCard(card);
+
   const valid =
     legalName.trim().length >= 3 &&
     isValidNational(phone) &&
-    isValidCard(card) &&
+    cardOk &&
     cardholder.trim().length >= 2;
 
   const save = async (e: React.FormEvent) => {
@@ -69,7 +91,8 @@ export function PayoutAccountForm({
           full_legal_name: legalName.trim(),
           phone_number: toE164(phone),
           card_type: cardType,
-          card_number: cardDigits(card),
+          // Omitted when editing and left blank → server keeps the stored card.
+          ...(card.length > 0 ? { card_number: cardDigits(card) } : {}),
           cardholder_name: cardholder.trim(),
           bank_name: bank.trim() || null,
         }),
@@ -162,8 +185,17 @@ export function PayoutAccountForm({
             className="input tracking-wider"
             value={formatCard(card)}
             onChange={(e) => setCard(cardDigits(e.target.value))}
-            placeholder="8600 1234 5678 9012"
+            placeholder={
+              isEditing && initial?.secret_last4
+                ? maskFromLast4(initial.secret_last4)
+                : '8600 1234 5678 9012'
+            }
           />
+          {isEditing && (
+            <p className="text-gray-400 text-xs mt-1">
+              Kartani o&apos;zgartirmasangiz, bo&apos;sh qoldiring.
+            </p>
+          )}
           {card.length > 0 && !isValidCard(card) && (
             <p className="text-red-500 text-xs mt-1">16 ta raqam kiriting</p>
           )}

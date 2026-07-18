@@ -9,7 +9,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
 import { CampaignFinancials } from '@/components/campaigns/CampaignFinancials';
-import { cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
+import { cardTypeLabel, maskFromLast4, maskDisplayFromLast4 } from '@/lib/payout';
 import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
 export const metadata: Metadata = { title: "Mablag' yechish — Xayr" };
@@ -52,7 +52,16 @@ export default async function CampaignWithdrawPage({ params }: Props) {
     .select('*')
     .eq('campaign_id', campaign.id)
     .order('created_at', { ascending: false });
-  const payoutRequests = payoutRows ?? [];
+
+  // Never serialize the full card number into the page payload. Derive the
+  // masked last-4 server-side (falling back to the legacy plaintext snapshot for
+  // rows not yet backfilled) and strip the PAN.
+  const payoutRequests = (payoutRows ?? []).map((r) => ({
+    ...r,
+    snap_secret_last4:
+      r.snap_secret_last4 ?? ((r.snap_card_number ?? '').replace(/\D/g, '').slice(-4) || null),
+    snap_card_number: null,
+  }));
 
   const { data: payoutEventRows } = await supabase
     .from('payout_request_events')
@@ -74,32 +83,41 @@ export default async function CampaignWithdrawPage({ params }: Props) {
     full_legal_name: string;
     phone_number: string;
     card_type: string;
-    card_number: string;
+    card_number: string | null;
+    secret_last4: string | null;
     cardholder_name: string;
     bank_name: string | null;
   } | null = null;
   try {
     const { data } = await supabase
       .from('payout_accounts')
-      .select('full_legal_name, phone_number, card_type, card_number, cardholder_name, bank_name')
+      .select('full_legal_name, phone_number, card_type, card_number, secret_last4, cardholder_name, bank_name')
       .eq('user_id', user.id)
       .maybeSingle();
     payoutAccount = data ?? null;
   } catch {
     payoutAccount = null;
   }
+
+  // PHASE 2: prefer the stored last-4 (no PAN involved at all); fall back to
+  // deriving it from the legacy plaintext column only while that column still
+  // exists. Phase 3 removes the fallback along with the column.
+  const cardLast4 = payoutAccount
+    ? payoutAccount.secret_last4 ?? (payoutAccount.card_number ?? '').replace(/\D/g, '').slice(-4)
+    : '';
+
   const payoutSummary = payoutAccount
-    ? `${cardTypeLabel(payoutAccount.card_type)} · ${maskCard(payoutAccount.card_number)}`
+    ? `${cardTypeLabel(payoutAccount.card_type)} · ${maskFromLast4(cardLast4)}`
     : null;
 
-  // Masked, client-safe projection for the read-only payout card. The card is
-  // masked here (BIN + last 4) so the full PAN stays server-side.
+  // Masked, client-safe projection for the read-only payout card. Built from the
+  // last-4 only, so the full PAN is never serialized into the page payload.
   const payoutInfo: PayoutInfoDisplay | null = payoutAccount
     ? {
         fullLegalName: payoutAccount.full_legal_name,
         phone: `${UZ.dialCode} ${formatNational(nationalDigitsFrom(payoutAccount.phone_number))}`,
         cardType: payoutAccount.card_type,
-        cardMasked: maskCardDisplay(payoutAccount.card_number),
+        cardMasked: maskDisplayFromLast4(cardLast4),
         cardholderName: payoutAccount.cardholder_name,
         bankName: payoutAccount.bank_name,
       }
