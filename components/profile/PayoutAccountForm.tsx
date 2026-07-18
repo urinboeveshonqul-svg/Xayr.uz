@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2, CreditCard } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { UZ, nationalDigitsFrom, formatNational, isValidNational, toE164 } from '@/lib/phone';
 import { CARD_TYPES, cardDigits, formatCard, isValidCard } from '@/lib/payout';
@@ -60,19 +59,23 @@ export function PayoutAccountForm({
     }
     setSaving(true);
     try {
-      const { error } = await createClient()
-        .from('payout_accounts')
-        .upsert({
-          user_id: userId,
+      // The card number is encrypted server-side with a server-only key, so it
+      // can no longer be written directly to PostgREST from the browser. This
+      // route authenticates, encrypts and stores it (see /api/payouts/account).
+      const res = await fetch('/api/payouts/account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           full_legal_name: legalName.trim(),
           phone_number: toE164(phone),
           card_type: cardType,
           card_number: cardDigits(card),
           cardholder_name: cardholder.trim(),
           bank_name: bank.trim() || null,
-        });
-      if (error) {
-        toast.error(error.message);
+        }),
+      });
+      if (!res.ok) {
+        toast.error(t('toasts.payoutFillCorrect'));
         return;
       }
       toast.success(t('toasts.payoutSaved'));

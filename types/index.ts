@@ -848,6 +848,11 @@ export type Database = {
           snap_cardholder_name: string | null;
           snap_phone: string | null;
           snap_bank_name: string | null;
+          // Encrypted snapshot (#56) — byte-copied from payout_accounts.
+          snap_instrument_type: string | null;
+          snap_secret_enc: string | null;
+          snap_secret_last4: string | null;
+          snap_key_version: number | null;
           created_at: string;
           updated_at: string;
           reviewed_at: string | null;
@@ -872,6 +877,10 @@ export type Database = {
           snap_cardholder_name?: string | null;
           snap_phone?: string | null;
           snap_bank_name?: string | null;
+          snap_instrument_type?: string | null;
+          snap_secret_enc?: string | null;
+          snap_secret_last4?: string | null;
+          snap_key_version?: number | null;
           created_at?: string;
           updated_at?: string;
           reviewed_at?: string | null;
@@ -897,6 +906,11 @@ export type Database = {
           card_number: string;
           cardholder_name: string;
           bank_name: string | null;
+          // Encrypted payout payload (#56). AES-256-GCM, key is server-only.
+          instrument_type: string;
+          secret_enc: string | null;
+          secret_last4: string | null;
+          key_version: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -908,6 +922,10 @@ export type Database = {
           card_number: string;
           cardholder_name: string;
           bank_name?: string | null;
+          instrument_type?: string;
+          secret_enc?: string | null;
+          secret_last4?: string | null;
+          key_version?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -918,6 +936,10 @@ export type Database = {
           card_number?: string;
           cardholder_name?: string;
           bank_name?: string | null;
+          instrument_type?: string;
+          secret_enc?: string | null;
+          secret_last4?: string | null;
+          key_version?: number | null;
           updated_at?: string;
         };
         Relationships: [];
