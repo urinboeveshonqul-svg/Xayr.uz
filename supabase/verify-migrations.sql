@@ -279,6 +279,18 @@ with raw(mig, feature, label, present) as (values
   (55, 'fk indexes',             'idx_payout_reviewed_by',  exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_payout_reviewed_by')),
   (55, 'fk indexes',             'idx_vreq_reviewed_by',    exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_vreq_reviewed_by')),
 
+  -- 56 — payout encryption EXPAND (application-layer AES-256-GCM; key never in DB)
+  (56, 'payout encryption',      'payout_accounts.secret_enc',                exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='secret_enc')),
+  (56, 'payout encryption',      'payout_accounts.secret_last4',              exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='secret_last4')),
+  (56, 'payout encryption',      'payout_accounts.key_version',               exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='key_version')),
+  (56, 'payout encryption',      'payout_requests.snap_secret_enc',           exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_requests' and column_name='snap_secret_enc')),
+  (56, 'payout encryption',      'payout_requests.snap_secret_last4',         exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_requests' and column_name='snap_secret_last4')),
+
+  -- 57 — plaintext retirement (phase 3A). Old names gone, new names present.
+  (57, 'plaintext retirement',   'card_number renamed to *_legacy_dropme',    (not exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='card_number')) and exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='card_number_legacy_dropme')),
+  (57, 'plaintext retirement',   'snap_card_number renamed',                  (not exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_requests' and column_name='snap_card_number')) and exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_requests' and column_name='snap_card_number_legacy_dropme')),
+  (57, 'plaintext retirement',   'RPC no longer copies plaintext',            exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='create_payout_request' and pg_get_functiondef(p.oid) not like '%snap_card_number%')),
+
   -- 59 — legacy payout RPC overload removed.
   -- #18 and #26 both CREATE and GRANT the 5-arg create_payout_request, and every
   -- migration here is "safe to re-run" — so re-running either after #40 silently
