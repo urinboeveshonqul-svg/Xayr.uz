@@ -423,7 +423,7 @@ All under `app/api/`, `runtime = 'nodejs'`. All POST/PATCH bodies are Zod-valida
 | `/api/contact` | POST | Store a contact-form message (rate-limited, Turnstile) | Public | — | `201 { ok }` / error |
 | `/api/cron/expire-campaigns` | GET | Daily sweep: archive due campaigns via `expire_due_campaigns()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, expired }` |
 | `/api/cron/financial-snapshot` | GET | Daily idempotent financial snapshot via `generate_financial_snapshot()` | `CRON_SECRET` Bearer (fail-open if unset) | — | `{ ok, created }` |
-| `/api/cron/reconcile-click-payments` | GET | Every 30 min: detect Click card payments captured-but-pending (audit F-1) via Merchant API `status_by_mti`; alert admins. Never credits/fails a donation. Inert unless `CLICK_MERCHANT_USER_ID` set | `CRON_SECRET` Bearer | — | `{ ok, skipped?, scanned, captured, alreadyFlagged }` |
+| `/api/cron/reconcile-click-payments` | GET | Detect Click card payments captured-but-pending (audit F-1) via Merchant API `status_by_mti`; alert admins. Never credits/fails a donation. Inert unless `CLICK_MERCHANT_USER_ID` set. ⚠️ **NOT registered in `vercel.json`** — the Vercel **Hobby** plan permits only daily crons (and a small number of them), so the `*/30` schedule failed the deployment. The route remains callable manually or from an external scheduler; re-add a **daily** entry (or upgrade to Pro) before enabling `NEXT_PUBLIC_CLICK_EMBEDDED_CARD`. | `CRON_SECRET` Bearer | — | `{ ok, skipped?, scanned, captured, alreadyFlagged }` |
 
 ---
 
