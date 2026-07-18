@@ -9,10 +9,6 @@
     {
       "path": "/api/cron/financial-snapshot",
       "schedule": "30 1 * * *"
-    },
-    {
-      "path": "/api/cron/reconcile-click-payments",
-      "schedule": "*/30 * * * *"
     }
   ]
 }
