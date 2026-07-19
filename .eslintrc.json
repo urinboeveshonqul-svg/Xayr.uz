@@ -1,0 +1,14 @@
+{
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "build/",
+    "public/",
+    "next-env.d.ts"
+  ],
+  "rules": {
+    "react/no-unescaped-entities": "off"
+  }
+}

@@ -2,7 +2,7 @@
 -- XAYR — Migration verification (READ-ONLY)
 -- ============================================================
 -- Paste into Supabase Dashboard -> SQL Editor and Run. Changes NOTHING — it only
--- inspects the catalog and reports which of the 50 runbook migrations
+-- inspects the catalog and reports which of the 58 runbook migrations
 -- (supabase/MIGRATIONS.md) are applied to THIS database.
 --
 -- ⚠️ #5 (secure-donations-rls) is the security prerequisite for payouts: without
@@ -47,8 +47,12 @@ with raw(mig, feature, label, present) as (values
   -- 4 — remove phone verification (expect the leftover to be GONE)
   (4,  'remove phone verif',     'phone_verifications absent',      (to_regclass('public.phone_verifications') is null)),
 
-  -- 5 — tamper-proof donations RLS
-  (5,  'secure donations RLS',   'policy donations_insert_pending', exists(select 1 from pg_policies where schemaname='public' and tablename='donations' and policyname='donations_insert_pending')),
+  -- 5 — tamper-proof donations RLS. Insert is pending-only; #57 later drops even
+  --     that (service-role-only) — BOTH states satisfy the invariant, so the check
+  --     accepts either the pending policy OR no client INSERT policy at all.
+  (5,  'secure donations RLS',   'insert restricted (pending-only or #57 lockdown)',
+       (exists(select 1 from pg_policies where schemaname='public' and tablename='donations' and policyname='donations_insert_pending')
+        or not exists(select 1 from pg_policies where schemaname='public' and tablename='donations' and cmd='INSERT'))),
   (5,  'secure donations RLS',   'open insert removed',             (not exists(select 1 from pg_policies where schemaname='public' and tablename='donations' and policyname='donations_insert_any'))),
 
   -- 6 — protected campaign fields
@@ -277,7 +281,20 @@ with raw(mig, feature, label, present) as (values
   (55, 'fk indexes',             'idx_cext_user',           exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_cext_user')),
   (55, 'fk indexes',             'idx_recent_campaign',     exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_recent_campaign')),
   (55, 'fk indexes',             'idx_payout_reviewed_by',  exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_payout_reviewed_by')),
-  (55, 'fk indexes',             'idx_vreq_reviewed_by',    exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_vreq_reviewed_by'))
+  (55, 'fk indexes',             'idx_vreq_reviewed_by',    exists(select 1 from pg_indexes where schemaname='public' and indexname='idx_vreq_reviewed_by')),
+
+  -- 56 — storage bucket size + MIME limits (server-side upload caps)
+  (56, 'storage bucket limits',  'campaign-images size+mime caps',        exists(select 1 from storage.buckets where id='campaign-images' and file_size_limit is not null and allowed_mime_types is not null)),
+  (56, 'storage bucket limits',  'verification-documents size+mime caps', exists(select 1 from storage.buckets where id='verification-documents' and file_size_limit is not null and allowed_mime_types is not null)),
+
+  -- 57 — donation insert lockdown (supersedes #5's client insert policy)
+  (57, 'donation insert lockdown','client INSERT policy removed',        (not exists(select 1 from pg_policies where schemaname='public' and tablename='donations' and cmd='INSERT'))),
+  (57, 'donation insert lockdown','constraint donations_message_len',     exists(select 1 from pg_constraint where conname='donations_message_len')),
+
+  -- 58 — users anon column lockdown (anon loses role/email_confirmed; authenticated keeps them)
+  (58, 'users anon lockdown',    'anon CANNOT select users.role',            not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='role')),
+  (58, 'users anon lockdown',    'anon CANNOT select users.email_confirmed', not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='email_confirmed')),
+  (58, 'users anon lockdown',    'authenticated CAN still select users.role', exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='authenticated' and privilege_type='SELECT' and column_name='role'))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
@@ -309,7 +326,7 @@ with raw(mig, feature, label, present) as (values
   (2,'verification','bucket verification-documents',exists(select 1 from storage.buckets where id='verification-documents')),
   (3,'user verif fields','col users.verified_at',exists(select 1 from information_schema.columns where table_schema='public' and table_name='users' and column_name='verified_at')),
   (4,'remove phone verif','phone_verifications absent',(to_regclass('public.phone_verifications') is null)),
-  (5,'secure donations RLS','policy donations_insert_pending',exists(select 1 from pg_policies where tablename='donations' and policyname='donations_insert_pending')),
+  (5,'secure donations RLS','insert restricted (pending-only or #57 lockdown)',(exists(select 1 from pg_policies where tablename='donations' and policyname='donations_insert_pending') or not exists(select 1 from pg_policies where schemaname='public' and tablename='donations' and cmd='INSERT'))),
   (6,'secure campaign fields','trigger trg_campaign_field_guard',exists(select 1 from pg_trigger where tgname='trg_campaign_field_guard' and not tgisinternal)),
   (7,'campaign_donors view','view campaign_donors',(to_regclass('public.campaign_donors') is not null)),
   (8,'completion reports','table campaign_reports',(to_regclass('public.campaign_reports') is not null)),

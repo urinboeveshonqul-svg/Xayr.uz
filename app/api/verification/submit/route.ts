@@ -8,6 +8,47 @@ import { isValidE164 } from '@/lib/phone';
 
 export const runtime = 'nodejs';
 
+const VERIFICATION_BUCKET = 'verification-documents';
+
+/**
+ * Validate a KYC document reference before it is trusted into the record.
+ * Returns an error code string when INVALID, or null when the object is safe:
+ *   • correct owner  — path is under `${userId}/`
+ *   • object exists  — the file is actually present in the private bucket
+ *   • expected type  — its stored content-type is an image
+ * Uses the service-role admin client (the caller already authenticated the user).
+ */
+async function validateVerificationDocument(
+  admin: ReturnType<typeof createAdminClient>,
+  path: string,
+  userId: string
+): Promise<string | null> {
+  if (typeof path !== 'string' || !path.startsWith(`${userId}/`)) return 'owner';
+
+  const slash = path.lastIndexOf('/');
+  if (slash < 0) return 'owner';
+  const dir = path.slice(0, slash);
+  const name = path.slice(slash + 1);
+  if (!name) return 'empty';
+
+  const { data, error } = await admin.storage
+    .from(VERIFICATION_BUCKET)
+    .list(dir, { search: name, limit: 100 });
+  if (error) return 'lookup';
+
+  const obj = (data ?? []).find((o) => o.name === name);
+  if (!obj) return 'missing';
+
+  // Supabase records the upload's content-type in the object metadata. The bucket
+  // MIME allow-list (migration #56) blocks non-images at upload, and this is the
+  // read-side backstop.
+  const mime =
+    typeof obj.metadata?.mimetype === 'string' ? (obj.metadata.mimetype as string) : '';
+  if (!mime.startsWith('image/')) return 'mime';
+
+  return null;
+}
+
 const schema = z.object({
   legal_name: z.string().min(3).max(120),
   date_of_birth: z.string().min(8).max(10), // YYYY-MM-DD
@@ -39,10 +80,16 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // Every document path must live in the user's own storage folder.
+  // Every document path must reference a REAL object in the private
+  // verification-documents bucket, under THIS user's own folder, that is actually
+  // an image. The prefix check alone (own-folder) is not enough — the client
+  // sends storage paths, so we confirm each object exists and its stored
+  // content-type is an image before trusting it into the KYC record. A crafted
+  // request that points at a non-existent path or a non-image is rejected.
   const paths = [documents.id_front, documents.selfie, ...(documents.id_back ? [documents.id_back] : [])];
   for (const p of paths) {
-    if (!p.startsWith(`${user.id}/`)) {
+    const invalid = await validateVerificationDocument(admin, p, user.id);
+    if (invalid) {
       return NextResponse.json({ error: 'Invalid document path' }, { status: 400 });
     }
   }

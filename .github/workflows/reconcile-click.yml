@@ -1,0 +1,52 @@
+name: Reconcile Click payments
+
+# Vercel Hobby allows only TWO cron jobs, and both are used in vercel.json
+# (expire-campaigns + financial-snapshot). A sub-daily schedule is also a paid
+# Vercel feature. So the Click reconciliation safety net is scheduled HERE, on
+# GitHub Actions, instead of reintroducing an unsupported Vercel cron. This job
+# only pings the existing endpoint with the CRON_SECRET bearer — all logic stays
+# server-side in the app (lib/payments/reconcile-click.ts).
+#
+# SETUP (both repo secrets required, else the job no-ops cleanly):
+#   RECONCILE_URL = https://<your-domain>/api/cron/reconcile-click-payments
+#   CRON_SECRET   = the SAME value set in the Vercel production environment
+# Add under: GitHub → Settings → Secrets and variables → Actions.
+#
+# Only needed once NEXT_PUBLIC_CLICK_EMBEDDED_CARD=1 AND CLICK_MERCHANT_USER_ID
+# are set; harmless (the sweep is inert / a no-op) before then.
+# See docs/click-embedded-card.md → "Scheduling the reconciliation sweep".
+
+on:
+  schedule:
+    # Every 30 minutes (GitHub Actions cron — unrelated to Vercel's cron limits).
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+
+# Never run more than one sweep at a time.
+concurrency:
+  group: reconcile-click
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping reconciliation endpoint
+        env:
+          RECONCILE_URL: ${{ secrets.RECONCILE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$RECONCILE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "RECONCILE_URL / CRON_SECRET not configured — skipping (no-op)."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/reconcile.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$RECONCILE_URL")
+          echo "HTTP $code"
+          cat /tmp/reconcile.json || true
+          echo
+          if [ "$code" != "200" ]; then
+            echo "Reconciliation endpoint returned $code"
+            exit 1
+          fi
