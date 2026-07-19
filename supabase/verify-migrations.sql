@@ -2,7 +2,7 @@
 -- XAYR — Migration verification (READ-ONLY)
 -- ============================================================
 -- Paste into Supabase Dashboard -> SQL Editor and Run. Changes NOTHING — it only
--- inspects the catalog and reports which of the 58 runbook migrations
+-- inspects the catalog and reports which of the 59 runbook migrations
 -- (supabase/MIGRATIONS.md) are applied to THIS database.
 --
 -- ⚠️ #5 (secure-donations-rls) is the security prerequisite for payouts: without
@@ -189,6 +189,10 @@ with raw(mig, feature, label, present) as (values
 
   -- 40 — payout info / secure payout accounts
   (40, 'payout info',            'table payout_accounts',           (to_regclass('public.payout_accounts') is not null)),
+  -- card_number is checked explicitly: a payout_accounts created before this
+  -- column existed passes the table check above but still breaks saving with
+  -- "column card_number not found" — see #59 (payout-accounts-schema-repair.sql).
+  (40, 'payout info',            'col payout_accounts.card_number', exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='card_number')),
   (40, 'payout info',            'col payout_requests.snap_card_number', exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_requests' and column_name='snap_card_number')),
   (40, 'payout info',            'policy payout_accounts_select_own_admin', exists(select 1 from pg_policies where schemaname='public' and tablename='payout_accounts' and policyname='payout_accounts_select_own_admin')),
 
@@ -294,7 +298,10 @@ with raw(mig, feature, label, present) as (values
   -- 58 — users anon column lockdown (anon loses role/email_confirmed; authenticated keeps them)
   (58, 'users anon lockdown',    'anon CANNOT select users.role',            not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='role')),
   (58, 'users anon lockdown',    'anon CANNOT select users.email_confirmed', not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='anon' and privilege_type='SELECT' and column_name='email_confirmed')),
-  (58, 'users anon lockdown',    'authenticated CAN still select users.role', exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='authenticated' and privilege_type='SELECT' and column_name='role'))
+  (58, 'users anon lockdown',    'authenticated CAN still select users.role', exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='authenticated' and privilege_type='SELECT' and column_name='role')),
+
+  -- 59 — payout_accounts schema repair (restores payout_accounts.card_number)
+  (59, 'payout accounts repair', 'col payout_accounts.card_number', exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='card_number'))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok
