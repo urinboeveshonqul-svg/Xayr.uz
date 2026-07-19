@@ -1,23 +1,41 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Clock, Users, MapPin, Calendar, Share2, Heart,
+  Clock, Users, MapPin, Calendar, Share2, Heart, Loader2,
   ChevronLeft, Zap, CheckCircle, CheckCircle2, CalendarX, CalendarClock, ShieldCheck
 } from 'lucide-react';
 import { formatMoney, formatMoneyFull, getProgress, daysLeft, CATEGORY_CONFIG, timeAgo, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Gallery } from '@/components/ui/Gallery';
 import { Avatar } from '@/components/ui/Avatar';
-import { DonationForm } from '@/components/donations/DonationForm';
 import type { PaymentProviderOption } from '@/lib/payments/providers-meta';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { SaveButton } from '@/components/campaigns/SaveButton';
-import { ShareModal } from '@/components/campaigns/ShareModal';
 import { FollowButton } from '@/components/profile/FollowButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign, Donor } from '@/types';
+
+// Lazy-loaded: both are shown only on user interaction (Donate / Share), so they
+// stay out of the campaign page's initial JS and load on first open. ssr:false is
+// safe — neither renders until its state flag flips client-side.
+const DonationForm = dynamic(
+  () => import('@/components/donations/DonationForm').then((m) => m.DonationForm),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center py-6">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+      </div>
+    ),
+  }
+);
+const ShareModal = dynamic(
+  () => import('@/components/campaigns/ShareModal').then((m) => m.ShareModal),
+  { ssr: false }
+);
 
 interface CampaignDetailProps {
   campaign: Campaign;

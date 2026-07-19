@@ -7,6 +7,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { I18nProvider } from '@/components/i18n/I18nProvider';
 import { EmailVerifyBanner } from '@/components/EmailVerifyBanner';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { SiteChrome } from '@/components/layout/SiteChrome';
 import { OneSignalProvider } from '@/components/push/OneSignalProvider';
 import { METADATA_BASE, SITE_URL, buildAlternates, ogLocaleMap, localeUrl } from '@/lib/seo';
 import { serializeJsonLd } from '@/lib/security/json-ld';
@@ -135,7 +136,10 @@ export default async function LocaleLayout({
         <I18nProvider locale={locale as Locale} messages={messages}>
           <OneSignalProvider />
           <EmailVerifyBanner />
-          {children}
+          {/* Navbar + Footer live here (not per-page) so they persist across
+              client-side navigation and mount once. SiteChrome omits them on
+              /auth (full-screen) and /admin (its own layout renders them). */}
+          <SiteChrome>{children}</SiteChrome>
           <BottomNav />
         </I18nProvider>
         <Toaster

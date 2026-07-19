@@ -2,8 +2,6 @@ import { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { EditCampaignForm } from '@/components/campaigns/EditCampaignForm';
 import { isLocale } from '@/i18n/config';
 
@@ -44,7 +42,6 @@ export default async function EditCampaignPage({ params }: Props) {
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <div className="mb-8 flex items-center gap-3">
@@ -60,7 +57,6 @@ export default async function EditCampaignPage({ params }: Props) {
           <EditCampaignForm campaign={campaign} locale={loc} />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

@@ -2,8 +2,6 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Megaphone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { MyCampaigns, type MyCampaignRow, type MyExtensionRequest } from '@/components/profile/MyCampaigns';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -54,7 +52,6 @@ export default async function MyCampaignsPage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           <div className="mb-8 flex items-center gap-3">
@@ -70,7 +67,6 @@ export default async function MyCampaignsPage({
           <MyCampaigns campaigns={campaigns} locale={lng} extensions={extensions} />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

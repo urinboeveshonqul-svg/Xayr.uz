@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { SearchX } from 'lucide-react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { CampaignGrid } from '@/components/campaigns/CampaignGrid';
 import { CampaignFilters } from '@/components/campaigns/CampaignFilters';
 import { Pagination } from '@/components/campaigns/Pagination';
@@ -151,7 +149,6 @@ export default async function CampaignsPage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="mb-10">
@@ -183,7 +180,6 @@ export default async function CampaignsPage({
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

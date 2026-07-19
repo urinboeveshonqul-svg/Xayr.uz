@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Heart, CheckCircle2, Bookmark, Users, UserPlus, HandHeart, Megaphone, TrendingUp, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { VerificationStatusCard } from '@/components/profile/VerificationStatusCard';
 import { DonorPrivacyToggle } from '@/components/profile/DonorPrivacyToggle';
@@ -126,7 +124,6 @@ export default async function ProfilePage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <div className="mb-8">
@@ -336,7 +333,6 @@ export default async function ProfilePage({
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

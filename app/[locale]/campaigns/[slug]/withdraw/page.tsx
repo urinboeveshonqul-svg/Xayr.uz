@@ -5,8 +5,6 @@ import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
 import { CampaignFinancials } from '@/components/campaigns/CampaignFinancials';
 import { cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
@@ -174,7 +172,6 @@ export default async function CampaignWithdrawPage({ params }: Props) {
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           <Link
@@ -223,7 +220,6 @@ export default async function CampaignWithdrawPage({ params }: Props) {
           />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

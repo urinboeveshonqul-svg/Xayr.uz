@@ -4,8 +4,6 @@ import {
   Heart, TrendingUp, HandCoins, CheckCircle2, Megaphone, ShieldCheck, Users, ArrowRight,
   BarChart3, Trophy, LineChart,
 } from 'lucide-react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
@@ -62,7 +60,6 @@ export default async function TransparencyPage({ params }: Props) {
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           <div className="text-center mb-12">
@@ -112,7 +109,6 @@ export default async function TransparencyPage({ params }: Props) {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }
