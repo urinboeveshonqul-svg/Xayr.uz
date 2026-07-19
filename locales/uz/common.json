@@ -1229,6 +1229,7 @@
     "withdrawNeedMinimum": "So'rov yuborishdan oldin kamida {min} so'm mavjud bo'lishi kerak.",
     "feeRow": "Platforma komissiyasi (4%)",
     "youReceive": "Sizga to'lanadi",
+    "withdrawRemaining": "Qoldiq balans",
     "feeNotice": "XAYR muvaffaqiyatli pul yechishlardan 4% xizmat haqi oladi.",
     "feeConsent": "4% platforma komissiyasiga roziman. Bu komissiya hosting, xavfsizlik, tasdiqlash, to'lov tizimlari va platforma rivojini qoplaydi.",
     "withdrawInfoTitle": "Pul yechishni ko'rib chiqish",

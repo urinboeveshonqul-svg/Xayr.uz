@@ -194,9 +194,14 @@ export function CampaignPayouts({
   };
 
   // Display-only preview; the authoritative fee is computed in the DB function.
+  // The 4% platform fee is deducted FROM the withdrawal amount: the GROSS amount
+  // leaves the available balance and the creator receives amount − fee. So the
+  // balance remaining after this withdrawal is available − gross amount (not
+  // available − net). Clamped at 0 for display; over-withdrawal is blocked on submit.
   const previewAmt = Math.floor(Number(amount)) || 0;
   const previewFee = calcPlatformFee(previewAmt);
   const previewNet = calcNetPayout(previewAmt);
+  const previewRemaining = Math.max(0, available - previewAmt);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -450,6 +455,12 @@ export function CampaignPayouts({
                 <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
                   <span className="font-bold text-gray-900 dark:text-white">{t('dash.youReceive')}</span>
                   <span className="font-black text-brand-600">{formatMoney(previewNet)} so&apos;m</span>
+                </div>
+                {/* Balance left after this withdrawal — the GROSS amount leaves the
+                    balance (fee is taken out of it), so remaining = available − amount. */}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">{t('dash.withdrawRemaining')}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(previewRemaining)} so&apos;m</span>
                 </div>
               </div>
             )}
