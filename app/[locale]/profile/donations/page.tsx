@@ -2,8 +2,6 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
 import { formatMoney, timeAgo } from '@/lib/utils';
@@ -59,7 +57,6 @@ export default async function DonationsHistoryPage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           <h1 className="section-title mb-8">{dict.donation.historyTitle}</h1>
@@ -102,7 +99,6 @@ export default async function DonationsHistoryPage({
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

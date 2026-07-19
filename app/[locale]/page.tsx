@@ -1,7 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/home/Hero';
 import { WhyTrustButton } from '@/components/home/WhyTrustButton';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
@@ -139,7 +137,6 @@ export default async function HomePage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-white">
         <Hero activeCampaigns={platformStats.active} donors={platformStats.donors} />
 
@@ -386,7 +383,6 @@ export default async function HomePage({
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

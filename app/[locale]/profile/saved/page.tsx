@@ -2,8 +2,6 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Bookmark } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
@@ -45,7 +43,6 @@ export default async function SavedCampaignsPage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-10 flex items-center gap-3">
@@ -78,7 +75,6 @@ export default async function SavedCampaignsPage({
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

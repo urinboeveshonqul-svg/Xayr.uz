@@ -6,8 +6,6 @@ import { createClient } from '@/lib/supabase/server';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { formatMoney } from '@/lib/utils';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { CampaignAnalytics } from '@/components/campaigns/CampaignAnalytics';
 
 export const metadata: Metadata = { title: 'Kampaniya analitikasi — Xayr' };
@@ -111,7 +109,6 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
           <CampaignAnalytics
@@ -197,7 +194,6 @@ export default async function CampaignAnalyticsPage({ params }: Props) {
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

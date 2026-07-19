@@ -2,8 +2,6 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CheckCircle, Users, Megaphone, TrendingUp, CalendarDays } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { FollowButton } from '@/components/profile/FollowButton';
@@ -103,7 +101,6 @@ export default async function PublicProfilePage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(personLd) }} />
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
           {/* Header */}
@@ -156,7 +153,6 @@ export default async function PublicProfilePage({ params }: Props) {
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

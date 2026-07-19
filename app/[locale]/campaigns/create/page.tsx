@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
 import { CampaignKycGate } from '@/components/campaigns/CampaignKycGate';
 import { toKycStatus } from '@/lib/kyc';
@@ -43,7 +41,6 @@ export default async function CreateCampaignPage() {
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <div className="mb-8">
@@ -60,7 +57,6 @@ export default async function CreateCampaignPage() {
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

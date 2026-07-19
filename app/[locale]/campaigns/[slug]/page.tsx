@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -8,8 +9,6 @@ import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
 import { buildCampaignJsonLd } from '@/lib/campaign-jsonld';
 import { serializeJsonLd } from '@/lib/security/json-ld';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { CampaignDetail } from '@/components/campaigns/CampaignDetail';
 import { CampaignTimeline, type TimelineExtension } from '@/components/campaigns/CampaignTimeline';
 import { ViewTracker } from '@/components/campaigns/ViewTracker';
@@ -25,7 +24,10 @@ interface Props {
   params: Promise<{ locale: string; slug: string }>;
 }
 
-async function getCampaign(slug: string): Promise<Campaign | null> {
+// cache() dedupes the query within a single request: generateMetadata and the
+// page component both call getCampaign(slug), so without this the campaign is
+// fetched twice per detail load. Behaviour is identical — same query, same result.
+const getCampaign = cache(async (slug: string): Promise<Campaign | null> => {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -39,7 +41,7 @@ async function getCampaign(slug: string): Promise<Campaign | null> {
   } catch {
     return null;
   }
-}
+});
 
 async function getDonors(campaignId: string): Promise<Donor[]> {
   try {
@@ -213,13 +215,17 @@ export default async function CampaignDetailPage({ params }: Props) {
   const canPostUpdates = isOwner || viewerRole !== null;
   const canManageReports = isOwner || viewerRole === 'owner' || viewerRole === 'manager';
 
-  const [donors, similar, reports, updates, team] = await Promise.all([
+  // getPaymentCatalog() joins the parallel wave instead of being awaited later in
+  // the JSX — it doesn't depend on the others, so this removes one serial round-trip.
+  const [donors, similar, reports, updates, team, catalog] = await Promise.all([
     getDonors(campaign.id),
     getSimilar(campaign),
     getReports(campaign.id),
     getUpdates(campaign.id),
     getTeam(campaign.id),
+    getPaymentCatalog(),
   ]);
+  const providers = toProviderOptions(catalog);
 
   const jsonLd = buildCampaignJsonLd(campaign, loc);
 
@@ -260,11 +266,10 @@ export default async function CampaignDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <ViewTracker campaignId={campaign.id} />
-          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} hasApprovedReport={hasApprovedReport} providers={toProviderOptions(await getPaymentCatalog())} />
+          <CampaignDetail campaign={campaign} donors={donors} pendingExtension={pendingExtension} hasApprovedReport={hasApprovedReport} providers={providers} />
 
           <div className="max-w-5xl mx-auto">
             {/* Public lifecycle timeline — shown when the campaign was extended */}
@@ -327,7 +332,6 @@ export default async function CampaignDetailPage({ params }: Props) {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

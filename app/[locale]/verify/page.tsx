@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { VerificationWizard } from '@/components/verification/VerificationWizard';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
@@ -41,7 +39,6 @@ export default async function VerifyPage({ params }: { params: Promise<{ locale:
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-xl">
           <div className="mb-6 text-center">
@@ -103,7 +100,6 @@ export default async function VerifyPage({ params }: { params: Promise<{ locale:
           )}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

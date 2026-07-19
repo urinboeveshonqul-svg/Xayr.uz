@@ -3,8 +3,6 @@ import Link from 'next/link';
 import { XCircle } from 'lucide-react';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 
 export const metadata: Metadata = { title: "To'lov — Xayr", robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
@@ -24,7 +22,6 @@ export default async function PaymentFailedPage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="card p-8 text-center max-w-md mx-auto">
@@ -45,7 +42,6 @@ export default async function PaymentFailedPage({
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

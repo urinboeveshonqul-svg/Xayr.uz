@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { LegalDocument, type LegalSection } from '@/components/legal/LegalDocument';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
@@ -29,7 +27,6 @@ export default async function CookiesPage({ params }: Props) {
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <LegalDocument
@@ -43,7 +40,6 @@ export default async function CookiesPage({ params }: Props) {
           />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

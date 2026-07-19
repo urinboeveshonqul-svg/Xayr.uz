@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { UserPlus, ShieldCheck, Megaphone, HandHeart, Wallet, ArrowRight, HelpCircle } from 'lucide-react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
@@ -34,7 +32,6 @@ export default async function GuidePage({ params }: Props) {
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           {/* Header */}
@@ -99,7 +96,6 @@ export default async function GuidePage({ params }: Props) {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

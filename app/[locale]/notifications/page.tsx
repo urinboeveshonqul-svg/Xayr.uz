@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { NotificationsView } from '@/components/notifications/NotificationsView';
 import { isLocale } from '@/i18n/config';
 import type { Notification } from '@/types';
@@ -34,13 +32,11 @@ export default async function NotificationsPage({
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
           <NotificationsView initial={initial} userId={user.id} locale={lng} />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

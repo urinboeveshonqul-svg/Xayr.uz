@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { FaqList } from '@/components/faq/FaqList';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
@@ -46,7 +44,6 @@ export default async function FaqPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqLd) }}
       />
-      <Navbar />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           <div className="text-center mb-10">
@@ -65,7 +62,6 @@ export default async function FaqPage({ params }: Props) {
           />
         </div>
       </main>
-      <Footer />
     </>
   );
 }
