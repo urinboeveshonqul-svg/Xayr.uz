@@ -50,7 +50,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 | Admin Dashboard | 90% | Full surface (stats, campaigns, donations, flags, users, verifications, payouts, messages). |
 | Localization | 95% | 3 languages, parity maintained (1352 lines each). |
 | Analytics | 60% | Per-campaign creator analytics only; no platform product analytics. |
-| Testing / CI | 40% | Build + typecheck CI on `npm ci` + committed lockfile; **no automated tests**. |
+| Testing / CI | 55% | CI runs **lint (ESLint next/core-web-vitals) + typecheck + tests + build** on `npm ci` + committed lockfile. Focused **Vitest** suite (37 tests) covers Click/Payme callback verification, amount/currency validation, commission math, and `confirmDonation` idempotency; no RLS/integration tests yet. |
 
 ---
 
@@ -389,6 +389,9 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 53 | `users-pii-hardening.sql` | **users PII lockdown (P1-1)** — column-level SELECT grants on `public.users` (14 safe columns); `email`/`phone`/`rejection_reason` no longer readable by anon/authenticated. Adds own-row `my_private_profile()`. RLS, UPDATE grants, service role, embedded joins unchanged. | Unknown — **closes the P1 PII exposure** | 1 |
 | 54 | `rls-storage-hardening.sql` | **RLS + storage hardening (P2-3, P2-4)** — RLS on `reserved_usernames` (admin-only writes); `campaign-images` INSERT scoped to the uploader’s own folder. Reads unchanged. | Unknown | 1, 34 |
 | 55 | `fk-indexes.sql` | **FK indexes (P2-5)** — 8 missing FK indexes (cascade-delete seq scans). Additive; CONCURRENTLY, run statements individually. | Unknown | 1 |
+| 56 | `storage-bucket-limits.sql` | **Storage size + MIME enforcement (hardening HIGH)** — `file_size_limit` + `allowed_mime_types` on all 4 buckets (server-side upload caps). Pure `UPDATE storage.buckets`. | Unknown | 1, 8, 22, 2 |
+| 57 | `donation-insert-hardening.sql` | **Donation insert lockdown (hardening MEDIUM)** — drops the client `donations_insert_pending` policy (donations created only by the service-role API) + `donations_message_len` CHECK. Supersedes #5's insert policy. | Unknown | 5 |
+| 58 | `users-anon-column-lockdown.sql` | **users anon column lockdown (hardening LOW)** — anon loses SELECT on `role`/`email_confirmed`; authenticated keeps them (own-row reads). | Unknown | 53 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 

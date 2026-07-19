@@ -19,6 +19,27 @@ const isProd = process.env.NODE_ENV === 'production';
 // img-src allows any https origin so Supabase Storage / Unsplash / Google avatars
 // never break. Self-hosted Inter (next/font) and the OneSignal service worker are
 // same-origin, so 'self' covers font-src / worker-src.
+//
+// ── Nonce-based CSP: EVALUATED, deliberately NOT adopted ──────────────────────
+// A per-request nonce (middleware generates it, Next stamps it onto its own
+// <script> tags) can drop 'unsafe-inline' from script-src. It was evaluated and
+// rejected for this app, for three concrete reasons:
+//   1. Static/ISR opt-out. A nonce is unique per request, so it cannot be baked
+//      into a cached HTML document — enabling it forces Next to render every page
+//      DYNAMICALLY. The homepage is ISR ('revalidate = 60') and the campaign
+//      pages/listings lean on that caching; nonce CSP would convert them to
+//      per-request rendering, a real cost/latency regression on Vercel.
+//   2. Third-party inline injection. OneSignal's SDK and Click's checkout.js
+//      inject their own scripts at runtime; making them work under a strict nonce
+//      needs 'strict-dynamic', which changes trust propagation and cannot be
+//      verified end-to-end in this environment (browser hydration is untestable
+//      here — preview screenshots time out).
+//   3. style-src would still need 'unsafe-inline' regardless (Next + Tailwind
+//      inject inline styles), so only script-src would harden.
+// Given the app's existing output-side XSS controls — React auto-escaping and the
+// single audited dangerouslySetInnerHTML sink routed through serializeJsonLd()
+// (which escapes <, >, & so a value can never break out of a <script>) — the CSP
+// stays as-is. Revisit if/when Next ships static-compatible nonces.
 const cspDirectives = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://cdn.onesignal.com https://onesignal.com https://*.onesignal.com https://challenges.cloudflare.com https://my.click.uz",
@@ -56,6 +77,11 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // Lint is a dedicated CI step (npm run lint), so keep it OUT of `next build` —
+  // a lint finding must never break a production deploy. Behaviour is unchanged
+  // from before (no ESLint config existed, so `next build` already skipped lint);
+  // this just makes that explicit now that a config is present.
+  eslint: { ignoreDuringBuilds: true },
   images: {
     // Serve AVIF first (~20-30% smaller than WebP) with a WebP fallback; the
     // browser picks what it supports. Pure delivery optimization — no markup or

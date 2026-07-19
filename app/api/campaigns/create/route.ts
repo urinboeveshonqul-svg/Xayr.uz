@@ -8,10 +8,27 @@ import { slugify } from '@/lib/utils';
 export const runtime = 'nodejs';
 
 /**
+ * Public URL prefix for the campaign-images storage bucket on THIS project.
+ * getPublicUrl() always returns `<supabase-url>/storage/v1/object/public/
+ * campaign-images/<path>`, so a valid campaign image URL must start with this.
+ * Null (no configured Supabase URL) → every URL is rejected (fail closed).
+ */
+const CAMPAIGN_IMAGE_PREFIX = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? `${process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/campaign-images/`
+  : null;
+
+/** True only for a URL that points at our own campaign-images bucket. */
+function isAllowedCampaignImageUrl(url: string): boolean {
+  return CAMPAIGN_IMAGE_PREFIX !== null && url.startsWith(CAMPAIGN_IMAGE_PREFIX);
+}
+
+/**
  * Campaign creation. The row insert is routed server-side so it can be
  * Turnstile-gated (previously inserted directly from the client). Images are
  * still uploaded client-side to the own-folder-scoped storage bucket; their
- * public URLs are passed here.
+ * public URLs are passed here and validated to point ONLY at our campaign-images
+ * bucket — an arbitrary external URL (broken next/image, off-platform hosting)
+ * is rejected server-side, never trusted from the client.
  *
  * Authorization is unchanged: the insert runs under the user's own session
  * (cookie-based client), so the KYC RLS gate (campaigns_insert_own requires
@@ -48,6 +65,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Validation failed' }, { status: 422 });
   }
   const d = parsed.data;
+
+  // Images must reference our own campaign-images bucket — reject arbitrary
+  // external URLs (they only get here via a crafted request; the UI always
+  // uploads to storage first).
+  if (!isAllowedCampaignImageUrl(d.image_url) || d.images.some((u) => !isAllowedCampaignImageUrl(u))) {
+    return NextResponse.json({ error: 'Invalid image URL' }, { status: 422 });
+  }
 
   const supabase = await createClient();
   const {

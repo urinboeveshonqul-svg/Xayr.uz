@@ -23,13 +23,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # ESLint (next/core-web-vitals). Runs non-interactively now that
+      # .eslintrc.json exists. `next build` keeps ESLint disabled
+      # (next.config.mjs → eslint.ignoreDuringBuilds) so lint is a dedicated gate
+      # here and can never break a production deploy.
+      - name: Lint
+        run: npm run lint
+
       - name: Typecheck
         run: npm run typecheck
 
-      # No `next lint` step: the repo has no ESLint config, so `next lint` would
-      # prompt interactively (and fail in CI). `next build` already skips ESLint
-      # when no config is present, so this keeps CI and Vercel build behaviour
-      # identical. Add an ESLint config + a lint step later if desired.
+      # Focused unit tests for critical financial logic (payment signature/auth
+      # verification, amount/currency checks, commission math, confirmDonation
+      # idempotency). Pure functions + a mocked admin client — no DB/network.
+      - name: Test
+        run: npm run test
 
       - name: Build
         # Placeholder values: a valid URL keeps the Supabase clients from

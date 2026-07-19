@@ -111,6 +111,40 @@ Recommended before enabling `NEXT_PUBLIC_CLICK_EMBEDDED_CARD`.
 `transaction_param`, do you invoke our SHOP API Prepare and Complete URLs, as
 with the redirect flow?"*
 
+## Scheduling the reconciliation sweep (production)
+
+`/api/cron/reconcile-click-payments` needs a scheduler, but it is **not** in
+`vercel.json`. Vercel Hobby allows only **two** cron jobs and both are already
+used (`/api/cron/expire-campaigns` + `/api/cron/financial-snapshot`, daily). A
+sub-daily `*/30` Vercel schedule is also a paid-plan feature. So the sweep is
+scheduled **externally**, which keeps the endpoint and all logic unchanged.
+
+**Recommended (shipped): GitHub Actions.** `.github/workflows/reconcile-click.yml`
+pings the endpoint every 30 minutes with the `CRON_SECRET` bearer. It is
+**opt-in** — the job no-ops cleanly until two repo secrets are set:
+
+| Repo secret | Value |
+|---|---|
+| `RECONCILE_URL` | `https://<your-domain>/api/cron/reconcile-click-payments` |
+| `CRON_SECRET` | the **same** value set in the Vercel production environment |
+
+Set them under **GitHub → Settings → Secrets and variables → Actions**. The
+endpoint stays fail-closed (`verifyCronSecret`), so an unauthenticated hit is
+still refused.
+
+**Alternatives** (equivalent — pick one, don't stack them):
+
+- **Upgrade Vercel** and add a third cron to `vercel.json`:
+  `{ "path": "/api/cron/reconcile-click-payments", "schedule": "*/30 * * * *" }`.
+- **Any external cron** (cron-job.org, Upstash QStash, a VPS crontab) issuing
+  `GET` with header `Authorization: Bearer $CRON_SECRET`.
+- **In-database `pg_cron`** hitting the endpoint via `net.http_get`, if the
+  extension is enabled.
+
+**When it's needed:** only once `NEXT_PUBLIC_CLICK_EMBEDDED_CARD=1` is enabled
+*and* `CLICK_MERCHANT_USER_ID` is set. Until then the sweep is inert (a no-op),
+so scheduling it early is harmless.
+
 ## Adding tokenization later (nothing here blocks it)
 
 The seams are already in place:
