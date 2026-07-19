@@ -395,6 +395,7 @@ are idempotent. **Live status is `Unknown` until `verify-migrations.sql` is run*
 | 57 | `donation-insert-hardening.sql` | **Donation insert lockdown (hardening MEDIUM)** — drops the client `donations_insert_pending` policy (donations created only by the service-role API) + `donations_message_len` CHECK. Supersedes #5's insert policy. | Unknown | 5 |
 | 58 | `users-anon-column-lockdown.sql` | **users anon column lockdown (hardening LOW)** — anon loses SELECT on `role`/`email_confirmed`; authenticated keeps them (own-row reads). | Unknown | 53 |
 | 59 | `payout-accounts-schema-repair.sql` | **payout_accounts schema repair (bugfix)** — restores `payout_accounts.card_number` (fixes "column not found in schema cache" when saving payout info) via `create table if not exists` + `add column if not exists`, then `notify pgrst, 'reload schema'`. DB-only; app/types/RPC already correct. Idempotent. | **Required to save payout info** | 40 |
+| 60 | `withdrawal-minimum-5000.sql` | **Minimum withdrawal 50000 → 5000** — replaces `create_payout_request` with `v_min := 5000`; only the minimum changes (4% commission, all guards, max = available balance, snapshots, workflow identical). Mirrored client-side by `MIN_WITHDRAWAL` (`lib/payout.ts`). | **Required for 5,000 so'm withdrawals** | 40, 51 |
 
 Supporting files: `supabase/verify-migrations.sql` (read-only status checker), `supabase/check-notifications.sql`, `supabase/MIGRATIONS.md`, `docs/migration-status.md`.
 

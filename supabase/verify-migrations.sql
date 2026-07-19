@@ -2,7 +2,7 @@
 -- XAYR — Migration verification (READ-ONLY)
 -- ============================================================
 -- Paste into Supabase Dashboard -> SQL Editor and Run. Changes NOTHING — it only
--- inspects the catalog and reports which of the 59 runbook migrations
+-- inspects the catalog and reports which of the 60 runbook migrations
 -- (supabase/MIGRATIONS.md) are applied to THIS database.
 --
 -- ⚠️ #5 (secure-donations-rls) is the security prerequisite for payouts: without
@@ -301,7 +301,10 @@ with raw(mig, feature, label, present) as (values
   (58, 'users anon lockdown',    'authenticated CAN still select users.role', exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='users' and grantee='authenticated' and privilege_type='SELECT' and column_name='role')),
 
   -- 59 — payout_accounts schema repair (restores payout_accounts.card_number)
-  (59, 'payout accounts repair', 'col payout_accounts.card_number', exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='card_number'))
+  (59, 'payout accounts repair', 'col payout_accounts.card_number', exists(select 1 from information_schema.columns where table_schema='public' and table_name='payout_accounts' and column_name='card_number')),
+
+  -- 60 — minimum withdrawal lowered 50000 -> 5000 (create_payout_request v_min)
+  (60, 'withdrawal minimum 5000', 'create_payout_request v_min = 5000', exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='create_payout_request' and pg_get_functiondef(p.oid) like '%v_min%integer := 5000%'))
 ),
 agg as (
   select mig, feature, count(*) total, count(*) filter (where present) ok

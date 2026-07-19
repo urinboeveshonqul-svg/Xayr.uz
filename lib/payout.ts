@@ -10,9 +10,12 @@ import type { CardType } from '@/types';
 
 /**
  * Configurable minimum withdrawal (so'm). MUST stay in sync with v_min in
- * create_payout_request() (supabase/payout-info.sql) — the server is authoritative.
+ * create_payout_request() — the server is authoritative. Lowered from 50000 to
+ * 5000 by migration #60 (supabase/withdrawal-minimum-5000.sql); the maximum is
+ * always the campaign's available balance (enforced server-side by the
+ * `amount_exceeds_available` guard), never a hardcoded value.
  */
-export const MIN_WITHDRAWAL = 50000;
+export const MIN_WITHDRAWAL = 5000;
 
 /**
  * Platform commission, charged to the CREATOR at withdrawal time only.
