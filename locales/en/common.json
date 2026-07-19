@@ -1229,6 +1229,7 @@
     "withdrawNeedMinimum": "You need at least {min} so'm available before requesting a withdrawal.",
     "feeRow": "Platform fee (4%)",
     "youReceive": "You receive",
+    "withdrawRemaining": "Remaining balance",
     "feeNotice": "XAYR charges a 4% service fee on successful withdrawals.",
     "feeConsent": "I agree to the 4% platform fee. It covers hosting, security, verification, payment processing and platform development.",
     "withdrawInfoTitle": "Withdrawal Processing",
