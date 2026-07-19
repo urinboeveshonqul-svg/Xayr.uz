@@ -159,7 +159,11 @@ export function PayoutAccountForm({
             className="input tracking-wider"
             value={formatCard(card)}
             onChange={(e) => setCard(cardDigits(e.target.value))}
-            placeholder="8600 1234 5678 9012"
+            // Placeholder is a VISUAL EXAMPLE only — it follows the chosen card
+            // type (UzCard 8600…, Humo 9860…) to guide the user. It never
+            // validates, never switches the card type, and co-branded cards
+            // (Visa UzCard, Humo Mastercard…) are still accepted as entered.
+            placeholder={cardType === 'humo' ? '9860 1234 5678 9012' : '8600 1234 5678 9012'}
           />
           {card.length > 0 && !isValidCard(card) && (
             <p className="text-red-500 text-xs mt-1">16 ta raqam kiriting</p>
