@@ -105,7 +105,30 @@ export async function middleware(request: NextRequest) {
   // Path without the locale prefix, e.g. /uz/profile → /profile
   const bare = pathname.slice(`/${pathLocale}`.length) || '/';
 
-  // ── Locale present → refresh the Supabase session ───────────────────
+  const isProtected = PROTECTED.some((p) => bare === p || bare.startsWith(`${p}/`));
+  const isAuthOnly = AUTH_ONLY.includes(bare);
+
+  // ── PUBLIC ROUTES → skip the Supabase auth.getUser() network round-trip ─────
+  // Only protected + auth-only routes make an auth-based decision here (gate an
+  // anonymous user, or bounce a signed-in user off the login/register page).
+  // Every other route decides nothing from the session, so validating the JWT on
+  // it only adds a Supabase Auth round-trip to the navigation for nothing — the
+  // audit's largest remaining per-navigation cost, paid on almost every click by
+  // signed-in users browsing public pages.
+  //
+  // This does NOT weaken security. Server-side authorization stays the source of
+  // truth: protected pages/layouts/route handlers — and the owner-only pages that
+  // self-protect (/campaigns/[slug]/{withdraw,edit,analytics}) — still call
+  // getUser() server-side and redirect. Session refresh is preserved: the browser
+  // client keeps the token fresh via autoRefreshToken while browsing public pages,
+  // and the next protected-route navigation refreshes it here. Cookies pass
+  // through untouched, and emitting no Set-Cookie on public responses keeps them
+  // CDN-cacheable.
+  if (!isProtected && !isAuthOnly) {
+    return NextResponse.next({ request });
+  }
+
+  // ── Protected / auth-only routes → validate the session + refresh cookies ───
   // Hardened: a missing/invalid Supabase config or a transient auth/network
   // error must NEVER throw out of the middleware — that surfaces on Vercel as
   // MIDDLEWARE_INVOCATION_FAILED and 500s the ENTIRE site on every route. So we
@@ -142,12 +165,12 @@ export async function middleware(request: NextRequest) {
       },
     });
 
-    // IMPORTANT: Do not remove — refreshes the Supabase session on every request.
+    // Validate the JWT with Supabase (this also refreshes the session cookie via
+    // the setAll handler above). Reached only for protected / auth-only routes.
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const isProtected = PROTECTED.some((p) => bare === p || bare.startsWith(`${p}/`));
     if (!user && isProtected) {
       const url = request.nextUrl.clone();
       url.pathname = `/${pathLocale}/auth/login`;
@@ -164,7 +187,7 @@ export async function middleware(request: NextRequest) {
       return copyCookies(supabaseResponse, NextResponse.redirect(url));
     }
 
-    if (user && AUTH_ONLY.includes(bare)) {
+    if (user && isAuthOnly) {
       const url = request.nextUrl.clone();
       url.pathname = `/${pathLocale}`;
       url.search = '';
