@@ -48,13 +48,15 @@ const STATUS_CLS: Record<string, string> = {
   cancelled:      'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
 };
 
-const ACTION: Record<string, string> = {
-  created:        "So'rov yaratildi",
-  approved:       'Tasdiqlandi',
-  rejected:       'Rad etildi',
-  info_requested: "Ma'lumot so'raldi",
-  paid:           "To'landi",
-  cancelled:      'Bekor qilindi',
+// Event-log action → translation key. Resolved through t() at render so the
+// label follows the active language (was a hardcoded Uzbek map).
+const ACTION_KEYS: Record<string, string> = {
+  created:        'dash.actCreated',
+  approved:       'dash.actApproved',
+  rejected:       'dash.actRejected',
+  info_requested: 'dash.actInfoRequested',
+  paid:           'dash.actPaid',
+  cancelled:      'dash.actCancelled',
 };
 
 // RPC error code → translation key. Resolved through t() at call time so the
@@ -175,13 +177,13 @@ export function CampaignPayouts({
   };
 
   const blockedReason = !approved
-    ? 'Kampaniya tasdiqlangandan keyin mablag’ yechib olish mumkin'
+    ? t('dash.blockedNotApproved')
     : !isVerified
-    ? 'Yechish uchun hisobingizni tasdiqlang'
+    ? t('dash.blockedNotVerified')
     : !hasPayoutInfo
     ? null // handled by the inline payout setup form above
     : hasActive
-    ? "Sizda faol so'rov mavjud — natijani kuting"
+    ? t('dash.blockedHasActive')
     : available < MIN_WITHDRAWAL
     ? t('dash.withdrawNeedMinimum', { min: formatMoney(MIN_WITHDRAWAL) })
     : null;
@@ -431,13 +433,13 @@ export function CampaignPayouts({
             </div>
 
             <div>
-              <label className="label">Izoh (ixtiyoriy)</label>
+              <label className="label">{t('dash.noteOptional')}</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 className="input resize-none"
-                placeholder="Qo'shimcha ma'lumot..."
+                placeholder={t('dash.notePlaceholder')}
               />
             </div>
 
@@ -487,9 +489,9 @@ export function CampaignPayouts({
             </label>
 
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={resetForm} className="btn-ghost px-4 py-2 text-sm">Bekor qilish</button>
+              <button type="button" onClick={resetForm} className="btn-ghost px-4 py-2 text-sm">{t('ux.cancel')}</button>
               <button type="submit" disabled={submitting} className="btn-primary px-5 py-2 text-sm">
-                {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Yuborilmoqda...</> : <><Send className="w-4 h-4" /> Yuborish</>}
+                {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('dash.submitting')}</> : <><Send className="w-4 h-4" /> {t('ux.submit')}</>}
               </button>
             </div>
           </form>
@@ -510,7 +512,7 @@ export function CampaignPayouts({
                 </span>
                 <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatMoney(selected.amount)} so&apos;m</p>
               </div>
-              <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600" aria-label="Yopish">
+              <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600" aria-label={t('ux.close')}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -520,10 +522,10 @@ export function CampaignPayouts({
                   The rate is deliberately not printed — rows predate the fee (0%),
                   or were made at 3% before #51 — so asserting today's rate here
                   would misstate money that already moved. */}
-              <p className="text-gray-500">Komissiya: <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
-              <p className="text-gray-500">Sizga to&apos;lanadi: <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.commission')}: <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.youReceive')}: <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">To&apos;lov ma&apos;lumotlari</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">{t('dash.paymentDetails')}</p>
                 {selected.snap_card_type ? (
                   <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-sm text-gray-800 dark:text-gray-200 space-y-0.5">
                     <p>{cardTypeLabel(selected.snap_card_type)} · {maskCard(selected.snap_card_number)}</p>
@@ -537,29 +539,29 @@ export function CampaignPayouts({
               </div>
               {selected.notes && (
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">Izoh</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">{t('dash.reqNote')}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{selected.notes}</p>
                 </div>
               )}
               {selected.admin_note && (
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">Admin izohi</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">{t('dash.adminNote')}</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words rounded-xl bg-yellow-50 dark:bg-yellow-900/20 p-3">{selected.admin_note}</p>
                 </div>
               )}
               {selected.payout_reference && (
-                <p className="text-gray-500 mt-2">To&apos;lov ma&apos;lumotnomasi: <span className="font-semibold text-gray-800 dark:text-gray-200">{selected.payout_reference}</span></p>
+                <p className="text-gray-500 mt-2">{t('dash.paymentReference')}: <span className="font-semibold text-gray-800 dark:text-gray-200">{selected.payout_reference}</span></p>
               )}
             </div>
 
             {/* Timeline */}
             <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tarix</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('dash.eventHistory')}</p>
               <ol className="relative ml-2 border-l-2 border-gray-100 dark:border-gray-800 space-y-3">
                 {selected.events.map((e) => (
                   <li key={e.id} className="ml-4">
                     <span className="absolute -left-[7px] mt-1 w-3 h-3 rounded-full bg-brand-500 ring-2 ring-white dark:ring-gray-900" />
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{ACTION[e.action] ?? e.action}</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{ACTION_KEYS[e.action] ? t(ACTION_KEYS[e.action]) : e.action}</p>
                     {e.note && <p className="text-xs text-gray-500 whitespace-pre-wrap break-words">{e.note}</p>}
                     <p className="text-[11px] text-gray-400 flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(e.created_at)}</p>
                   </li>
