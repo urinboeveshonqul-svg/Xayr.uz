@@ -33,8 +33,8 @@ describe('withdrawal commission (mirrors create_payout_request round(amount * 0.
 });
 
 describe('minimum withdrawal (must match v_min in create_payout_request)', () => {
-  it('is 50,000 so\'m', () => {
-    expect(MIN_WITHDRAWAL).toBe(50000);
+  it('is 5,000 so\'m (lowered from 50,000 by migration #60)', () => {
+    expect(MIN_WITHDRAWAL).toBe(5000);
   });
 });
 

@@ -132,7 +132,7 @@ export function CampaignPayouts({
 
   const hasActive = requests.some((r) => ACTIVE.includes(r.status));
   const approved = campaignStatus === 'active' || campaignStatus === 'completed' || campaignStatus === 'funded';
-  const canRequest = isVerified && hasPayoutInfo && approved && available > 0 && !hasActive;
+  const canRequest = isVerified && hasPayoutInfo && approved && available >= MIN_WITHDRAWAL && !hasActive;
   const selected = requests.find((r) => r.id === selectedId) ?? null;
 
   // Show the processing-info card only when the user can actually act on
@@ -182,8 +182,8 @@ export function CampaignPayouts({
     ? null // handled by the inline payout setup form above
     : hasActive
     ? "Sizda faol so'rov mavjud — natijani kuting"
-    : available <= 0
-    ? "Yechish uchun mavjud mablag' yo'q"
+    : available < MIN_WITHDRAWAL
+    ? t('dash.withdrawNeedMinimum', { min: formatMoney(MIN_WITHDRAWAL) })
     : null;
 
   const resetForm = () => {
@@ -398,18 +398,31 @@ export function CampaignPayouts({
             </div>
 
             <div>
-              <label className="label">
-                Miqdor (min {formatMoney(MIN_WITHDRAWAL)} · max {formatMoney(available)} so&apos;m)
-              </label>
-              <input
-                type="number"
-                min={MIN_WITHDRAWAL}
-                max={available}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="input"
-                placeholder="0"
-              />
+              <label className="label">{t('dash.withdrawAmount')}</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={MIN_WITHDRAWAL}
+                  max={available}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="input pr-16"
+                  placeholder="0"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAmount(String(available))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 text-xs font-bold text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
+                >
+                  {t('dash.withdrawMax')}
+                </button>
+              </div>
+              {/* Min/max hints — the max always mirrors the available balance and
+                  updates automatically when it changes (no hardcoded maximum). */}
+              <div className="mt-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>{t('dash.withdrawMinLabel')}: {formatMoney(MIN_WITHDRAWAL)} so&apos;m</span>
+                <span>{t('dash.withdrawMaxLabel')}: {formatMoney(available)} so&apos;m</span>
+              </div>
             </div>
 
             <div>
