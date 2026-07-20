@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Target, TrendingUp, Percent, CreditCard, HandCoins, Banknote, Wallet, Hourglass, PiggyBank } from 'lucide-react';
+import { CheckCircle2, Circle, Target, TrendingUp, Percent, CreditCard, HandCoins, Banknote, Wallet, Hourglass } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 
 export interface CampaignFinancialsData {
@@ -33,16 +33,21 @@ export interface CampaignFinancialsLabels {
   timelineTitle: string;
 }
 
+// Ordered by importance: "Available to withdraw" (the max the creator can request
+// today) is the headline, then the figures that make it up — total donations, what
+// has already left the balance (withdrawn + pending), and how withdrawals split
+// into fees vs. what the creator received. `remainingBalance` is intentionally not
+// shown: it equalled `availableBalance` (the same number under two labels), which
+// was the "same money represented differently" confusion.
 const ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Target; strong?: boolean }[] = [
-  { key: 'goal', labelKey: 'goal', Icon: Target },
-  { key: 'raised', labelKey: 'raised', Icon: TrendingUp, strong: true },
+  { key: 'availableBalance', labelKey: 'availableBalance', Icon: Wallet, strong: true },
+  { key: 'raised', labelKey: 'raised', Icon: TrendingUp },
+  { key: 'totalWithdrawn', labelKey: 'totalWithdrawn', Icon: Banknote },
+  { key: 'pendingWithdrawal', labelKey: 'pendingWithdrawal', Icon: Hourglass },
   { key: 'platformFee', labelKey: 'platformFee', Icon: Percent },
   { key: 'providerFee', labelKey: 'providerFee', Icon: CreditCard },
   { key: 'netAmount', labelKey: 'netAmount', Icon: HandCoins },
-  { key: 'totalWithdrawn', labelKey: 'totalWithdrawn', Icon: Banknote },
-  { key: 'pendingWithdrawal', labelKey: 'pendingWithdrawal', Icon: Hourglass },
-  { key: 'availableBalance', labelKey: 'availableBalance', Icon: Wallet, strong: true },
-  { key: 'remainingBalance', labelKey: 'remainingBalance', Icon: PiggyBank },
+  { key: 'goal', labelKey: 'goal', Icon: Target },
 ];
 
 /**
