@@ -83,7 +83,7 @@ export function SaveButton({
       aria-pressed={saved}
       aria-label={saved ? 'Saqlanganlardan olib tashlash' : 'Saqlash'}
       title={saved ? 'Saqlanganlardan olib tashlash' : 'Saqlash'}
-      className="w-11 h-11 sm:w-9 sm:h-9 rounded-full bg-white/95 backdrop-blur-md shadow-lg flex items-center justify-center transition-all hover:scale-110 disabled:opacity-60"
+      className="w-9 h-9 max-sm:w-11 max-sm:h-11 rounded-full bg-white/95 backdrop-blur-md shadow-lg flex items-center justify-center transition-all hover:scale-110 disabled:opacity-60"
     >
       <Bookmark
         className={`w-4 h-4 transition-colors ${
