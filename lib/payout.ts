@@ -78,11 +78,15 @@ export function grossForNet(net: number): number {
 }
 
 /**
- * The minimum the creator can type in NET so'm — the exact net of the server's
- * gross minimum (grossForNet(MIN_WITHDRAWAL_NET) === MIN_WITHDRAWAL), so the
- * client gate and the server's `below_minimum` guard agree precisely.
+ * The minimum the creator can type in NET so'm. Deliberately the same round
+ * 5,000 the platform documents everywhere (legal pages, guides) rather than the
+ * exact net of the server's gross minimum (4,800) — a clean, familiar number
+ * beats a technically-derived odd one on a trust surface. Strictly SAFE: any
+ * net ≥ 5,000 converts to a gross ≥ grossForNet(5000) = 5,208 ≥ the server's
+ * 5,000 gross guard, so `below_minimum` can never fire for a client-accepted
+ * amount (asserted in __tests__/payout.test.ts).
  */
-export const MIN_WITHDRAWAL_NET = calcNetPayout(MIN_WITHDRAWAL);
+export const MIN_WITHDRAWAL_NET = MIN_WITHDRAWAL;
 
 /**
  * Statuses whose gross is committed against the campaign balance. MUST match

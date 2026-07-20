@@ -40,9 +40,18 @@ describe('minimum withdrawal (must match v_min in create_payout_request)', () =>
     expect(MIN_WITHDRAWAL).toBe(5000);
   });
 
-  it('the NET minimum shown to the creator maps exactly onto the server gross minimum', () => {
-    expect(MIN_WITHDRAWAL_NET).toBe(4800); // 5000 − round(5000·4%)
-    expect(grossForNet(MIN_WITHDRAWAL_NET)).toBe(MIN_WITHDRAWAL);
+  it('the NET minimum shown to the creator is the documented round 5,000', () => {
+    expect(MIN_WITHDRAWAL_NET).toBe(5000);
+  });
+
+  it('every client-accepted net satisfies the server gross guard (below_minimum unreachable)', () => {
+    // The smallest amount the client allows converts to a gross that clears
+    // the server's ≥5,000 guard with room to spare; larger nets only more so.
+    expect(grossForNet(MIN_WITHDRAWAL_NET)).toBeGreaterThanOrEqual(MIN_WITHDRAWAL);
+    expect(grossForNet(MIN_WITHDRAWAL_NET)).toBe(5208); // 5208 − round(5208·4%) = 5000
+    // The client minimum is stricter than (or equal to) the net of the server
+    // minimum, so the two gates can never disagree.
+    expect(MIN_WITHDRAWAL_NET).toBeGreaterThanOrEqual(calcNetPayout(MIN_WITHDRAWAL));
   });
 });
 

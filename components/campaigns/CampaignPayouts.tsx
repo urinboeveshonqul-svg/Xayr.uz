@@ -412,10 +412,22 @@ export function CampaignPayouts({
         >
           <form onSubmit={submit} className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-4 animate-pop">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 dark:text-white">Mablag&apos;ni yechish</h3>
-              <button type="button" onClick={resetForm} className="text-gray-400 hover:text-gray-600" aria-label="Yopish">
+              <h3 className="font-bold text-gray-900 dark:text-white">{t('dash.withdrawBtn')}</h3>
+              <button type="button" onClick={resetForm} className="text-gray-400 hover:text-gray-600" aria-label={t('ux.close')}>
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* PRIMARY value: Available to withdraw — the one number every other
+                figure in this dialog derives from, with a one-line explanation of
+                where it comes from. Same wording as the dashboard card. */}
+            <div className="rounded-xl bg-brand-50 dark:bg-brand-900/20 p-4">
+              <div className="flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-brand-600" />
+                <p className="text-xs text-brand-700/80 dark:text-brand-400/90">{t('dash.availableBalance')}</p>
+              </div>
+              <p className="text-2xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">{formatMoney(availableNet)} so&apos;m</p>
+              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{t('dash.availableExplain')}</p>
             </div>
 
             {/* Saved payout destination — read-only confirmation (edit it from the
@@ -513,6 +525,12 @@ export function CampaignPayouts({
                 {t('dash.feeConsent')}
               </span>
             </label>
+
+            {/* What happens after submitting — stated at the decision point (the
+                page's fuller processing card is hidden behind the modal overlay). */}
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              {t('dash.afterSubmitNote')}
+            </p>
 
             <div className="flex justify-end gap-2">
               <button type="button" onClick={resetForm} className="btn-ghost px-4 py-2 text-sm">{t('ux.cancel')}</button>
