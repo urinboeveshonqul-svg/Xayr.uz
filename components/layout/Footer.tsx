@@ -67,9 +67,9 @@ export function Footer() {
                 key={label}
                 href={href}
                 aria-label={label}
-                className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-green-600 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
+                className="w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-gray-800 hover:bg-green-600 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
               </a>
             ))}
           </div>

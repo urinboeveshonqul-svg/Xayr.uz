@@ -29,7 +29,7 @@ export function Hero({
           <div className="text-center lg:text-left space-y-8">
 
             {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
+            <h1 className="text-[clamp(2rem,8.5vw,3rem)] sm:text-6xl lg:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
               {t('hero.titlePrefix')}{' '}
               <span className="relative inline-block">
                 <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">

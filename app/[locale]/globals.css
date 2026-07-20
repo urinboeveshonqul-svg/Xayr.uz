@@ -140,6 +140,15 @@
 }
 
 @layer utilities {
+  /* Toasts (react-hot-toast, bottom-right) must clear the mobile bottom
+     navigation (fixed, 4rem + safe-area, hidden ≥lg) so a toast never sits on
+     top of the tab bar. Only shifted below lg; desktop is unchanged. */
+  @media (max-width: 1023px) {
+    .xayr-toaster {
+      bottom: calc(4.5rem + env(safe-area-inset-bottom)) !important;
+    }
+  }
+
   /* Modal / dropdown entrance: subtle fade + scale, 180ms, non-blocking. */
   .animate-pop {
     animation: pop 0.18s ease-out;

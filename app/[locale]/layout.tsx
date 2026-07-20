@@ -144,6 +144,7 @@ export default async function LocaleLayout({
         </I18nProvider>
         <Toaster
           position="bottom-right"
+          containerClassName="xayr-toaster"
           toastOptions={{
             duration: 3500,
             style: {

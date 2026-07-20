@@ -229,6 +229,7 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 ### Mobile
 - **What:** Bottom navigation, 48px touch targets, responsive Tailwind layouts, sticky donate actions on campaign detail, PWA manifest.
 - **Where:** `components/layout/BottomNav.tsx`, `app/manifest.ts`, responsive classes throughout.
+- **Mobile UX audit (2026-07-20):** audited the app at 320–768px against the live site. The base was already strong — no horizontal scroll at 320px, 16px form inputs (no iOS focus-zoom), safe-area padding on the bottom nav, an in-flow spacer preventing CLS/overlap, the campaign-detail donate bar offset to `bottom-[calc(4rem+env(safe-area-inset-bottom))]` (clears the tab bar), and reduced-motion support. Fixes applied (all gated below `sm`/`lg`, so **desktop is visually identical**): (1) **hero `<h1>`** was a fixed `text-5xl` (48px) that overflowed long Uzbek words (e.g. "osonlashtiramiz") on 320–360px → now fluid `text-[clamp(2rem,8.5vw,3rem)]` (32→48px), `sm:`+ unchanged; (2) **SaveButton** (bookmark, on every card) 36×36 → **44×44 on mobile** (`w-11 h-11 sm:w-9 sm:h-9`); (3) **footer social icons** 32×32 → 44 on mobile; (4) **toasts** (bottom-right) now clear the mobile bottom nav via a `<lg` offset so they never sit on the tab bar. No redesign; branding/colors unchanged.
 - **Status:** ✅ Complete.
 
 ### Performance
