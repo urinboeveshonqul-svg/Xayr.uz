@@ -446,7 +446,7 @@
     "providerFee": "Комиссия платёжного провайдера",
     "netAmount": "Чистая сумма",
     "totalWithdrawn": "Всего выведено",
-    "availableBalance": "Доступный баланс",
+    "availableBalance": "Доступно для вывода",
     "pendingWithdrawal": "Ожидающий вывод",
     "remainingBalance": "Остаток баланса",
     "timelineTitle": "Хронология движения средств",
