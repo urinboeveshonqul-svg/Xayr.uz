@@ -9,10 +9,9 @@ import { useI18n } from '@/components/i18n/I18nProvider';
 import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
 import { formatMoney, timeAgo } from '@/lib/utils';
 import {
-  MIN_WITHDRAWAL,
-  PLATFORM_FEE_PERCENT,
-  calcPlatformFee,
+  MIN_WITHDRAWAL_NET,
   calcNetPayout,
+  grossForNet,
   maskCard,
   cardTypeLabel,
 } from '@/lib/payout';
@@ -104,10 +103,11 @@ export function CampaignPayouts({
   const { t } = useI18n();
 
   // Resolve an RPC error code to a localized message. below_minimum carries the
-  // configurable minimum; anything unmapped falls back to a generic message
-  // rather than surfacing a raw backend string.
+  // configurable minimum (shown in NET so'm — the unit the creator types in);
+  // anything unmapped falls back to a generic message rather than surfacing a
+  // raw backend string.
   const errMsg = (code: string): string => {
-    if (code === 'below_minimum') return t('toasts.payoutErrBelowMinimum', { min: formatMoney(MIN_WITHDRAWAL) });
+    if (code === 'below_minimum') return t('toasts.payoutErrBelowMinimum', { min: formatMoney(MIN_WITHDRAWAL_NET) });
     const key = ERR_KEYS[code];
     return key ? t(key) : t('toasts.generic');
   };
@@ -132,9 +132,17 @@ export function CampaignPayouts({
   const [payoutInitial, setPayoutInitial] = useState<PayoutAccount | null>(null);
   const [loadingPayout, setLoadingPayout] = useState(false);
 
+  // ── SINGLE SOURCE OF TRUTH for every number the creator sees ──
+  // `available` is the GROSS balance (mirror of campaign_available_balance).
+  // The creator-facing figure everywhere is the NET: the exact amount they can
+  // request AND receive today. grossForNet() inverts calcNetPayout() exactly,
+  // so availableNet ≥ n  ⟺  available ≥ grossForNet(n) — client gates and the
+  // server's guards can never disagree.
+  const availableNet = calcNetPayout(available);
+
   const hasActive = requests.some((r) => ACTIVE.includes(r.status));
   const approved = campaignStatus === 'active' || campaignStatus === 'completed' || campaignStatus === 'funded';
-  const canRequest = isVerified && hasPayoutInfo && approved && available >= MIN_WITHDRAWAL && !hasActive;
+  const canRequest = isVerified && hasPayoutInfo && approved && availableNet >= MIN_WITHDRAWAL_NET && !hasActive;
   const selected = requests.find((r) => r.id === selectedId) ?? null;
 
   // Show the processing-info card only when the user can actually act on
@@ -184,8 +192,8 @@ export function CampaignPayouts({
     ? null // handled by the inline payout setup form above
     : hasActive
     ? t('dash.blockedHasActive')
-    : available < MIN_WITHDRAWAL
-    ? t('dash.withdrawNeedMinimum', { min: formatMoney(MIN_WITHDRAWAL) })
+    : availableNet < MIN_WITHDRAWAL_NET
+    ? t('dash.withdrawNeedMinimum', { min: formatMoney(MIN_WITHDRAWAL_NET) })
     : null;
 
   const resetForm = () => {
@@ -195,23 +203,34 @@ export function CampaignPayouts({
     setShowForm(false);
   };
 
-  // Display-only preview; the authoritative fee is computed in the DB function.
-  // The 4% platform fee is deducted FROM the withdrawal amount: the GROSS amount
-  // leaves the available balance and the creator receives amount − fee. So the
-  // balance remaining after this withdrawal is available − gross amount (not
-  // available − net). Clamped at 0 for display; over-withdrawal is blocked on submit.
-  const previewAmt = Math.floor(Number(amount)) || 0;
-  const previewFee = calcPlatformFee(previewAmt);
-  const previewNet = calcNetPayout(previewAmt);
-  const previewRemaining = Math.max(0, available - previewAmt);
+  // Live preview — every figure recalculates on each keystroke, all derived
+  // from ONE formula pair (calcNetPayout / grossForNet in lib/payout.ts).
+  // The creator types the NET amount — exactly what they will receive. The
+  // 4% fee is charged on the corresponding gross, which is already excluded
+  // from the displayed available amount, so:
+  //   entered amount === "you receive", and remaining = availableNet − entered.
+  // Withdrawing the full availableNet leaves remaining 0. The fee row is
+  // informational (it is NOT subtracted from the entered amount again).
+  const previewNet = Math.floor(Number(amount)) || 0;
+  const previewGross =
+    previewNet <= 0 ? 0 : previewNet === availableNet ? available : grossForNet(previewNet);
+  const previewFee = Math.max(0, previewGross - previewNet);
+  const previewRemaining = Math.max(0, availableNet - previewNet);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amt = Math.floor(Number(amount));
-    if (!amt || amt <= 0) { toast.error(t('toasts.withdrawInvalidAmount')); return; }
-    if (amt < MIN_WITHDRAWAL) { toast.error(errMsg('below_minimum')); return; }
-    if (amt > available) { toast.error(t('toasts.withdrawInsufficient')); return; }
+    const net = Math.floor(Number(amount));
+    if (!net || net <= 0) { toast.error(t('toasts.withdrawInvalidAmount')); return; }
+    if (net < MIN_WITHDRAWAL_NET) { toast.error(errMsg('below_minimum')); return; }
+    if (net > availableNet) { toast.error(t('toasts.withdrawInsufficient')); return; }
     if (!agree) { toast.error(t('toasts.withdrawAgreeFee')); return; }
+
+    // The server keeps gross semantics (create_payout_request deducts the gross
+    // and pays gross − round(gross·4%)). Convert the entered NET to the exact
+    // gross whose server-computed payout equals it — no further deduction can
+    // occur after this point. Withdrawing the full net maps to the full gross
+    // balance, so nothing is left stranded.
+    const gross = net === availableNet ? available : grossForNet(net);
 
     setSubmitting(true);
     try {
@@ -219,7 +238,7 @@ export function CampaignPayouts({
       // snapshotted server-side — the client never sends them here.
       const { error }: { error: PostgrestError | null } = await createClient().rpc('create_payout_request', {
         p_campaign_id: campaignId,
-        p_amount: amt,
+        p_amount: gross,
         p_notes: notes.trim(),
       });
       if (error) { toast.error(errMsg(error.message)); return; }
@@ -249,7 +268,8 @@ export function CampaignPayouts({
               <Wallet className="w-3.5 h-3.5 text-brand-600" />
               <p className="text-xs text-brand-700/80 dark:text-brand-400/90">{t('dash.availableBalance')}</p>
             </div>
-            <p className="text-xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">{formatMoney(available)} so&apos;m</p>
+            {/* NET — the exact max the creator can request AND receive today. */}
+            <p className="text-xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">{formatMoney(availableNet)} so&apos;m</p>
           </div>
         </div>
 
@@ -351,7 +371,10 @@ export function CampaignPayouts({
                   className="w-full text-left rounded-xl border border-gray-100 dark:border-gray-800 p-3 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{formatMoney(r.amount)} so&apos;m</p>
+                    {/* NET actually/to-be received — matches the amount the creator
+                        entered. Historical rows show the payout stored at their own
+                        rate (0% pre-fee, 3% pre-#51), never re-derived. */}
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{formatMoney(r.payout_amount ?? r.amount)} so&apos;m</p>
                     <p className="text-[11px] text-gray-400">{timeAgo(r.created_at)}</p>
                   </div>
                   <span className={`badge ${stCls}`}>{stLabel}</span>
@@ -409,8 +432,8 @@ export function CampaignPayouts({
               <div className="relative">
                 <input
                   type="number"
-                  min={MIN_WITHDRAWAL}
-                  max={available}
+                  min={MIN_WITHDRAWAL_NET}
+                  max={availableNet}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="input pr-16"
@@ -418,17 +441,18 @@ export function CampaignPayouts({
                 />
                 <button
                   type="button"
-                  onClick={() => setAmount(String(available))}
+                  onClick={() => setAmount(String(availableNet))}
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-brand-50 dark:bg-brand-900/30 px-2.5 py-1 text-xs font-bold text-brand-700 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
                 >
                   {t('dash.withdrawMax')}
                 </button>
               </div>
-              {/* Min/max hints — the max always mirrors the available balance and
-                  updates automatically when it changes (no hardcoded maximum). */}
+              {/* Min/max hints — both in NET so'm (the unit the creator types in);
+                  the max always mirrors the available amount and updates
+                  automatically when it changes (no hardcoded maximum). */}
               <div className="mt-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>{t('dash.withdrawMinLabel')}: {formatMoney(MIN_WITHDRAWAL)} so&apos;m</span>
-                <span>{t('dash.withdrawMaxLabel')}: {formatMoney(available)} so&apos;m</span>
+                <span>{t('dash.withdrawMinLabel')}: {formatMoney(MIN_WITHDRAWAL_NET)} so&apos;m</span>
+                <span>{t('dash.withdrawMaxLabel')}: {formatMoney(availableNet)} so&apos;m</span>
               </div>
             </div>
 
@@ -443,23 +467,25 @@ export function CampaignPayouts({
               />
             </div>
 
-            {/* Fee breakdown — display preview; the DB computes the authoritative fee */}
-            {previewAmt > 0 && (
+            {/* Fee breakdown — every row reconciles live from one formula pair:
+                entered amount === "you receive" (the fee is charged on the gross,
+                which the displayed available amount ALREADY excludes — it is never
+                subtracted from the entered amount), and remaining = available − entered. */}
+            {previewNet > 0 && (
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.withdrawAmount')}</span>
-                  <span className="font-bold text-gray-900 dark:text-white">{formatMoney(previewAmt)} so&apos;m</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{formatMoney(previewNet)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.feeRow')}</span>
-                  <span className="font-bold text-red-600">−{formatMoney(previewFee)} so&apos;m</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(previewFee)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
                   <span className="font-bold text-gray-900 dark:text-white">{t('dash.youReceive')}</span>
                   <span className="font-black text-brand-600">{formatMoney(previewNet)} so&apos;m</span>
                 </div>
-                {/* Balance left after this withdrawal — the GROSS amount leaves the
-                    balance (fee is taken out of it), so remaining = available − amount. */}
+                {/* Available to withdraw left after this request. */}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.withdrawRemaining')}</span>
                   <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(previewRemaining)} so&apos;m</span>
@@ -510,7 +536,8 @@ export function CampaignPayouts({
                 <span className={`badge ${STATUS_CLS[selected.status] ?? STATUS_CLS.pending_review}`}>
                   {psLabel[selected.status] ?? psLabel.pending_review}
                 </span>
-                <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatMoney(selected.amount)} so&apos;m</p>
+                {/* Headline = the NET the creator receives (what they entered). */}
+                <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</p>
               </div>
               <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600" aria-label={t('ux.close')}>
                 <X className="w-5 h-5" />
@@ -518,10 +545,12 @@ export function CampaignPayouts({
             </div>
 
             <div className="text-sm space-y-1.5">
-              {/* Historical request: show the fee ACTUALLY charged on this row.
-                  The rate is deliberately not printed — rows predate the fee (0%),
-                  or were made at 3% before #51 — so asserting today's rate here
-                  would misstate money that already moved. */}
+              {/* Reconciling breakdown from the STORED row: gross deducted from the
+                  balance − fee actually charged = the net headline. The rate is
+                  deliberately not printed — rows predate the fee (0%), or were made
+                  at 3% before #51 — so asserting today's rate here would misstate
+                  money that already moved. */}
+              <p className="text-gray-500">{t('dash.grossDeducted')}: <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(selected.amount)} so&apos;m</span></p>
               <p className="text-gray-500">{t('dash.commission')}: <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
               <p className="text-gray-500">{t('dash.youReceive')}: <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
               <div>

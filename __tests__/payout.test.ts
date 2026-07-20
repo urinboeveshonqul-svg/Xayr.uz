@@ -2,8 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   calcPlatformFee,
   calcNetPayout,
+  grossForNet,
+  calcAvailableGross,
   PLATFORM_FEE_RATE,
   MIN_WITHDRAWAL,
+  MIN_WITHDRAWAL_NET,
   isValidCard,
   maskCard,
   maskCardDisplay,
@@ -35,6 +38,86 @@ describe('withdrawal commission (mirrors create_payout_request round(amount * 0.
 describe('minimum withdrawal (must match v_min in create_payout_request)', () => {
   it('is 5,000 so\'m (lowered from 50,000 by migration #60)', () => {
     expect(MIN_WITHDRAWAL).toBe(5000);
+  });
+
+  it('the NET minimum shown to the creator maps exactly onto the server gross minimum', () => {
+    expect(MIN_WITHDRAWAL_NET).toBe(4800); // 5000 − round(5000·4%)
+    expect(grossForNet(MIN_WITHDRAWAL_NET)).toBe(MIN_WITHDRAWAL);
+  });
+});
+
+describe('net-request conversion (grossForNet inverts the server formula exactly)', () => {
+  it('the user-facing example: 10,000 gross → 9,600 available; entering 9,600 pays 9,600', () => {
+    expect(calcNetPayout(10000)).toBe(9600);
+    expect(grossForNet(9600)).toBe(10000);
+  });
+
+  it('round-trips EVERY net value: the amount typed is the amount the server pays', () => {
+    for (let net = 1; net <= 25000; net++) {
+      const gross = grossForNet(net);
+      expect(calcNetPayout(gross)).toBe(net); // server: payout = gross − round(gross·4%)
+      expect(calcNetPayout(gross - 1)).toBe(net - 1); // smallest such gross → lowest fee
+    }
+  });
+
+  it('never requests more gross than is available (Max button is always accepted)', () => {
+    for (const available of [5000, 10000, 10001, 10012, 10013, 123457, 999_999]) {
+      const net = calcNetPayout(available);
+      expect(grossForNet(net)).toBeLessThanOrEqual(available);
+    }
+  });
+
+  it('handles zero and negative safely', () => {
+    expect(grossForNet(0)).toBe(0);
+    expect(grossForNet(-500)).toBe(0);
+  });
+});
+
+describe('available balance (mirrors campaign_available_balance: committed = active + paid)', () => {
+  const req = (status: string, amount: number) => ({ status, amount });
+
+  it('no donations → nothing available', () => {
+    expect(calcAvailableGross(0, [])).toBe(0);
+  });
+
+  it('one donation → full gross available; net shown = gross − 4%', () => {
+    expect(calcAvailableGross(10000, [])).toBe(10000);
+    expect(calcNetPayout(calcAvailableGross(10000, []))).toBe(9600);
+  });
+
+  it('multiple donations accumulate', () => {
+    expect(calcAvailableGross(7000 + 3000, [])).toBe(10000);
+  });
+
+  it('pending / approved / info_requested withdrawals reserve their gross', () => {
+    expect(calcAvailableGross(10000, [req('pending_review', 4000)])).toBe(6000);
+    expect(calcAvailableGross(10000, [req('approved', 4000)])).toBe(6000);
+    expect(calcAvailableGross(10000, [req('info_requested', 4000)])).toBe(6000);
+  });
+
+  it('paid withdrawals stay deducted; multiple withdrawals stack', () => {
+    expect(calcAvailableGross(10000, [req('paid', 5000), req('pending_review', 2000)])).toBe(3000);
+  });
+
+  it('rejected and cancelled requests release their funds', () => {
+    expect(calcAvailableGross(10000, [req('rejected', 5000), req('cancelled', 2000)])).toBe(10000);
+  });
+
+  it('a refund reduces the donation total (apply_donation reverses current_amount)', () => {
+    // 10,000 raised, 3,000 refunded → current_amount = 7,000
+    expect(calcAvailableGross(7000, [])).toBe(7000);
+  });
+
+  it('never goes negative (over-committed edge, e.g. post-request refund)', () => {
+    expect(calcAvailableGross(1000, [req('paid', 5000)])).toBe(0);
+  });
+
+  it('full-balance withdrawal drains to exactly zero (the "Max" flow)', () => {
+    const available = calcAvailableGross(10000, []);
+    const net = calcNetPayout(available); // creator sees & enters 9,600
+    // The client sends the full gross for the Max case:
+    expect(calcAvailableGross(10000, [req('pending_review', available)])).toBe(0);
+    expect(net).toBe(9600);
   });
 });
 

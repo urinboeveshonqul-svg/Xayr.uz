@@ -7,7 +7,7 @@ import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
 import { CampaignFinancials } from '@/components/campaigns/CampaignFinancials';
-import { cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
+import { calcAvailableGross, calcNetPayout, cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
 import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
 export const metadata: Metadata = { title: "Mablag' yechish — Xayr" };
@@ -103,12 +103,12 @@ export default async function CampaignWithdrawPage({ params }: Props) {
       }
     : null;
 
-  // Mirrors campaign_available_balance(): committed = active + paid.
-  const COMMITTED = ['pending_review', 'approved', 'info_requested', 'paid'];
-  const committed = payoutRequests
-    .filter((r) => COMMITTED.includes(r.status))
-    .reduce((sum, r) => sum + r.amount, 0);
-  const available = Math.max(0, (campaign.current_amount ?? 0) - committed);
+  // ONE financial source of truth (lib/payout.ts): the gross available balance
+  // (mirror of campaign_available_balance) and its NET — the exact amount the
+  // creator can request and receive today. Every figure on this page derives
+  // from these two.
+  const available = calcAvailableGross(campaign.current_amount ?? 0, payoutRequests);
+  const availableNet = calcNetPayout(available);
   // Total successfully withdrawn (gross amounts that have left the balance).
   const totalWithdrawn = payoutRequests
     .filter((r) => r.status === 'paid')
@@ -138,16 +138,21 @@ export default async function CampaignWithdrawPage({ params }: Props) {
   }
 
   const cf = dict.campaignFinance;
+  // "Available to withdraw" is the NET — the same number the withdrawal form
+  // shows as its maximum and pays out. upcomingFee is the 4% reserved on the
+  // available gross (charged only when a withdrawal actually happens), so the
+  // books visibly reconcile: raised = available(net) + upcomingFee +
+  // withdrawn(gross) + pending(gross), and withdrawn(gross) = netAmount + platformFee.
   const financialsData = {
     goal: campaign.goal_amount ?? 0,
     raised,
     platformFee,
     providerFee: 0,
+    upcomingFee: available - availableNet,
     netAmount: netToCreator,
     totalWithdrawn,
-    availableBalance: available,
+    availableBalance: availableNet,
     pendingWithdrawal,
-    remainingBalance: available,
   };
   const timeline = [
     { label: cf.tDonation, done: raised > 0 },
@@ -194,11 +199,11 @@ export default async function CampaignWithdrawPage({ params }: Props) {
                 raised: cf.raised,
                 platformFee: cf.platformFee,
                 providerFee: cf.providerFee,
+                upcomingFee: cf.upcomingFee,
                 netAmount: cf.netAmount,
                 totalWithdrawn: cf.totalWithdrawn,
                 availableBalance: cf.availableBalance,
                 pendingWithdrawal: cf.pendingWithdrawal,
-                remainingBalance: cf.remainingBalance,
                 timelineTitle: cf.timelineTitle,
               }}
             />

@@ -51,6 +51,63 @@ export function calcNetPayout(amount: number): number {
   return amount - calcPlatformFee(amount);
 }
 
+/**
+ * Invert the server's fee formula: the smallest GROSS whose net payout is
+ * exactly `net` so'm.
+ *
+ * The creator-facing UI works entirely in NET so'm ("Available to withdraw",
+ * the amount input, "you receive" — all the same number), but the DB keeps its
+ * gross semantics: create_payout_request() receives a gross, deducts it from
+ * the balance and stores payout = gross − round(gross × 0.04). This function is
+ * the bridge: because net(g) = g − round(g·0.04) increases by exactly 0 or 1
+ * per so'm of gross, every net value is reachable, so the amount the creator
+ * types is the amount the server will pay — to the so'm, with no drift between
+ * the preview and the stored row.
+ *
+ * Picking the SMALLEST such gross means that when two grosses yield the same
+ * net (a rounding boundary), the creator is charged the lower fee.
+ */
+export function grossForNet(net: number): number {
+  const n = Math.floor(net);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  let g = Math.round(n / (1 - PLATFORM_FEE_RATE));
+  while (calcNetPayout(g) > n) g -= 1;
+  while (calcNetPayout(g) < n) g += 1;
+  while (g > 0 && calcNetPayout(g - 1) === n) g -= 1;
+  return g;
+}
+
+/**
+ * The minimum the creator can type in NET so'm — the exact net of the server's
+ * gross minimum (grossForNet(MIN_WITHDRAWAL_NET) === MIN_WITHDRAWAL), so the
+ * client gate and the server's `below_minimum` guard agree precisely.
+ */
+export const MIN_WITHDRAWAL_NET = calcNetPayout(MIN_WITHDRAWAL);
+
+/**
+ * Statuses whose gross is committed against the campaign balance. MUST match
+ * the status list inside campaign_available_balance() (supabase/payouts.sql) —
+ * active requests reserve funds; paid requests have left; rejected/cancelled
+ * release them.
+ */
+export const COMMITTED_STATUSES = ['pending_review', 'approved', 'info_requested', 'paid'] as const;
+
+/**
+ * Mirror of campaign_available_balance(): the max GROSS that can leave the
+ * balance today = completed-donation total − Σ gross of committed requests.
+ * The DB function is authoritative (re-checked inside create_payout_request);
+ * this mirror exists so every page derives the number the same way.
+ */
+export function calcAvailableGross(
+  currentAmount: number,
+  requests: { status: string; amount: number }[]
+): number {
+  const committed = requests
+    .filter((r) => (COMMITTED_STATUSES as readonly string[]).includes(r.status))
+    .reduce((sum, r) => sum + r.amount, 0);
+  return Math.max(0, (currentAmount ?? 0) - committed);
+}
+
 export const CARD_TYPES: { value: CardType; label: string }[] = [
   { value: 'uzcard', label: 'UzCard' },
   { value: 'humo', label: 'Humo' },

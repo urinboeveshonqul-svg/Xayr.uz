@@ -6,11 +6,13 @@ export interface CampaignFinancialsData {
   raised: number;
   platformFee: number;
   providerFee: number;
+  /** 4% reserved on the available gross — charged only when a withdrawal happens. */
+  upcomingFee: number;
   netAmount: number;
   totalWithdrawn: number;
+  /** NET — the exact amount the creator can request AND receive today. */
   availableBalance: number;
   pendingWithdrawal: number;
-  remainingBalance: number;
 }
 
 export interface TimelineStage {
@@ -25,28 +27,31 @@ export interface CampaignFinancialsLabels {
   raised: string;
   platformFee: string;
   providerFee: string;
+  upcomingFee: string;
   netAmount: string;
   totalWithdrawn: string;
   availableBalance: string;
   pendingWithdrawal: string;
-  remainingBalance: string;
   timelineTitle: string;
 }
 
-// Ordered by importance: "Available to withdraw" (the max the creator can request
-// today) is the headline, then the figures that make it up — total donations, what
-// has already left the balance (withdrawn + pending), and how withdrawals split
-// into fees vs. what the creator received. `remainingBalance` is intentionally not
-// shown: it equalled `availableBalance` (the same number under two labels), which
-// was the "same money represented differently" confusion.
+// Ordered by importance: "Available to withdraw" (NET — the exact max the creator
+// can request and receive today, same number the withdrawal form shows) is the
+// headline; then total donations; then the fee split (reserved on the available
+// amount / collected on paid withdrawals / provider); then what already left the
+// balance (withdrawn gross, of which netAmount reached the creator), pending
+// requests, and the goal. The rows reconcile visibly:
+//   raised = availableBalance + upcomingFee + totalWithdrawn + pendingWithdrawal
+//   totalWithdrawn = netAmount + platformFee
 const ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Target; strong?: boolean }[] = [
   { key: 'availableBalance', labelKey: 'availableBalance', Icon: Wallet, strong: true },
   { key: 'raised', labelKey: 'raised', Icon: TrendingUp },
-  { key: 'totalWithdrawn', labelKey: 'totalWithdrawn', Icon: Banknote },
-  { key: 'pendingWithdrawal', labelKey: 'pendingWithdrawal', Icon: Hourglass },
+  { key: 'upcomingFee', labelKey: 'upcomingFee', Icon: Percent },
   { key: 'platformFee', labelKey: 'platformFee', Icon: Percent },
   { key: 'providerFee', labelKey: 'providerFee', Icon: CreditCard },
+  { key: 'totalWithdrawn', labelKey: 'totalWithdrawn', Icon: Banknote },
   { key: 'netAmount', labelKey: 'netAmount', Icon: HandCoins },
+  { key: 'pendingWithdrawal', labelKey: 'pendingWithdrawal', Icon: Hourglass },
   { key: 'goal', labelKey: 'goal', Icon: Target },
 ];
 

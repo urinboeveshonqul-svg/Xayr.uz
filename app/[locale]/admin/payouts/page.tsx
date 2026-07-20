@@ -2,13 +2,15 @@ import { Metadata } from 'next';
 import { Wallet } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AdminPayouts, type PayoutRow } from '@/components/admin/AdminPayouts';
+import { COMMITTED_STATUSES } from '@/lib/payout';
 import { isLocale } from '@/i18n/config';
 
 export const metadata: Metadata = { title: "To'lovlar — Admin" };
 export const dynamic = 'force-dynamic';
 
 // Mirrors the DB campaign_available_balance(): committed = active + paid.
-const COMMITTED = ['pending_review', 'approved', 'info_requested', 'paid'];
+// Shared with the creator withdraw page via lib/payout.ts (one source of truth).
+const COMMITTED: readonly string[] = COMMITTED_STATUSES;
 
 interface Props {
   params: Promise<{ locale: string }>;
