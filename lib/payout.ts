@@ -112,6 +112,39 @@ export function calcAvailableGross(
   return Math.max(0, (currentAmount ?? 0) - committed);
 }
 
+/**
+ * THE ONE "Available to withdraw" calculation for the whole app.
+ *
+ * "Available to withdraw" always means the NET so'm the creator can actually
+ * request and receive today — gross balance minus the platform fee (minus any
+ * provider fee once one exists). Every human-facing surface that shows this
+ * concept MUST route through here, so there is exactly one formula and no
+ * screen can contradict another:
+ *   • creator dashboard card + per-campaign financial summary
+ *   • the withdrawal dialog (headline, Maximum, Max button, amount ceiling)
+ * The gross figure (`calcAvailableGross`) stays internal — it is only used to
+ * drive the server's over-withdrawal guard and the net→gross conversion, never
+ * displayed as "available".
+ */
+export function calcAvailableNet(
+  currentAmount: number,
+  requests: { status: string; amount: number }[]
+): number {
+  return calcNetPayout(calcAvailableGross(currentAmount, requests));
+}
+
+/**
+ * Net a gross "available/withdrawable" AGGREGATE for display (e.g. the admin
+ * platform-wide "available for withdrawal" tile, which the DB view computes
+ * gross). Uses the same fee rule as everything else. For a platform sum this is
+ * within sub-so'm-per-campaign of Σ per-campaign net (each net is rounded
+ * individually) — immaterial for an admin metric, and it keeps "available for
+ * withdrawal" meaning the same NET everywhere it is labelled as such.
+ */
+export function netAvailableFromGross(grossAvailable: number): number {
+  return calcNetPayout(Math.max(0, grossAvailable));
+}
+
 export const CARD_TYPES: { value: CardType; label: string }[] = [
   { value: 'uzcard', label: 'UzCard' },
   { value: 'humo', label: 'Humo' },

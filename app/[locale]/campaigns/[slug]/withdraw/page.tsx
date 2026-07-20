@@ -7,7 +7,7 @@ import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
 import { CampaignFinancials } from '@/components/campaigns/CampaignFinancials';
-import { calcAvailableGross, calcNetPayout, cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
+import { calcAvailableGross, calcAvailableNet, cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
 import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
 export const metadata: Metadata = { title: "Mablag' yechish — Xayr" };
@@ -103,12 +103,13 @@ export default async function CampaignWithdrawPage({ params }: Props) {
       }
     : null;
 
-  // ONE financial source of truth (lib/payout.ts): the gross available balance
-  // (mirror of campaign_available_balance) and its NET — the exact amount the
-  // creator can request and receive today. Every figure on this page derives
-  // from these two.
+  // ONE financial source of truth (lib/payout.ts). `availableNet` — the exact
+  // amount the creator can request AND receive today — is THE "Available to
+  // withdraw" figure shown on every surface (calcAvailableNet). The gross
+  // (`available`) stays internal: it drives the reserved-fee line and the
+  // net→gross conversion for the server guard, and is never shown as "available".
   const available = calcAvailableGross(campaign.current_amount ?? 0, payoutRequests);
-  const availableNet = calcNetPayout(available);
+  const availableNet = calcAvailableNet(campaign.current_amount ?? 0, payoutRequests);
   // Total successfully withdrawn (gross amounts that have left the balance).
   const totalWithdrawn = payoutRequests
     .filter((r) => r.status === 'paid')

@@ -4,6 +4,8 @@ import {
   calcNetPayout,
   grossForNet,
   calcAvailableGross,
+  calcAvailableNet,
+  netAvailableFromGross,
   PLATFORM_FEE_RATE,
   MIN_WITHDRAWAL,
   MIN_WITHDRAWAL_NET,
@@ -127,6 +129,56 @@ describe('available balance (mirrors campaign_available_balance: committed = act
     // The client sends the full gross for the Max case:
     expect(calcAvailableGross(10000, [req('pending_review', available)])).toBe(0);
     expect(net).toBe(9600);
+  });
+});
+
+describe('Available to withdraw is ALWAYS the net (calcAvailableNet — the single display source)', () => {
+  const req = (status: string, amount: number) => ({ status, amount });
+
+  // The exact scenarios from the task. "Available to withdraw" must equal what
+  // the creator actually receives — never the gross balance.
+  it('10,000 gross balance → shows 9,600 (never 10,000)', () => {
+    expect(calcAvailableNet(10000, [])).toBe(9600);
+    expect(calcAvailableNet(10000, [])).not.toBe(10000);
+  });
+
+  it('100,000 gross balance → shows 96,000', () => {
+    expect(calcAvailableNet(100000, [])).toBe(96000);
+  });
+
+  it('1,000,000 gross balance → shows 960,000', () => {
+    expect(calcAvailableNet(1000000, [])).toBe(960000);
+  });
+
+  it('the displayed available always equals the payout of withdrawing it all', () => {
+    for (const balance of [10000, 100000, 1000000, 12345, 5000, 987654]) {
+      const shown = calcAvailableNet(balance, []);
+      const gross = grossForNet(shown); // what the client sends on "Max"
+      expect(calcNetPayout(gross)).toBe(shown); // server pays exactly the shown amount
+      expect(gross).toBeLessThanOrEqual(balance); // never over-withdraws
+    }
+  });
+
+  it('multiple withdrawals: available nets the remaining gross', () => {
+    // 100,000 raised; 30,000 paid + 20,000 pending committed → 50,000 gross left
+    const reqs = [req('paid', 30000), req('pending_review', 20000)];
+    expect(calcAvailableGross(100000, reqs)).toBe(50000);
+    expect(calcAvailableNet(100000, reqs)).toBe(48000); // 50,000 − 4%
+  });
+
+  it('a pending withdrawal reserves its gross, and the net reflects it', () => {
+    expect(calcAvailableNet(100000, [req('pending_review', 100000)])).toBe(0);
+  });
+
+  it('a refund lowers current_amount, so the net available drops with it', () => {
+    // 100,000 raised then 40,000 refunded → current_amount 60,000
+    expect(calcAvailableNet(60000, [])).toBe(57600); // 60,000 − 4%
+  });
+
+  it('admin platform aggregate uses the same fee rule', () => {
+    expect(netAvailableFromGross(1000000)).toBe(960000);
+    expect(netAvailableFromGross(0)).toBe(0);
+    expect(netAvailableFromGross(-5)).toBe(0);
   });
 });
 
