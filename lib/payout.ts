@@ -145,6 +145,46 @@ export function netAvailableFromGross(grossAvailable: number): number {
   return calcNetPayout(Math.max(0, grossAvailable));
 }
 
+export interface PayoutBreakdown {
+  /** Gross requested — the amount that leaves the campaign balance. */
+  gross: number;
+  /** Platform fee actually charged on THIS request (stored, not re-derived). */
+  fee: number;
+  /**
+   * Net the creator receives AND the exact amount the admin must transfer.
+   * fee + net === gross (guaranteed by the DB CHECK commission+payout=amount).
+   */
+  net: number;
+  /** Effective fee rate for THIS row as a whole percent (0/3/4…), for labels. */
+  ratePercent: number;
+}
+
+/**
+ * THE single source of truth for reading a STORED payout request's three
+ * figures. Every surface that shows a submitted/approved/paid withdrawal —
+ * creator history, the withdrawal-confirmation, the admin review page — MUST
+ * read gross/fee/net through here so no screen can contradict another.
+ *
+ * It reads the values stored at request time and NEVER re-derives the fee for an
+ * existing row: the rate has changed over time (0% pre-#26, 3% for #26..#50, 4%
+ * from #51), so recomputing would misstate money that already moved. The DB
+ * CHECK `commission_amount + payout_amount = amount` guarantees the three
+ * reconcile. For a NEW request preview use calcPlatformFee / calcNetPayout
+ * (mirror of the server's round(amount*0.04)); those agree with this because the
+ * server stores exactly what they compute.
+ */
+export function payoutBreakdown(row: {
+  amount: number;
+  commission_amount?: number | null;
+  payout_amount?: number | null;
+}): PayoutBreakdown {
+  const gross = row.amount ?? 0;
+  const fee = row.commission_amount ?? 0;
+  const net = row.payout_amount ?? Math.max(0, gross - fee);
+  const ratePercent = gross > 0 ? Math.round((fee / gross) * 100) : 0;
+  return { gross, fee, net, ratePercent };
+}
+
 export const CARD_TYPES: { value: CardType; label: string }[] = [
   { value: 'uzcard', label: 'UzCard' },
   { value: 'humo', label: 'Humo' },

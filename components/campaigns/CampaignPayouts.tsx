@@ -12,6 +12,7 @@ import {
   MIN_WITHDRAWAL_NET,
   calcNetPayout,
   grossForNet,
+  payoutBreakdown,
   maskCard,
   cardTypeLabel,
 } from '@/lib/payout';
@@ -393,10 +394,9 @@ export function CampaignPayouts({
                   className="w-full text-left rounded-xl border border-gray-100 dark:border-gray-800 p-3 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <div className="min-w-0">
-                    {/* NET actually/to-be received — matches the amount the creator
-                        entered. Historical rows show the payout stored at their own
-                        rate (0% pre-fee, 3% pre-#51), never re-derived. */}
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{formatAmount(r.payout_amount ?? r.amount)} so&apos;m</p>
+                    {/* NET received — via the shared payoutBreakdown() (single
+                        source of truth); historical rows keep their own rate. */}
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{formatAmount(payoutBreakdown(r).net)} so&apos;m</p>
                     <p className="text-[11px] text-gray-400">{timeAgo(r.created_at)}</p>
                   </div>
                   <span className={`badge ${stCls}`}>{stLabel}</span>
@@ -626,8 +626,8 @@ export function CampaignPayouts({
                 <span className={`badge ${STATUS_CLS[selected.status] ?? STATUS_CLS.pending_review}`}>
                   {psLabel[selected.status] ?? psLabel.pending_review}
                 </span>
-                {/* Headline = the NET the creator receives (what they entered). */}
-                <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatAmount(selected.payout_amount ?? selected.amount)} so&apos;m</p>
+                {/* Headline = the NET the creator receives (via shared helper). */}
+                <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatAmount(payoutBreakdown(selected).net)} so&apos;m</p>
               </div>
               <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600" aria-label={t('ux.close')}>
                 <X className="w-5 h-5" />
@@ -640,9 +640,9 @@ export function CampaignPayouts({
                   deliberately not printed — rows predate the fee (0%), or were made
                   at 3% before #51 — so asserting today's rate here would misstate
                   money that already moved. */}
-              <p className="text-gray-500">{t('dash.grossDeducted')}: <span className="font-semibold text-gray-700 dark:text-gray-300">{formatAmount(selected.amount)} so&apos;m</span></p>
-              <p className="text-gray-500">{t('dash.commission')}: <span className="font-semibold text-red-600">−{formatAmount(selected.commission_amount ?? 0)} so&apos;m</span></p>
-              <p className="text-gray-500">{t('dash.youReceive')}: <span className="font-black text-brand-600">{formatAmount(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.grossDeducted')}: <span className="font-semibold text-gray-700 dark:text-gray-300">{formatAmount(payoutBreakdown(selected).gross)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.commission')}: <span className="font-semibold text-red-600">−{formatAmount(payoutBreakdown(selected).fee)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.youReceive')}: <span className="font-black text-brand-600">{formatAmount(payoutBreakdown(selected).net)} so&apos;m</span></p>
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">{t('dash.paymentDetails')}</p>
                 {selected.snap_card_type ? (

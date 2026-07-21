@@ -6,6 +6,7 @@ import {
   calcAvailableGross,
   calcAvailableNet,
   netAvailableFromGross,
+  payoutBreakdown,
   PLATFORM_FEE_RATE,
   MIN_WITHDRAWAL,
   MIN_WITHDRAWAL_NET,
@@ -14,6 +15,51 @@ import {
   maskCardDisplay,
 } from '@/lib/payout';
 import { formatMoney, formatAmount } from '@/lib/utils';
+
+describe('payoutBreakdown — single source of truth for a STORED request (gross/fee/net)', () => {
+  it('reads stored values; fee + net always reconciles to gross', () => {
+    for (const [gross, fee] of [[100000, 4000], [10000, 400], [999999, 40000], [5208, 208]] as const) {
+      const bd = payoutBreakdown({ amount: gross, commission_amount: fee, payout_amount: gross - fee });
+      expect(bd.gross).toBe(gross);
+      expect(bd.fee).toBe(fee);
+      expect(bd.net).toBe(gross - fee);
+      expect(bd.fee + bd.net).toBe(bd.gross); // the DB CHECK, mirrored
+    }
+  });
+
+  it('0% legacy rows (pre-fee): net === gross, fee 0, rate 0%', () => {
+    const bd = payoutBreakdown({ amount: 50000, commission_amount: 0, payout_amount: 50000 });
+    expect(bd).toMatchObject({ gross: 50000, fee: 0, net: 50000, ratePercent: 0 });
+  });
+
+  it('3% historical rows keep their stored rate — never re-derived to 4%', () => {
+    // A #26..#50 row charged 3%: 100000 -> 3000 fee, 97000 net.
+    const bd = payoutBreakdown({ amount: 100000, commission_amount: 3000, payout_amount: 97000 });
+    expect(bd.fee).toBe(3000);       // NOT round(100000*0.04)=4000
+    expect(bd.net).toBe(97000);
+    expect(bd.ratePercent).toBe(3);
+  });
+
+  it('4% current rows: 10,000 gross -> 400 fee -> 9,600 net (the admin-transfer amount)', () => {
+    const bd = payoutBreakdown({ amount: 10000, commission_amount: 400, payout_amount: 9600 });
+    expect(bd.net).toBe(9600);       // what the admin must transfer
+    expect(bd.ratePercent).toBe(4);
+    // matches the forward calc used for a NEW request preview:
+    expect(bd.fee).toBe(calcPlatformFee(10000));
+    expect(bd.net).toBe(calcNetPayout(10000));
+  });
+
+  it('falls back to gross-minus-fee when payout_amount is missing (defensive)', () => {
+    expect(payoutBreakdown({ amount: 10000, commission_amount: 400 }).net).toBe(9600);
+    expect(payoutBreakdown({ amount: 10000 }).net).toBe(10000); // no fee recorded
+  });
+
+  it('admin transfer amount never shows the gross for a 4% request (formatted, exact)', () => {
+    const bd = payoutBreakdown({ amount: 10000, commission_amount: 400, payout_amount: 9600 });
+    expect(formatAmount(bd.net)).not.toBe(formatAmount(bd.gross)); // 9 600 != 10 000
+    expect(formatAmount(bd.net).replace(/\D/g, '')).toBe('9600');
+  });
+});
 
 describe('money formatting on withdrawal/financial surfaces (regression: net looked like gross)', () => {
   it('formatMoney ABBREVIATES + rounds — 9,600 becomes "10 ming", indistinguishable from gross', () => {

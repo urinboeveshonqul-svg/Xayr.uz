@@ -8,8 +8,8 @@ import {
   Wallet, X, ExternalLink, Loader2, Check, Ban, HelpCircle, BadgeDollarSign, Clock, User,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { formatMoney, timeAgo } from '@/lib/utils';
-import { formatCard, cardTypeLabel } from '@/lib/payout';
+import { formatAmount, timeAgo } from '@/lib/utils';
+import { formatCard, cardTypeLabel, payoutBreakdown } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { PayoutRequest, PayoutRequestEvent } from '@/types';
 
@@ -72,6 +72,9 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
     [initialRows, filter]
   );
   const selected = initialRows.find((r) => r.id === selectedId) ?? null;
+  // Single source of truth for the request's gross / fee / net — same helper the
+  // creator surfaces use, so the admin's "transfer" figure can never disagree.
+  const bd = selected ? payoutBreakdown(selected) : null;
   const pendingCount = initialRows.filter((r) => r.status === 'pending_review').length;
 
   // Platform revenue from collected commissions (paid payouts only).
@@ -149,7 +152,7 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
         ].map((s) => (
           <div key={s.label} className="card p-4 text-center">
             <div className="text-base sm:text-lg font-black text-brand-600 break-words leading-tight">
-              {formatMoney(s.value)} so&apos;m
+              {formatAmount(s.value)} so&apos;m
             </div>
             <div className="text-xs text-gray-400 mt-1">{s.label}</div>
           </div>
@@ -199,8 +202,9 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
                 </div>
                 <div className="flex items-center gap-4 flex-shrink-0">
                   <div className="text-right">
-                    <div className="text-sm font-black text-gray-900 dark:text-white">{formatMoney(r.amount)} so&apos;m</div>
-                    <div className="text-[11px] text-gray-400">Mavjud: {formatMoney(r.available)}</div>
+                    {/* Headline = NET to transfer; sub = gross requested. */}
+                    <div className="text-sm font-black text-brand-700 dark:text-brand-400">{formatAmount(payoutBreakdown(r).net)} so&apos;m</div>
+                    <div className="text-[11px] text-gray-400">So&apos;raldi: {formatAmount(r.amount)} so&apos;m</div>
                   </div>
                   <span className={`badge ${st.cls}`}>{st.label}</span>
                 </div>
@@ -245,36 +249,51 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
               {/* Amounts */}
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
-                  <div className="text-sm font-black text-gray-900 dark:text-white">{formatMoney(selected.amount)}</div>
+                  <div className="text-sm font-black text-gray-900 dark:text-white">{formatAmount(selected.amount)}</div>
                   <div className="text-[11px] text-gray-400">So&apos;ralgan</div>
                 </div>
                 <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
-                  <div className="text-sm font-black text-gray-900 dark:text-white">{formatMoney(selected.available)}</div>
+                  <div className="text-sm font-black text-gray-900 dark:text-white">{formatAmount(selected.available)}</div>
                   <div className="text-[11px] text-gray-400">Mavjud</div>
                 </div>
                 <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
-                  <div className="text-sm font-black text-gray-900 dark:text-white">{formatMoney(selected.raised)}</div>
+                  <div className="text-sm font-black text-gray-900 dark:text-white">{formatAmount(selected.raised)}</div>
                   <div className="text-[11px] text-gray-400">Yig&apos;ilgan</div>
                 </div>
               </div>
 
-              {/* Commission breakdown, charged to the creator. Values are read
-                  from the row — never re-derived — because the rate has changed
-                  over time (0% pre-#26, 3% under #26..#50, 4% from #51). */}
-              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">So&apos;ralgan miqdor</span>
-                  <span className="font-bold text-gray-900 dark:text-white">{formatMoney(selected.amount)} so&apos;m</span>
+              {/* Commission breakdown + the prominent transfer instruction. All
+                  three figures come from payoutBreakdown() (stored values, never
+                  re-derived — the rate has changed: 0% pre-#26, 3% #26..#50, 4%
+                  from #51), so fee + net === gross always reconciles. */}
+              {bd && (
+                <div className="space-y-3">
+                  <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">So&apos;ralgan miqdor</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{formatAmount(bd.gross)} so&apos;m</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Platforma komissiyasi ({bd.ratePercent}%)</span>
+                      <span className="font-bold text-red-600">−{formatAmount(bd.fee)} so&apos;m</span>
+                    </div>
+                  </div>
+
+                  {/* PROMINENT: the exact NET the admin must transfer. This — not
+                      the gross — is what leaves the admin's hands. */}
+                  <div className="rounded-xl border-2 border-brand-500 bg-brand-50 dark:bg-brand-900/20 p-4">
+                    <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-400">
+                      <BadgeDollarSign className="w-4 h-4" /> Admin o&apos;tkazishi kerak
+                    </div>
+                    <div className="mt-1 text-2xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">
+                      {formatAmount(bd.net)} so&apos;m
+                    </div>
+                    <p className="mt-1.5 text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                      Aynan shu <strong>sof miqdorni</strong> quyidagi kartaga o&apos;tkazing. Platforma komissiyasi ({formatAmount(bd.fee)} so&apos;m) XAYR hisobiga qoladi — uni o&apos;tkazmang.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Platforma komissiyasi</span>
-                  <span className="font-bold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span>
-                </div>
-                <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
-                  <span className="font-bold text-gray-900 dark:text-white">Egaga to&apos;lanadi</span>
-                  <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span>
-                </div>
-              </div>
+              )}
 
               {/* Owner + method */}
               <div className="text-sm space-y-1.5">
