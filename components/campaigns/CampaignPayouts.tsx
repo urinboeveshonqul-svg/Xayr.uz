@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil } from 'lucide-react';
+import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
@@ -207,6 +207,19 @@ export function CampaignPayouts({
   const previewNet = Math.floor(Number(amount)) || 0;
   const previewRemaining = Math.max(0, availableNet - previewNet);
 
+  // ── Live, localized amount validation (custom — no native browser popup) ──
+  // Valid range is [MIN_WITHDRAWAL_NET, availableNet] in NET so'm. Errors show
+  // only once something is typed, update on every keystroke, and gate Submit.
+  const amountEntered = amount.trim() !== '';
+  const amountTooLow = amountEntered && previewNet < MIN_WITHDRAWAL_NET;
+  const amountTooHigh = amountEntered && previewNet > availableNet;
+  const amountValid = amountEntered && !amountTooLow && !amountTooHigh;
+  const amountError: { msg: string; hint: string | null } | null = amountTooHigh
+    ? { msg: t('dash.withdrawErrExceeds'), hint: t('dash.withdrawErrMaxToday', { max: `${formatAmount(availableNet)} so'm` }) }
+    : amountTooLow
+    ? { msg: t('dash.withdrawErrBelowMin', { min: `${formatAmount(MIN_WITHDRAWAL_NET)} so'm` }), hint: null }
+    : null;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const net = Math.floor(Number(amount));
@@ -384,7 +397,7 @@ export function CampaignPayouts({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
           onClick={(e) => { if (e.target === e.currentTarget) resetForm(); }}
         >
-          <form onSubmit={submit} className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-4 animate-pop">
+          <form onSubmit={submit} noValidate className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 my-8 space-y-4 animate-pop">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-gray-900 dark:text-white">{t('dash.withdrawBtn')}</h3>
               <button type="button" onClick={resetForm} className="text-gray-400 hover:text-gray-600" aria-label={t('ux.close')}>
@@ -414,15 +427,19 @@ export function CampaignPayouts({
             </div>
 
             <div>
-              <label className="label">{t('dash.withdrawAmount')}</label>
+              <label className="label" htmlFor="withdraw-amount">{t('dash.withdrawAmount')}</label>
               <div className="relative">
                 <input
+                  id="withdraw-amount"
                   type="number"
+                  inputMode="numeric"
                   min={MIN_WITHDRAWAL_NET}
                   max={availableNet}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="input pr-16"
+                  aria-invalid={!!amountError}
+                  aria-describedby={amountError ? 'withdraw-amount-error' : 'withdraw-amount-hint'}
+                  className={`input pr-16 ${amountError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="0"
                 />
                 <button
@@ -433,13 +450,28 @@ export function CampaignPayouts({
                   {t('dash.withdrawMax')}
                 </button>
               </div>
-              {/* Min/max hints — both in NET so'm (the unit the creator types in);
-                  the max always mirrors the available amount and updates
-                  automatically when it changes (no hardcoded maximum). */}
-              <div className="mt-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>{t('dash.withdrawMinLabel')}: {formatAmount(MIN_WITHDRAWAL_NET)} so&apos;m</span>
-                <span>{t('dash.withdrawMaxLabel')}: {formatAmount(availableNet)} so&apos;m</span>
-              </div>
+              {/* Custom localized validation, replacing the browser's native popup.
+                  Announced to screen readers (role="alert" + aria-describedby on the
+                  input) and updated live on every keystroke. */}
+              {amountError ? (
+                <p id="withdraw-amount-error" role="alert" className="mt-1.5 flex items-start gap-1.5 text-xs text-red-600 dark:text-red-400">
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  <span>
+                    {amountError.msg}
+                    {amountError.hint && (
+                      <span className="block font-semibold">{amountError.hint}</span>
+                    )}
+                  </span>
+                </p>
+              ) : (
+                /* Min/max hints — both in NET so'm (the unit the creator types in);
+                   the max always mirrors the available amount and updates
+                   automatically when it changes (no hardcoded maximum). */
+                <div id="withdraw-amount-hint" className="mt-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>{t('dash.withdrawMinLabel')}: {formatAmount(MIN_WITHDRAWAL_NET)} so&apos;m</span>
+                  <span>{t('dash.withdrawMaxLabel')}: {formatAmount(availableNet)} so&apos;m</span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -503,7 +535,7 @@ export function CampaignPayouts({
 
             <div className="flex justify-end gap-2">
               <button type="button" onClick={resetForm} className="btn-ghost px-4 py-2 text-sm">{t('ux.cancel')}</button>
-              <button type="submit" disabled={submitting} className="btn-primary px-5 py-2 text-sm">
+              <button type="submit" disabled={submitting || !amountValid} className="btn-primary px-5 py-2 text-sm">
                 {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('dash.submitting')}</> : <><Send className="w-4 h-4" /> {t('ux.submit')}</>}
               </button>
             </div>
