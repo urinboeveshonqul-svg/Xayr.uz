@@ -454,15 +454,28 @@ export function CampaignPayouts({
                   Announced to screen readers (role="alert" + aria-describedby on the
                   input) and updated live on every keystroke. */}
               {amountError ? (
-                <p id="withdraw-amount-error" role="alert" className="mt-1.5 flex items-start gap-1.5 text-xs text-red-600 dark:text-red-400">
-                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <span>
-                    {amountError.msg}
-                    {amountError.hint && (
-                      <span className="block font-semibold">{amountError.hint}</span>
-                    )}
-                  </span>
-                </p>
+                <div className="mt-1.5">
+                  <p id="withdraw-amount-error" role="alert" className="flex items-start gap-1.5 text-xs text-red-600 dark:text-red-400">
+                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <span>
+                      {amountError.msg}
+                      {amountError.hint && (
+                        <span className="block font-semibold">{amountError.hint}</span>
+                      )}
+                    </span>
+                  </p>
+                  {/* When over the maximum, offer a one-tap fill of the exact max —
+                      the preview then appears immediately (max is a valid amount). */}
+                  {amountTooHigh && (
+                    <button
+                      type="button"
+                      onClick={() => setAmount(String(availableNet))}
+                      className="mt-1 ml-5 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                    >
+                      {t('dash.useMaxAmount')}
+                    </button>
+                  )}
+                </div>
               ) : (
                 /* Min/max hints — both in NET so'm (the unit the creator types in);
                    the max always mirrors the available amount and updates
@@ -510,14 +523,24 @@ export function CampaignPayouts({
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm" aria-live="polite">
                 <p className="flex items-center gap-2 font-semibold text-gray-700 dark:text-gray-200">
                   <Info className="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
-                  {t('dash.previewUnavailableTitle')}
+                  {t('dash.previewTitle')}
                 </p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                  {t('dash.previewUnavailableBody', {
+                  {t('dash.previewIntro', {
                     min: `${formatAmount(MIN_WITHDRAWAL_NET)} so'm`,
                     max: `${formatAmount(availableNet)} so'm`,
                   })}
                 </p>
+                <ul className="mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                  <li className="flex items-center gap-2">
+                    <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" aria-hidden="true" />
+                    {t('dash.previewBullet1')}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1 h-1 rounded-full bg-gray-400 flex-shrink-0" aria-hidden="true" />
+                    {t('dash.previewBullet2')}
+                  </li>
+                </ul>
               </div>
             )}
 
