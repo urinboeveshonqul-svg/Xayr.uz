@@ -62,6 +62,7 @@ const ACTION_KEYS: Record<string, string> = {
 // message follows the active language (was a hardcoded Uzbek map).
 const ERR_KEYS: Record<string, string> = {
   auth_required:            'toasts.payoutErrAuthRequired',
+  campaign_not_found:       'toasts.payoutErrCampaignNotFound',
   not_campaign_owner:       'toasts.payoutErrNotOwner',
   campaign_not_approved:    'toasts.payoutErrNotApproved',
   owner_not_verified:       'toasts.payoutErrNotVerified',
@@ -70,7 +71,14 @@ const ERR_KEYS: Record<string, string> = {
   invalid_method:           'toasts.payoutErrInvalidMethod',
   active_request_exists:    'toasts.payoutErrActiveExists',
   amount_exceeds_available: 'toasts.payoutErrExceedsAvailable',
+  insufficient_balance:     'toasts.payoutErrExceedsAvailable',
+  below_minimum:            'toasts.payoutErrBelowMinimum',
 };
+
+// Every code the create_payout_request RPC can `raise` — used to tell an
+// expected business-rule rejection (show its localized message) from an
+// unexpected server/DB fault (show a friendly fallback + log the raw error).
+const KNOWN_RPC_ERRORS = new Set([...Object.keys(ERR_KEYS), 'below_minimum']);
 
 export function CampaignPayouts({
   campaignId,
@@ -105,7 +113,10 @@ export function CampaignPayouts({
   const errMsg = (code: string): string => {
     if (code === 'below_minimum') return t('toasts.payoutErrBelowMinimum', { min: formatAmount(MIN_WITHDRAWAL_NET) });
     const key = ERR_KEYS[code];
-    return key ? t(key) : t('toasts.generic');
+    // A mapped business-rule code shows its own message; anything else (a raw
+    // Postgres/PostgREST fault) shows a friendly, actionable localized fallback
+    // — never a raw backend string, and never a vague "something went wrong".
+    return key ? t(key) : t('toasts.withdrawFailed');
   };
   const psLabel: Record<string, string> = {
     pending_review: t('dash.psPending'),
@@ -247,10 +258,31 @@ export function CampaignPayouts({
         p_amount: gross,
         p_notes: notes.trim(),
       });
-      if (error) { toast.error(errMsg(error.message)); return; }
+      if (error) {
+        // NEVER hide the error. Business-rule rejections (a `raise`d code) are
+        // expected; anything else is a real server/DB fault worth logging in
+        // full (message + SQLSTATE + details + hint) for debugging. The creator
+        // only ever sees a friendly, localized message.
+        if (!KNOWN_RPC_ERRORS.has(error.message)) {
+          console.error('[withdraw] create_payout_request failed', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            campaignId,
+            gross,
+          });
+        }
+        toast.error(errMsg(error.message));
+        return;
+      }
       toast.success(t('toasts.withdrawRequested'));
       resetForm();
       router.refresh();
+    } catch (err) {
+      // Network/unexpected client-side failure — log it, show a friendly message.
+      console.error('[withdraw] create_payout_request threw', err);
+      toast.error(t('toasts.withdrawFailed'));
     } finally {
       setSubmitting(false);
     }

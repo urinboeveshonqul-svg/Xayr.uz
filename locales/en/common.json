@@ -651,6 +651,8 @@
     "reportSubmittedReview": "Report submitted for review",
     "reportSubmittedFinal": "Final report submitted",
     "payoutErrAuthRequired": "Sign-in required",
+    "payoutErrCampaignNotFound": "Campaign not found",
+    "withdrawFailed": "Could not submit your withdrawal request. Please try again, or contact support if it keeps happening.",
     "payoutErrNotOwner": "No permission",
     "payoutErrNotApproved": "Campaign not approved",
     "payoutErrNotVerified": "Your account is not verified",

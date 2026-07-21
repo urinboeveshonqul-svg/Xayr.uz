@@ -651,6 +651,8 @@
     "reportSubmittedReview": "Hisobot ko'rib chiqishga yuborildi",
     "reportSubmittedFinal": "Yakuniy hisobot yuborildi",
     "payoutErrAuthRequired": "Kirish talab qilinadi",
+    "payoutErrCampaignNotFound": "Kampaniya topilmadi",
+    "withdrawFailed": "Yechish so'rovini yuborib bo'lmadi. Qayta urinib ko'ring yoki muammo takrorlansa qo'llab-quvvatlashga murojaat qiling.",
     "payoutErrNotOwner": "Ruxsat yo'q",
     "payoutErrNotApproved": "Kampaniya tasdiqlanmagan",
     "payoutErrNotVerified": "Hisobingiz tasdiqlanmagan",

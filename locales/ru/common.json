@@ -651,6 +651,8 @@
     "reportSubmittedReview": "Отчёт отправлен на проверку",
     "reportSubmittedFinal": "Итоговый отчёт отправлен",
     "payoutErrAuthRequired": "Требуется вход",
+    "payoutErrCampaignNotFound": "Кампания не найдена",
+    "withdrawFailed": "Не удалось отправить запрос на вывод. Попробуйте ещё раз или обратитесь в поддержку, если проблема повторяется.",
     "payoutErrNotOwner": "Нет доступа",
     "payoutErrNotApproved": "Кампания не одобрена",
     "payoutErrNotVerified": "Ваш аккаунт не верифицирован",
