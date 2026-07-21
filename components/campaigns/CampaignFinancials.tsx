@@ -37,12 +37,14 @@ export interface CampaignFinancialsLabels {
 //                    + pendingWithdrawals + availableBalance
 // Everything except donations is NET/realized, so the figures never conflict
 // with the withdrawal dialog or history (which also show net).
-const ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Wallet }[] = [
+// `deduction` rows are shown as negatives (e.g. "−400 so'm") so the list reads
+// as a subtraction: Total donations − fees − withdrawals = Available to withdraw.
+const ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Wallet; deduction?: boolean }[] = [
   { key: 'totalDonations', labelKey: 'totalDonations', Icon: TrendingUp },
-  { key: 'platformFee', labelKey: 'platformFee', Icon: Percent },
-  { key: 'providerFee', labelKey: 'providerFee', Icon: CreditCard },
-  { key: 'completedWithdrawals', labelKey: 'completedWithdrawals', Icon: Banknote },
-  { key: 'pendingWithdrawals', labelKey: 'pendingWithdrawals', Icon: Hourglass },
+  { key: 'platformFee', labelKey: 'platformFee', Icon: Percent, deduction: true },
+  { key: 'providerFee', labelKey: 'providerFee', Icon: CreditCard, deduction: true },
+  { key: 'completedWithdrawals', labelKey: 'completedWithdrawals', Icon: Banknote, deduction: true },
+  { key: 'pendingWithdrawals', labelKey: 'pendingWithdrawals', Icon: Hourglass, deduction: true },
 ];
 
 /**
@@ -61,6 +63,9 @@ export function CampaignFinancials({
   labels: CampaignFinancialsLabels;
 }) {
   const money = (n: number) => `${formatMoney(n)} so'm`;
+  // Deductions render as "−X so'm" (only when non-zero, so a real 0 stays "0 so'm").
+  const signed = (n: number, deduction?: boolean) =>
+    deduction && n > 0 ? `−${money(n)}` : money(n);
 
   return (
     <section className="card p-5 sm:p-6 mb-6">
@@ -68,14 +73,14 @@ export function CampaignFinancials({
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{labels.subtitle}</p>
 
       <dl className="divide-y divide-gray-100 dark:divide-gray-800">
-        {ROWS.map(({ key, labelKey, Icon }) => (
+        {ROWS.map(({ key, labelKey, Icon, deduction }) => (
           <div key={key} className="flex items-center justify-between gap-3 py-2.5">
             <dt className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 min-w-0">
               <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
               <span className="min-w-0">{labels[labelKey]}</span>
             </dt>
-            <dd className="tabular-nums text-right flex-shrink-0 text-sm font-semibold text-gray-700 dark:text-gray-300">
-              {money(data[key])}
+            <dd className={`tabular-nums text-right flex-shrink-0 text-sm font-semibold ${deduction && data[key] > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
+              {signed(data[key], deduction)}
             </dd>
           </div>
         ))}
