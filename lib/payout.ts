@@ -46,47 +46,14 @@ export function calcPlatformFee(amount: number): number {
   return Math.round(amount * PLATFORM_FEE_RATE);
 }
 
-/** Preview the net a creator receives for a NEW withdrawal of `amount` so'm. */
+/**
+ * Preview the NET a creator receives for a NEW GROSS withdrawal of `amount` so'm.
+ * The creator ALWAYS enters the gross; this is what the admin then transfers.
+ * Forward direction only (gross → net); there is no net → gross conversion.
+ */
 export function calcNetPayout(amount: number): number {
   return amount - calcPlatformFee(amount);
 }
-
-/**
- * Invert the server's fee formula: the smallest GROSS whose net payout is
- * exactly `net` so'm.
- *
- * The creator-facing UI works entirely in NET so'm ("Available to withdraw",
- * the amount input, "you receive" — all the same number), but the DB keeps its
- * gross semantics: create_payout_request() receives a gross, deducts it from
- * the balance and stores payout = gross − round(gross × 0.04). This function is
- * the bridge: because net(g) = g − round(g·0.04) increases by exactly 0 or 1
- * per so'm of gross, every net value is reachable, so the amount the creator
- * types is the amount the server will pay — to the so'm, with no drift between
- * the preview and the stored row.
- *
- * Picking the SMALLEST such gross means that when two grosses yield the same
- * net (a rounding boundary), the creator is charged the lower fee.
- */
-export function grossForNet(net: number): number {
-  const n = Math.floor(net);
-  if (!Number.isFinite(n) || n <= 0) return 0;
-  let g = Math.round(n / (1 - PLATFORM_FEE_RATE));
-  while (calcNetPayout(g) > n) g -= 1;
-  while (calcNetPayout(g) < n) g += 1;
-  while (g > 0 && calcNetPayout(g - 1) === n) g -= 1;
-  return g;
-}
-
-/**
- * The minimum the creator can type in NET so'm. Deliberately the same round
- * 5,000 the platform documents everywhere (legal pages, guides) rather than the
- * exact net of the server's gross minimum (4,800) — a clean, familiar number
- * beats a technically-derived odd one on a trust surface. Strictly SAFE: any
- * net ≥ 5,000 converts to a gross ≥ grossForNet(5000) = 5,208 ≥ the server's
- * 5,000 gross guard, so `below_minimum` can never fire for a client-accepted
- * amount (asserted in __tests__/payout.test.ts).
- */
-export const MIN_WITHDRAWAL_NET = MIN_WITHDRAWAL;
 
 /**
  * Statuses whose gross is committed against the campaign balance. MUST match
@@ -97,10 +64,13 @@ export const MIN_WITHDRAWAL_NET = MIN_WITHDRAWAL;
 export const COMMITTED_STATUSES = ['pending_review', 'approved', 'info_requested', 'paid'] as const;
 
 /**
- * Mirror of campaign_available_balance(): the max GROSS that can leave the
- * balance today = completed-donation total − Σ gross of committed requests.
- * The DB function is authoritative (re-checked inside create_payout_request);
- * this mirror exists so every page derives the number the same way.
+ * THE ONE "Available to withdraw" calculation for the whole app — mirror of
+ * campaign_available_balance(): the max GROSS the creator can request today =
+ * completed-donation total − Σ gross of committed requests. This is the amount
+ * shown as "Available to withdraw" and used as the withdrawal-form ceiling; the
+ * creator enters a gross amount against it. The DB function is authoritative
+ * (re-checked inside create_payout_request); this mirror keeps every page
+ * deriving the number the same way.
  */
 export function calcAvailableGross(
   currentAmount: number,
@@ -110,39 +80,6 @@ export function calcAvailableGross(
     .filter((r) => (COMMITTED_STATUSES as readonly string[]).includes(r.status))
     .reduce((sum, r) => sum + r.amount, 0);
   return Math.max(0, (currentAmount ?? 0) - committed);
-}
-
-/**
- * THE ONE "Available to withdraw" calculation for the whole app.
- *
- * "Available to withdraw" always means the NET so'm the creator can actually
- * request and receive today — gross balance minus the platform fee (minus any
- * provider fee once one exists). Every human-facing surface that shows this
- * concept MUST route through here, so there is exactly one formula and no
- * screen can contradict another:
- *   • creator dashboard card + per-campaign financial summary
- *   • the withdrawal dialog (headline, Maximum, Max button, amount ceiling)
- * The gross figure (`calcAvailableGross`) stays internal — it is only used to
- * drive the server's over-withdrawal guard and the net→gross conversion, never
- * displayed as "available".
- */
-export function calcAvailableNet(
-  currentAmount: number,
-  requests: { status: string; amount: number }[]
-): number {
-  return calcNetPayout(calcAvailableGross(currentAmount, requests));
-}
-
-/**
- * Net a gross "available/withdrawable" AGGREGATE for display (e.g. the admin
- * platform-wide "available for withdrawal" tile, which the DB view computes
- * gross). Uses the same fee rule as everything else. For a platform sum this is
- * within sub-so'm-per-campaign of Σ per-campaign net (each net is rounded
- * individually) — immaterial for an admin metric, and it keeps "available for
- * withdrawal" meaning the same NET everywhere it is labelled as such.
- */
-export function netAvailableFromGross(grossAvailable: number): number {
-  return calcNetPayout(Math.max(0, grossAvailable));
 }
 
 export interface PayoutBreakdown {
