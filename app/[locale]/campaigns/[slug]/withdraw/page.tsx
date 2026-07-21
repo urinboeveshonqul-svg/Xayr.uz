@@ -110,19 +110,31 @@ export default async function CampaignWithdrawPage({ params }: Props) {
   // net→gross conversion for the server guard, and is never shown as "available".
   const available = calcAvailableGross(campaign.current_amount ?? 0, payoutRequests);
   const availableNet = calcAvailableNet(campaign.current_amount ?? 0, payoutRequests);
-  // Total successfully withdrawn (gross amounts that have left the balance).
+  // Total successfully withdrawn (gross amounts that have left the balance) —
+  // used only for the money-flow timeline's "sent" stage.
   const totalWithdrawn = payoutRequests
     .filter((r) => r.status === 'paid')
     .reduce((sum, r) => sum + r.amount, 0);
 
-  // ── Per-campaign financial breakdown (computed from tamper-proof data) ──
+  // ── Per-campaign "where the money went" breakdown (from tamper-proof data) ──
+  // Everything the creator sees is NET/realized so nothing conflicts with the
+  // dialog or history. The rows reconcile exactly to Available to withdraw:
+  //   totalDonations = platformFee(total) + providerFee + completedNet
+  //                    + pendingNet + availableNet
   const raised = campaign.current_amount ?? 0;
   const paidReqs = payoutRequests.filter((r) => r.status === 'paid');
-  const platformFee = paidReqs.reduce((s, r) => s + (r.commission_amount ?? 0), 0);
-  const netToCreator = paidReqs.reduce((s, r) => s + (r.payout_amount ?? r.amount), 0);
-  const pendingWithdrawal = payoutRequests
-    .filter((r) => ['pending_review', 'approved', 'info_requested'].includes(r.status))
-    .reduce((s, r) => s + r.amount, 0);
+  const pendingReqs = payoutRequests.filter((r) =>
+    ['pending_review', 'approved', 'info_requested'].includes(r.status),
+  );
+  // Net the creator has already received / will receive.
+  const completedNet = paidReqs.reduce((s, r) => s + (r.payout_amount ?? r.amount), 0);
+  const pendingNet = pendingReqs.reduce((s, r) => s + (r.payout_amount ?? r.amount), 0);
+  // Platform fee across ALL money: collected on paid + reserved on pending +
+  // reserved on the still-available balance. (No gateway ⇒ provider fee = 0.)
+  const feeCollected = paidReqs.reduce((s, r) => s + (r.commission_amount ?? 0), 0);
+  const feePending = pendingReqs.reduce((s, r) => s + (r.commission_amount ?? 0), 0);
+  const feeAvailable = available - availableNet;
+  const platformFeeTotal = feeCollected + feePending + feeAvailable;
 
   // Completion-report stage of the money-flow timeline (best-effort; tolerant of
   // a not-yet-applied reports migration).
@@ -139,21 +151,15 @@ export default async function CampaignWithdrawPage({ params }: Props) {
   }
 
   const cf = dict.campaignFinance;
-  // "Available to withdraw" is the NET — the same number the withdrawal form
-  // shows as its maximum and pays out. upcomingFee is the 4% reserved on the
-  // available gross (charged only when a withdrawal actually happens), so the
-  // books visibly reconcile: raised = available(net) + upcomingFee +
-  // withdrawn(gross) + pending(gross), and withdrawn(gross) = netAmount + platformFee.
+  // A clean "where the money went" waterfall. Available to withdraw (net) is the
+  // result and matches the dialog headline exactly.
   const financialsData = {
-    goal: campaign.goal_amount ?? 0,
-    raised,
-    platformFee,
+    totalDonations: raised,
+    platformFee: platformFeeTotal,
     providerFee: 0,
-    upcomingFee: available - availableNet,
-    netAmount: netToCreator,
-    totalWithdrawn,
+    completedWithdrawals: completedNet,
+    pendingWithdrawals: pendingNet,
     availableBalance: availableNet,
-    pendingWithdrawal,
   };
   const timeline = [
     { label: cf.tDonation, done: raised > 0 },
@@ -196,15 +202,12 @@ export default async function CampaignWithdrawPage({ params }: Props) {
               labels={{
                 title: cf.title,
                 subtitle: cf.subtitle,
-                goal: cf.goal,
-                raised: cf.raised,
+                totalDonations: cf.totalDonations,
                 platformFee: cf.platformFee,
                 providerFee: cf.providerFee,
-                upcomingFee: cf.upcomingFee,
-                netAmount: cf.netAmount,
-                totalWithdrawn: cf.totalWithdrawn,
+                completedWithdrawals: cf.completedWithdrawals,
+                pendingWithdrawals: cf.pendingWithdrawals,
                 availableBalance: cf.availableBalance,
-                pendingWithdrawal: cf.pendingWithdrawal,
                 timelineTitle: cf.timelineTitle,
               }}
             />
@@ -215,8 +218,6 @@ export default async function CampaignWithdrawPage({ params }: Props) {
             campaignStatus={campaign.status}
             userId={user.id}
             available={available}
-            raised={campaign.current_amount ?? 0}
-            totalWithdrawn={totalWithdrawn}
             isVerified={profile?.verification_status === 'verified'}
             hasPayoutInfo={!!payoutAccount}
             payoutSummary={payoutSummary}

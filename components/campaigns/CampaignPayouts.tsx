@@ -77,8 +77,6 @@ export function CampaignPayouts({
   campaignStatus,
   userId,
   available,
-  raised,
-  totalWithdrawn,
   isVerified,
   hasPayoutInfo,
   payoutSummary,
@@ -90,8 +88,6 @@ export function CampaignPayouts({
   campaignStatus: string;
   userId: string;
   available: number;
-  raised: number;
-  totalWithdrawn: number;
   isVerified: boolean;
   hasPayoutInfo: boolean;
   payoutSummary: string | null;
@@ -203,18 +199,12 @@ export function CampaignPayouts({
     setShowForm(false);
   };
 
-  // Live preview — every figure recalculates on each keystroke, all derived
-  // from ONE formula pair (calcNetPayout / grossForNet in lib/payout.ts).
-  // The creator types the NET amount — exactly what they will receive. The
-  // 4% fee is charged on the corresponding gross, which is already excluded
-  // from the displayed available amount, so:
-  //   entered amount === "you receive", and remaining = availableNet − entered.
-  // Withdrawing the full availableNet leaves remaining 0. The fee row is
-  // informational (it is NOT subtracted from the entered amount again).
+  // Live preview. The creator works entirely in NET so'm: the amount they type
+  // is exactly what they will receive (the platform fee is already excluded from
+  // `availableNet`, so it is never shown or subtracted again in this dialog).
+  //   you receive === entered amount, and remaining = availableNet − entered.
+  // Withdrawing the full availableNet leaves remaining 0.
   const previewNet = Math.floor(Number(amount)) || 0;
-  const previewGross =
-    previewNet <= 0 ? 0 : previewNet === availableNet ? available : grossForNet(previewNet);
-  const previewFee = Math.max(0, previewGross - previewNet);
   const previewRemaining = Math.max(0, availableNet - previewNet);
 
   const submit = async (e: React.FormEvent) => {
@@ -253,25 +243,9 @@ export function CampaignPayouts({
   return (
     <section className="mt-8">
       <div className="card p-6">
-        {/* Funds summary: Total Raised · Total Withdrawn · Available Balance */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
-            <p className="text-xs text-gray-400">{t('dash.totalRaised')}</p>
-            <p className="text-xl font-black text-gray-900 dark:text-white break-words leading-tight">{formatMoney(raised)} so&apos;m</p>
-          </div>
-          <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 p-4">
-            <p className="text-xs text-gray-400">{t('dash.totalWithdrawn')}</p>
-            <p className="text-xl font-black text-gray-900 dark:text-white break-words leading-tight">{formatMoney(totalWithdrawn)} so&apos;m</p>
-          </div>
-          <div className="rounded-2xl bg-brand-50 dark:bg-brand-900/20 p-4">
-            <div className="flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-brand-600" />
-              <p className="text-xs text-brand-700/80 dark:text-brand-400/90">{t('dash.availableBalance')}</p>
-            </div>
-            {/* NET — the exact max the creator can request AND receive today. */}
-            <p className="text-xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">{formatMoney(availableNet)} so&apos;m</p>
-          </div>
-        </div>
+        {/* No funds summary here — the Financial breakdown card above already
+            leads to "Available to withdraw" (net). This card is just the action:
+            payout destination → withdraw → history. One number, one place. */}
 
         {/* Payout information lives directly in the withdrawal flow:
             • no account yet (and ready to withdraw) → show the form inline first;
@@ -479,25 +453,20 @@ export function CampaignPayouts({
               />
             </div>
 
-            {/* Fee breakdown — every row reconciles live from one formula pair:
-                entered amount === "you receive" (the fee is charged on the gross,
-                which the displayed available amount ALREADY excludes — it is never
-                subtracted from the entered amount), and remaining = available − entered. */}
+            {/* Simple, non-conflicting summary — answers only "how much can I
+                receive today?". No platform-fee row: the fee is already reflected
+                in "Available to withdraw", so the entered amount IS what the
+                creator receives, with no deduction after submission. */}
             {previewNet > 0 && (
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.withdrawAmount')}</span>
                   <span className="font-bold text-gray-900 dark:text-white">{formatMoney(previewNet)} so&apos;m</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">{t('dash.feeRow')}</span>
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(previewFee)} so&apos;m</span>
-                </div>
                 <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
                   <span className="font-bold text-gray-900 dark:text-white">{t('dash.youReceive')}</span>
                   <span className="font-black text-brand-600">{formatMoney(previewNet)} so&apos;m</span>
                 </div>
-                {/* Available to withdraw left after this request. */}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.withdrawRemaining')}</span>
                   <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(previewRemaining)} so&apos;m</span>
@@ -505,8 +474,8 @@ export function CampaignPayouts({
               </div>
             )}
 
-            {/* Fee notice — shown before confirming, independent of the amount
-                preview so it is visible even before an amount is entered. */}
+            {/* Short reassurance — no fee figures; reinforces that the entered
+                amount is exactly what is paid out. */}
             <p
               role="note"
               className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 px-3.5 py-2.5 text-xs font-semibold text-amber-900 dark:text-amber-200"

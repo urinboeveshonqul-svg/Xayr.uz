@@ -1,18 +1,16 @@
-import { CheckCircle2, Circle, Target, TrendingUp, Percent, CreditCard, HandCoins, Banknote, Wallet, Hourglass } from 'lucide-react';
+import { CheckCircle2, Circle, TrendingUp, Percent, CreditCard, Banknote, Wallet, Hourglass } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 
 export interface CampaignFinancialsData {
-  goal: number;
-  raised: number;
+  totalDonations: number;
   platformFee: number;
   providerFee: number;
-  /** 4% reserved on the available gross — charged only when a withdrawal happens. */
-  upcomingFee: number;
-  netAmount: number;
-  totalWithdrawn: number;
+  /** Net already received by the creator (Σ payout_amount of paid requests). */
+  completedWithdrawals: number;
+  /** Net that will be received once approved (Σ payout_amount of active requests). */
+  pendingWithdrawals: number;
   /** NET — the exact amount the creator can request AND receive today. */
   availableBalance: number;
-  pendingWithdrawal: number;
 }
 
 export interface TimelineStage {
@@ -23,42 +21,35 @@ export interface TimelineStage {
 export interface CampaignFinancialsLabels {
   title: string;
   subtitle: string;
-  goal: string;
-  raised: string;
+  totalDonations: string;
   platformFee: string;
   providerFee: string;
-  upcomingFee: string;
-  netAmount: string;
-  totalWithdrawn: string;
+  completedWithdrawals: string;
+  pendingWithdrawals: string;
   availableBalance: string;
-  pendingWithdrawal: string;
   timelineTitle: string;
 }
 
-// Ordered by importance: "Available to withdraw" (NET — the exact max the creator
-// can request and receive today, same number the withdrawal form shows) is the
-// headline; then total donations; then the fee split (reserved on the available
-// amount / collected on paid withdrawals / provider); then what already left the
-// balance (withdrawn gross, of which netAmount reached the creator), pending
-// requests, and the goal. The rows reconcile visibly:
-//   raised = availableBalance + upcomingFee + totalWithdrawn + pendingWithdrawal
-//   totalWithdrawn = netAmount + platformFee
-const ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Target; strong?: boolean }[] = [
-  { key: 'availableBalance', labelKey: 'availableBalance', Icon: Wallet, strong: true },
-  { key: 'raised', labelKey: 'raised', Icon: TrendingUp },
-  { key: 'upcomingFee', labelKey: 'upcomingFee', Icon: Percent },
+// "Where the money went" breakdown, top to bottom. This is the ONE place fees
+// are shown (they are hidden from the withdrawal dialog). The rows reconcile
+// exactly to the highlighted total below:
+//   totalDonations = platformFee + providerFee + completedWithdrawals
+//                    + pendingWithdrawals + availableBalance
+// Everything except donations is NET/realized, so the figures never conflict
+// with the withdrawal dialog or history (which also show net).
+const ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Wallet }[] = [
+  { key: 'totalDonations', labelKey: 'totalDonations', Icon: TrendingUp },
   { key: 'platformFee', labelKey: 'platformFee', Icon: Percent },
   { key: 'providerFee', labelKey: 'providerFee', Icon: CreditCard },
-  { key: 'totalWithdrawn', labelKey: 'totalWithdrawn', Icon: Banknote },
-  { key: 'netAmount', labelKey: 'netAmount', Icon: HandCoins },
-  { key: 'pendingWithdrawal', labelKey: 'pendingWithdrawal', Icon: Hourglass },
-  { key: 'goal', labelKey: 'goal', Icon: Target },
+  { key: 'completedWithdrawals', labelKey: 'completedWithdrawals', Icon: Banknote },
+  { key: 'pendingWithdrawals', labelKey: 'pendingWithdrawals', Icon: Hourglass },
 ];
 
 /**
  * Per-campaign financial breakdown + a money-flow timeline. Presentational; the
  * page computes values from tamper-proof balances and passes them in. Shown to
- * the campaign owner (and admins) on the withdrawal page.
+ * the campaign owner (and admins) on the withdrawal page — it explains where
+ * every so'm went and ends with "Available to withdraw" as the result.
  */
 export function CampaignFinancials({
   data,
@@ -77,18 +68,30 @@ export function CampaignFinancials({
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{labels.subtitle}</p>
 
       <dl className="divide-y divide-gray-100 dark:divide-gray-800">
-        {ROWS.map(({ key, labelKey, Icon, strong }) => (
+        {ROWS.map(({ key, labelKey, Icon }) => (
           <div key={key} className="flex items-center justify-between gap-3 py-2.5">
             <dt className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 min-w-0">
               <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
               <span className="min-w-0">{labels[labelKey]}</span>
             </dt>
-            <dd className={`tabular-nums text-right flex-shrink-0 ${strong ? 'text-base font-black text-gray-900 dark:text-white' : 'text-sm font-semibold text-gray-700 dark:text-gray-300'}`}>
+            <dd className="tabular-nums text-right flex-shrink-0 text-sm font-semibold text-gray-700 dark:text-gray-300">
               {money(data[key])}
             </dd>
           </div>
         ))}
       </dl>
+
+      {/* Result of the breakdown: Available to withdraw (net). Same value and
+          wording as the withdrawal dialog headline — never a conflicting number. */}
+      <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-brand-50 dark:bg-brand-900/20 px-4 py-3">
+        <dt className="flex items-center gap-2 text-sm font-semibold text-brand-700 dark:text-brand-400 min-w-0">
+          <Wallet className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <span className="min-w-0">{labels.availableBalance}</span>
+        </dt>
+        <dd className="tabular-nums text-right flex-shrink-0 text-base font-black text-brand-700 dark:text-brand-400">
+          {money(data.availableBalance)}
+        </dd>
+      </div>
 
       {/* Money-flow timeline */}
       <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
