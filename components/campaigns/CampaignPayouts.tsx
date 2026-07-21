@@ -214,10 +214,13 @@ export function CampaignPayouts({
   const amountTooLow = amountEntered && previewNet < MIN_WITHDRAWAL_NET;
   const amountTooHigh = amountEntered && previewNet > availableNet;
   const amountValid = amountEntered && !amountTooLow && !amountTooHigh;
-  const amountError: { msg: string; hint: string | null } | null = amountTooHigh
-    ? { msg: t('dash.withdrawErrExceeds'), hint: t('dash.withdrawErrMaxToday', { max: `${formatAmount(availableNet)} so'm` }) }
+  // The single localized validation message for the current invalid state. Both
+  // bounds are derived at runtime (MIN_WITHDRAWAL_NET from the business rule,
+  // availableNet from the live account state) — never hardcoded.
+  const amountErrorMsg: string | null = amountTooHigh
+    ? t('dash.withdrawErrExceeds')
     : amountTooLow
-    ? { msg: t('dash.withdrawErrBelowMin', { min: `${formatAmount(MIN_WITHDRAWAL_NET)} so'm` }), hint: null }
+    ? t('dash.withdrawErrBelowMin', { min: `${formatAmount(MIN_WITHDRAWAL_NET)} so'm` })
     : null;
 
   const submit = async (e: React.FormEvent) => {
@@ -437,9 +440,9 @@ export function CampaignPayouts({
                   max={availableNet}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  aria-invalid={!!amountError}
-                  aria-describedby={amountError ? 'withdraw-amount-error' : 'withdraw-amount-hint'}
-                  className={`input pr-16 ${amountError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                  aria-invalid={!!amountErrorMsg}
+                  aria-describedby={amountErrorMsg ? 'withdraw-amount-error' : 'withdraw-amount-hint'}
+                  className={`input pr-16 ${amountErrorMsg ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="0"
                 />
                 <button
@@ -453,28 +456,26 @@ export function CampaignPayouts({
               {/* Custom localized validation, replacing the browser's native popup.
                   Announced to screen readers (role="alert" + aria-describedby on the
                   input) and updated live on every keystroke. */}
-              {amountError ? (
+              {amountErrorMsg ? (
                 <div className="mt-1.5">
                   <p id="withdraw-amount-error" role="alert" className="flex items-start gap-1.5 text-xs text-red-600 dark:text-red-400">
                     <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                    <span>
-                      {amountError.msg}
-                      {amountError.hint && (
-                        <span className="block font-semibold">{amountError.hint}</span>
-                      )}
-                    </span>
+                    <span>{amountErrorMsg}</span>
                   </p>
-                  {/* When over the maximum, offer a one-tap fill of the exact max —
-                      the preview then appears immediately (max is a valid amount). */}
-                  {amountTooHigh && (
-                    <button
-                      type="button"
-                      onClick={() => setAmount(String(availableNet))}
-                      className="mt-1 ml-5 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
-                    >
-                      {t('dash.useMaxAmount')}
-                    </button>
-                  )}
+                  {/* Below the message: the current max (runtime availableNet) and a
+                      one-tap "Use maximum amount" — filling the exact max is valid,
+                      so the payout preview appears immediately. Both shown for any
+                      invalid entry (over or under), never hardcoded. */}
+                  <p className="mt-1 ml-5 text-xs text-gray-500 dark:text-gray-400">
+                    {t('dash.withdrawErrMaxToday', { max: `${formatAmount(availableNet)} so'm` })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAmount(String(availableNet))}
+                    className="mt-1 ml-5 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                  >
+                    {t('dash.useMaxAmount')}
+                  </button>
                 </div>
               ) : (
                 /* Min/max hints — both in NET so'm (the unit the creator types in);
