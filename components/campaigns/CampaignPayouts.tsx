@@ -485,11 +485,13 @@ export function CampaignPayouts({
               />
             </div>
 
-            {/* Simple, non-conflicting summary — answers only "how much can I
-                receive today?". No platform-fee row: the fee is already reflected
-                in "Available to withdraw", so the entered amount IS what the
-                creator receives, with no deduction after submission. */}
-            {previewNet > 0 && (
+            {/* Financial preview — shown ONLY for a valid amount, so it never
+                displays an impossible transaction. Answers only "how much can I
+                receive today?"; no platform-fee row (already reflected in
+                "Available to withdraw", so entered amount IS what's received).
+                When the amount is empty/invalid, an informational placeholder
+                takes its place instead (never conflicting figures). */}
+            {amountValid ? (
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.withdrawAmount')}</span>
@@ -503,6 +505,19 @@ export function CampaignPayouts({
                   <span className="text-gray-500">{t('dash.withdrawRemaining')}</span>
                   <span className="font-semibold text-gray-700 dark:text-gray-300">{formatAmount(previewRemaining)} so&apos;m</span>
                 </div>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm" aria-live="polite">
+                <p className="flex items-center gap-2 font-semibold text-gray-700 dark:text-gray-200">
+                  <Info className="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
+                  {t('dash.previewUnavailableTitle')}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  {t('dash.previewUnavailableBody', {
+                    min: `${formatAmount(MIN_WITHDRAWAL_NET)} so'm`,
+                    max: `${formatAmount(availableNet)} so'm`,
+                  })}
+                </p>
               </div>
             )}
 

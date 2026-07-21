@@ -1231,6 +1231,8 @@
     "withdrawErrExceeds": "Yechish miqdori mavjud mablag'dan oshib ketdi.",
     "withdrawErrMaxToday": "Bugun mavjud maksimum: {max}",
     "withdrawErrBelowMin": "Minimal yechish miqdori — {min}.",
+    "previewUnavailableTitle": "Hisob-kitob mavjud emas",
+    "previewUnavailableBody": "To'lovni ko'rish uchun {min} va {max} oralig'ida to'g'ri yechish miqdorini kiriting.",
     "availableExplain": "Bu — bugun so'rashingiz mumkin bo'lgan summa: tasdiqlangan xayriyalardan platforma komissiyasi hamda avvalgi va kutilayotgan yechishlar chegirilgan.",
     "afterSubmitNote": "Yuborilgandan so'ng so'rovingiz 1–3 ish kuni ichida ko'rib chiqiladi. Mablag' yuqoridagi kartaga o'tkaziladi va sizga xabarnoma yuboriladi.",
     "actCreated": "So'rov yaratildi",
