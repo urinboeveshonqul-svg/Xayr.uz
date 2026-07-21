@@ -7,7 +7,7 @@ import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { CampaignPayouts, type CampaignPayoutRow, type PayoutInfoDisplay } from '@/components/campaigns/CampaignPayouts';
 import { CampaignFinancials } from '@/components/campaigns/CampaignFinancials';
-import { calcAvailableGross, calcAvailableNet, cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
+import { calcAvailableGross, cardTypeLabel, maskCard, maskCardDisplay } from '@/lib/payout';
 import { UZ, nationalDigitsFrom, formatNational } from '@/lib/phone';
 
 export const metadata: Metadata = { title: "Mablag' yechish — Xayr" };
@@ -103,38 +103,31 @@ export default async function CampaignWithdrawPage({ params }: Props) {
       }
     : null;
 
-  // ONE financial source of truth (lib/payout.ts). `availableNet` — the exact
-  // amount the creator can request AND receive today — is THE "Available to
-  // withdraw" figure shown on every surface (calcAvailableNet). The gross
-  // (`available`) stays internal: it drives the reserved-fee line and the
-  // net→gross conversion for the server guard, and is never shown as "available".
+  // ONE financial source of truth (lib/payout.ts). `available` — the GROSS the
+  // creator can request today — is THE "Available to withdraw" figure on every
+  // surface. The creator enters a gross amount up to this; the 4% commission is
+  // deducted from it at payout.
   const available = calcAvailableGross(campaign.current_amount ?? 0, payoutRequests);
-  const availableNet = calcAvailableNet(campaign.current_amount ?? 0, payoutRequests);
-  // Total successfully withdrawn (gross amounts that have left the balance) —
-  // used only for the money-flow timeline's "sent" stage.
+  // Total successfully withdrawn (gross amounts that have left the balance).
   const totalWithdrawn = payoutRequests
     .filter((r) => r.status === 'paid')
     .reduce((sum, r) => sum + r.amount, 0);
 
-  // ── Per-campaign "where the money went" breakdown (from tamper-proof data) ──
-  // Everything the creator sees is NET/realized so nothing conflicts with the
-  // dialog or history. The rows reconcile exactly to Available to withdraw:
-  //   totalDonations = platformFee(total) + providerFee + completedNet
-  //                    + pendingNet + availableNet
+  // ── Per-campaign GROSS balance flow (from tamper-proof data) ──
+  // The chain reconciles exactly to Available to withdraw:
+  //   totalDonations − completedWithdrawals(gross) − pendingWithdrawals(gross)
+  //     = available(gross)
+  // platformFee is context (commission collected on paid), not part of the chain.
   const raised = campaign.current_amount ?? 0;
   const paidReqs = payoutRequests.filter((r) => r.status === 'paid');
   const pendingReqs = payoutRequests.filter((r) =>
     ['pending_review', 'approved', 'info_requested'].includes(r.status),
   );
-  // Net the creator has already received / will receive.
-  const completedNet = paidReqs.reduce((s, r) => s + (r.payout_amount ?? r.amount), 0);
-  const pendingNet = pendingReqs.reduce((s, r) => s + (r.payout_amount ?? r.amount), 0);
-  // Platform fee across ALL money: collected on paid + reserved on pending +
-  // reserved on the still-available balance. (No gateway ⇒ provider fee = 0.)
+  // Gross that has left / is committed against the balance.
+  const completedGross = paidReqs.reduce((s, r) => s + r.amount, 0);
+  const pendingGross = pendingReqs.reduce((s, r) => s + r.amount, 0);
+  // Platform commission actually collected on paid withdrawals (context only).
   const feeCollected = paidReqs.reduce((s, r) => s + (r.commission_amount ?? 0), 0);
-  const feePending = pendingReqs.reduce((s, r) => s + (r.commission_amount ?? 0), 0);
-  const feeAvailable = available - availableNet;
-  const platformFeeTotal = feeCollected + feePending + feeAvailable;
 
   // Completion-report stage of the money-flow timeline (best-effort; tolerant of
   // a not-yet-applied reports migration).
@@ -151,15 +144,15 @@ export default async function CampaignWithdrawPage({ params }: Props) {
   }
 
   const cf = dict.campaignFinance;
-  // A clean "where the money went" waterfall. Available to withdraw (net) is the
-  // result and matches the dialog headline exactly.
+  // Gross balance flow. Available to withdraw (gross) is the result and matches
+  // the dialog headline / ceiling exactly.
   const financialsData = {
     totalDonations: raised,
-    platformFee: platformFeeTotal,
+    platformFee: feeCollected,
     providerFee: 0,
-    completedWithdrawals: completedNet,
-    pendingWithdrawals: pendingNet,
-    availableBalance: availableNet,
+    completedWithdrawals: completedGross,
+    pendingWithdrawals: pendingGross,
+    availableBalance: available,
   };
   const timeline = [
     { label: cf.tDonation, done: raised > 0 },

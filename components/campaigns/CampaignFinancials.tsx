@@ -3,13 +3,14 @@ import { formatAmount } from '@/lib/utils';
 
 export interface CampaignFinancialsData {
   totalDonations: number;
+  /** Platform commission collected on paid withdrawals (context, not a deduction here). */
   platformFee: number;
   providerFee: number;
-  /** Net already received by the creator (Σ payout_amount of paid requests). */
+  /** GROSS already withdrawn (Σ amount of paid requests). */
   completedWithdrawals: number;
-  /** Net that will be received once approved (Σ payout_amount of active requests). */
+  /** GROSS committed to active requests (Σ amount of pending/approved/info). */
   pendingWithdrawals: number;
-  /** NET — the exact amount the creator can request AND receive today. */
+  /** GROSS — the amount the creator can request today (= the withdrawal ceiling). */
   availableBalance: number;
 }
 
@@ -30,21 +31,23 @@ export interface CampaignFinancialsLabels {
   timelineTitle: string;
 }
 
-// "Where the money went" breakdown, top to bottom. This is the ONE place fees
-// are shown (they are hidden from the withdrawal dialog). The rows reconcile
-// exactly to the highlighted total below:
-//   totalDonations = platformFee + providerFee + completedWithdrawals
-//                    + pendingWithdrawals + availableBalance
-// Everything except donations is NET/realized, so the figures never conflict
-// with the withdrawal dialog or history (which also show net).
-// `deduction` rows are shown as negatives (e.g. "−400 so'm") so the list reads
-// as a subtraction: Total donations − fees − withdrawals = Available to withdraw.
+// GROSS balance flow, top to bottom. All figures are gross, so the chain
+// reconciles exactly to the highlighted total below:
+//   totalDonations − completedWithdrawals − pendingWithdrawals = availableBalance
+// `deduction` rows render as negatives ("−X so'm") so the list reads as a
+// subtraction down to Available to withdraw.
 const ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Wallet; deduction?: boolean }[] = [
   { key: 'totalDonations', labelKey: 'totalDonations', Icon: TrendingUp },
-  { key: 'platformFee', labelKey: 'platformFee', Icon: Percent, deduction: true },
-  { key: 'providerFee', labelKey: 'providerFee', Icon: CreditCard, deduction: true },
   { key: 'completedWithdrawals', labelKey: 'completedWithdrawals', Icon: Banknote, deduction: true },
   { key: 'pendingWithdrawals', labelKey: 'pendingWithdrawals', Icon: Hourglass, deduction: true },
+];
+
+// Context rows shown BELOW the available total — not part of the subtraction
+// (the commission is already inside the gross completed withdrawals). They show
+// how much of what was withdrawn went to the platform vs the payment provider.
+const INFO_ROWS: { key: keyof CampaignFinancialsData; labelKey: keyof CampaignFinancialsLabels; Icon: typeof Wallet }[] = [
+  { key: 'platformFee', labelKey: 'platformFee', Icon: Percent },
+  { key: 'providerFee', labelKey: 'providerFee', Icon: CreditCard },
 ];
 
 /**
@@ -62,8 +65,8 @@ export function CampaignFinancials({
   timeline: TimelineStage[];
   labels: CampaignFinancialsLabels;
 }) {
-  // Exact amounts — never `formatMoney` here: it rounds 9,600 → "10 ming", which
-  // hides the platform fee and makes the net look like the gross.
+  // Exact amounts — never `formatMoney` here: it rounds to the nearest thousand,
+  // which would mask the commission and make different amounts look identical.
   const money = (n: number) => `${formatAmount(n)} so'm`;
   // Deductions render as "−X so'm" (only when non-zero, so a real 0 stays "0 so'm").
   const signed = (n: number, deduction?: boolean) =>
@@ -88,8 +91,8 @@ export function CampaignFinancials({
         ))}
       </dl>
 
-      {/* Result of the breakdown: Available to withdraw (net). Same value and
-          wording as the withdrawal dialog headline — never a conflicting number. */}
+      {/* Result of the balance flow: Available to withdraw (gross). Same value
+          and wording as the withdrawal dialog headline — never a conflicting number. */}
       <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-brand-50 dark:bg-brand-900/20 px-4 py-3">
         <dt className="flex items-center gap-2 text-sm font-semibold text-brand-700 dark:text-brand-400 min-w-0">
           <Wallet className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
@@ -99,6 +102,22 @@ export function CampaignFinancials({
           {money(data.availableBalance)}
         </dd>
       </div>
+
+      {/* Context — of what has been withdrawn, how much went to the platform /
+          provider. Not part of the subtraction above (already inside the gross). */}
+      <dl className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
+        {INFO_ROWS.map(({ key, labelKey, Icon }) => (
+          <div key={key} className="flex items-center justify-between gap-3">
+            <dt className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 min-w-0">
+              <Icon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" aria-hidden="true" />
+              <span className="min-w-0">{labels[labelKey]}</span>
+            </dt>
+            <dd className="tabular-nums text-right flex-shrink-0 text-xs font-semibold text-gray-600 dark:text-gray-300">
+              {money(data[key])}
+            </dd>
+          </div>
+        ))}
+      </dl>
 
       {/* Money-flow timeline */}
       <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">

@@ -8,7 +8,6 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
-import { netAvailableFromGross } from '@/lib/payout';
 
 /**
  * Platform-wide financial totals.
@@ -172,11 +171,11 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
       provider_fees_collected: num(d.provider_fees_collected),
       pending_withdrawals_amount: num(d.pending_withdrawals_amount),
       pending_withdrawals_count: num(d.pending_withdrawals_count),
-      // "Available for withdrawal" = the NET creators can actually receive. The
-      // view returns the GROSS pool (Σ current_amount − committed); we apply the
-      // one platform-fee rule (netAvailableFromGross) so this admin figure means
-      // the same NET as the creator-facing "Available to withdraw" everywhere.
-      available_for_withdrawal: netAvailableFromGross(num(d.available_for_withdrawal)),
+      // "Available for withdrawal" = the GROSS pool creators can still request
+      // (Σ current_amount − committed), matching the creator-facing "Available to
+      // withdraw" (gross) — the creator enters a gross amount, and the 4%
+      // commission is deducted from it at payout.
+      available_for_withdrawal: num(d.available_for_withdrawal),
       largest_donation: num(d.largest_donation),
       avg_donation: num(d.avg_donation),
       today_amount: num(d.today_amount),
