@@ -24,6 +24,20 @@ export function formatMoneyFull(amount: number): string {
   return new Intl.NumberFormat('uz-UZ').format(amount) + ' so\'m';
 }
 
+/**
+ * EXACT amount, no suffix, no abbreviation — e.g. 9600 → "9 600".
+ *
+ * MUST be used for every money-critical figure the creator acts on (withdrawal
+ * available/amount/you-receive/remaining, the financial breakdown, history).
+ * `formatMoney` abbreviates and ROUNDS to the nearest thousand — `formatMoney(9600)`
+ * returns "10 ming", which is indistinguishable from 10,000 and hides the platform
+ * fee. Never use `formatMoney` on a withdrawal/financial value. Callers append
+ * " so'm" themselves so this stays a pure number formatter.
+ */
+export function formatAmount(amount: number): string {
+  return new Intl.NumberFormat('uz-UZ').format(amount);
+}
+
 /** Progress percentage capped at 100 */
 export function getProgress(raised: number, goal: number): number {
   if (!goal) return 0;

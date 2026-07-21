@@ -13,6 +13,29 @@ import {
   maskCard,
   maskCardDisplay,
 } from '@/lib/payout';
+import { formatMoney, formatAmount } from '@/lib/utils';
+
+describe('money formatting on withdrawal/financial surfaces (regression: net looked like gross)', () => {
+  it('formatMoney ABBREVIATES + rounds — 9,600 becomes "10 ming", indistinguishable from gross', () => {
+    // This is exactly why "Available to withdraw" looked like 10,000: the value
+    // was the correct net 9,600 but formatMoney rounded it up for display.
+    expect(formatMoney(9600)).toBe('10 ming');
+    expect(formatMoney(10000)).toBe('10 ming');
+  });
+
+  it('formatAmount is EXACT, so a net figure can never masquerade as the gross', () => {
+    expect(formatAmount(9600).replace(/\D/g, '')).toBe('9600');
+    expect(formatAmount(9600)).not.toBe(formatAmount(10000));
+  });
+
+  it('the amount shown as "Available to withdraw" (net) formats exactly at 10k/100k/1M', () => {
+    for (const [donations, expectedNet] of [[10000, 9600], [100000, 96000], [1000000, 960000]] as const) {
+      const net = calcAvailableNet(donations, []);
+      expect(net).toBe(expectedNet);
+      expect(formatAmount(net).replace(/\D/g, '')).toBe(String(expectedNet));
+    }
+  });
+});
 
 describe('withdrawal commission (mirrors create_payout_request round(amount * 0.04))', () => {
   it('charges 4% of the gross', () => {

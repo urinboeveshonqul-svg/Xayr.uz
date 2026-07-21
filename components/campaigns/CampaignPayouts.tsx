@@ -7,7 +7,7 @@ import { Wallet, Plus, X, Loader2, Clock, Send, CreditCard, Info, Pencil } from 
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { PayoutAccountForm } from '@/components/profile/PayoutAccountForm';
-import { formatMoney, timeAgo } from '@/lib/utils';
+import { formatAmount, timeAgo } from '@/lib/utils';
 import {
   MIN_WITHDRAWAL_NET,
   calcNetPayout,
@@ -103,7 +103,7 @@ export function CampaignPayouts({
   // anything unmapped falls back to a generic message rather than surfacing a
   // raw backend string.
   const errMsg = (code: string): string => {
-    if (code === 'below_minimum') return t('toasts.payoutErrBelowMinimum', { min: formatMoney(MIN_WITHDRAWAL_NET) });
+    if (code === 'below_minimum') return t('toasts.payoutErrBelowMinimum', { min: formatAmount(MIN_WITHDRAWAL_NET) });
     const key = ERR_KEYS[code];
     return key ? t(key) : t('toasts.generic');
   };
@@ -189,7 +189,7 @@ export function CampaignPayouts({
     : hasActive
     ? t('dash.blockedHasActive')
     : availableNet < MIN_WITHDRAWAL_NET
-    ? t('dash.withdrawNeedMinimum', { min: formatMoney(MIN_WITHDRAWAL_NET) })
+    ? t('dash.withdrawNeedMinimum', { min: formatAmount(MIN_WITHDRAWAL_NET) })
     : null;
 
   const resetForm = () => {
@@ -348,7 +348,7 @@ export function CampaignPayouts({
                     {/* NET actually/to-be received — matches the amount the creator
                         entered. Historical rows show the payout stored at their own
                         rate (0% pre-fee, 3% pre-#51), never re-derived. */}
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{formatMoney(r.payout_amount ?? r.amount)} so&apos;m</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{formatAmount(r.payout_amount ?? r.amount)} so&apos;m</p>
                     <p className="text-[11px] text-gray-400">{timeAgo(r.created_at)}</p>
                   </div>
                   <span className={`badge ${stCls}`}>{stLabel}</span>
@@ -400,7 +400,7 @@ export function CampaignPayouts({
                 <Wallet className="w-3.5 h-3.5 text-brand-600" />
                 <p className="text-xs text-brand-700/80 dark:text-brand-400/90">{t('dash.availableBalance')}</p>
               </div>
-              <p className="text-2xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">{formatMoney(availableNet)} so&apos;m</p>
+              <p className="text-2xl font-black text-brand-700 dark:text-brand-400 break-words leading-tight">{formatAmount(availableNet)} so&apos;m</p>
               <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{t('dash.availableExplain')}</p>
             </div>
 
@@ -437,8 +437,8 @@ export function CampaignPayouts({
                   the max always mirrors the available amount and updates
                   automatically when it changes (no hardcoded maximum). */}
               <div className="mt-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>{t('dash.withdrawMinLabel')}: {formatMoney(MIN_WITHDRAWAL_NET)} so&apos;m</span>
-                <span>{t('dash.withdrawMaxLabel')}: {formatMoney(availableNet)} so&apos;m</span>
+                <span>{t('dash.withdrawMinLabel')}: {formatAmount(MIN_WITHDRAWAL_NET)} so&apos;m</span>
+                <span>{t('dash.withdrawMaxLabel')}: {formatAmount(availableNet)} so&apos;m</span>
               </div>
             </div>
 
@@ -461,15 +461,15 @@ export function CampaignPayouts({
               <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 text-sm space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.withdrawAmount')}</span>
-                  <span className="font-bold text-gray-900 dark:text-white">{formatMoney(previewNet)} so&apos;m</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{formatAmount(previewNet)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5">
                   <span className="font-bold text-gray-900 dark:text-white">{t('dash.youReceive')}</span>
-                  <span className="font-black text-brand-600">{formatMoney(previewNet)} so&apos;m</span>
+                  <span className="font-black text-brand-600">{formatAmount(previewNet)} so&apos;m</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">{t('dash.withdrawRemaining')}</span>
-                  <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(previewRemaining)} so&apos;m</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">{formatAmount(previewRemaining)} so&apos;m</span>
                 </div>
               </div>
             )}
@@ -524,7 +524,7 @@ export function CampaignPayouts({
                   {psLabel[selected.status] ?? psLabel.pending_review}
                 </span>
                 {/* Headline = the NET the creator receives (what they entered). */}
-                <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white mt-2">{formatAmount(selected.payout_amount ?? selected.amount)} so&apos;m</p>
               </div>
               <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600" aria-label={t('ux.close')}>
                 <X className="w-5 h-5" />
@@ -537,9 +537,9 @@ export function CampaignPayouts({
                   deliberately not printed — rows predate the fee (0%), or were made
                   at 3% before #51 — so asserting today's rate here would misstate
                   money that already moved. */}
-              <p className="text-gray-500">{t('dash.grossDeducted')}: <span className="font-semibold text-gray-700 dark:text-gray-300">{formatMoney(selected.amount)} so&apos;m</span></p>
-              <p className="text-gray-500">{t('dash.commission')}: <span className="font-semibold text-red-600">−{formatMoney(selected.commission_amount ?? 0)} so&apos;m</span></p>
-              <p className="text-gray-500">{t('dash.youReceive')}: <span className="font-black text-brand-600">{formatMoney(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.grossDeducted')}: <span className="font-semibold text-gray-700 dark:text-gray-300">{formatAmount(selected.amount)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.commission')}: <span className="font-semibold text-red-600">−{formatAmount(selected.commission_amount ?? 0)} so&apos;m</span></p>
+              <p className="text-gray-500">{t('dash.youReceive')}: <span className="font-black text-brand-600">{formatAmount(selected.payout_amount ?? selected.amount)} so&apos;m</span></p>
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 mt-2">{t('dash.paymentDetails')}</p>
                 {selected.snap_card_type ? (

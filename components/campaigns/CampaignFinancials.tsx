@@ -1,5 +1,5 @@
 import { CheckCircle2, Circle, TrendingUp, Percent, CreditCard, Banknote, Wallet, Hourglass } from 'lucide-react';
-import { formatMoney } from '@/lib/utils';
+import { formatAmount } from '@/lib/utils';
 
 export interface CampaignFinancialsData {
   totalDonations: number;
@@ -62,7 +62,9 @@ export function CampaignFinancials({
   timeline: TimelineStage[];
   labels: CampaignFinancialsLabels;
 }) {
-  const money = (n: number) => `${formatMoney(n)} so'm`;
+  // Exact amounts — never `formatMoney` here: it rounds 9,600 → "10 ming", which
+  // hides the platform fee and makes the net look like the gross.
+  const money = (n: number) => `${formatAmount(n)} so'm`;
   // Deductions render as "−X so'm" (only when non-zero, so a real 0 stays "0 so'm").
   const signed = (n: number, deduction?: boolean) =>
     deduction && n > 0 ? `−${money(n)}` : money(n);
