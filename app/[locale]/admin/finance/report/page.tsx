@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
-import { formatMoney } from '@/lib/utils';
+import { formatAmount } from '@/lib/utils';
 import { getFinancialSummary, getReconciliationReport } from '@/lib/finance';
 import { PrintButton } from '@/components/admin/PrintButton';
 
@@ -29,7 +29,7 @@ export default async function FinanceReportPage({
   const fin = (await getDictionary(lng)).fin;
 
   const [s, recon] = await Promise.all([getFinancialSummary(), getReconciliationReport()]);
-  const money = (n: number) => `${formatMoney(n)} so'm`;
+  const money = (n: number) => `${formatAmount(n)} so'm`;
   const mismatches = recon.filter((r) => !r.is_balanced);
   const generatedAt = new Date().toLocaleString(lng);
 

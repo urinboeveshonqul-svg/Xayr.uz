@@ -16,6 +16,23 @@ import {
 } from '@/lib/payout';
 import { formatMoney, formatAmount } from '@/lib/utils';
 
+describe('dynamic commission — every amount from the formula round(gross*0.04), no fixed values', () => {
+  // The exact examples from the audit brief — proves it is NOT hardcoded to 10000->9600.
+  it.each([
+    [5000, 200, 4800],
+    [5208, 208, 5000],
+    [10000, 400, 9600],
+    [275350, 11014, 264336],
+  ])('gross %i -> commission %i -> net %i', (gross, fee, net) => {
+    expect(calcPlatformFee(gross)).toBe(fee);
+    expect(calcNetPayout(gross)).toBe(net);
+    expect(fee + net).toBe(gross);
+    // and a stored row with these values reads back identically through the helper
+    const bd = payoutBreakdown({ amount: gross, commission_amount: fee, payout_amount: net });
+    expect([bd.gross, bd.fee, bd.net]).toEqual([gross, fee, net]);
+  });
+});
+
 describe('payoutBreakdown — single source of truth for a STORED request (gross/fee/net)', () => {
   it('reads stored values; fee + net always reconciles to gross', () => {
     for (const [gross, fee] of [[100000, 4000], [10000, 400], [999999, 40000], [5208, 208]] as const) {

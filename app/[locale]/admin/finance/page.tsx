@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
-import { formatMoney } from '@/lib/utils';
+import { formatAmount } from '@/lib/utils';
 import { getFinancialSummary, getIntegrityIssues, getRecentLedger, getPublicSeries, type LedgerEntryType } from '@/lib/finance';
 import { MoneyBarChart } from '@/components/charts/MoneyBarChart';
 import { FinancePeriodTabs } from '@/components/admin/FinancePeriodTabs';
@@ -47,7 +47,7 @@ export default async function AdminFinancePage({
     getPublicSeries(12),
   ]);
 
-  const money = (n: number) => `${formatMoney(n)} so'm`;
+  const money = (n: number) => `${formatAmount(n)} so'm`;
 
   // Period tabs (Today / Week / Month / Year / All Time) for donations.
   const periods = [
@@ -225,7 +225,7 @@ export default async function AdminFinancePage({
                       </span>
                     </td>
                     <td className={`py-3 px-4 text-right tabular-nums font-bold ${e.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {e.amount < 0 ? '−' : '+'}{formatMoney(Math.abs(e.amount))} so&apos;m
+                      {e.amount < 0 ? '−' : '+'}{formatAmount(Math.abs(e.amount))} so&apos;m
                     </td>
                     <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{e.status}</td>
                     <td className="py-3 px-4 text-right text-gray-400 whitespace-nowrap">{new Date(e.created_at).toLocaleDateString(lng)}</td>
