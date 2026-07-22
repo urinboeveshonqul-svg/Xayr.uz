@@ -77,6 +77,10 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
   const [galleryUploading, setGalleryUploading] = useState(0);
 
   const [submitting, setSubmitting] = useState(false);
+  // Hard single-flight lock: guarantees one create POST per submission even if
+  // the form is re-submitted via the Enter key (which bypasses the disabled
+  // button). The create route is not idempotent, so this prevents duplicates.
+  const submitLockRef = useRef(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileHandle>(null);
   const blobUrls = useRef<string[]>([]);
@@ -265,6 +269,7 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
   };
 
   const onSubmit = async (data: FormData) => {
+    if (submitLockRef.current) return; // a submission is already in flight
     if (!cover?.url) {
       setCoverError(t('draft.coverRequired'));
       return;
@@ -275,6 +280,7 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
       return;
     }
 
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
       // Images are already uploaded (on select) — submit references their URLs.
@@ -316,6 +322,7 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
       toast.error(t('toasts.generic'));
     } finally {
       setSubmitting(false);
+      submitLockRef.current = false;
     }
   };
 
