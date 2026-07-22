@@ -10,10 +10,28 @@ import { formatMoney } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import dynamic from 'next/dynamic';
 import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
+import { CHOICE_ADD, CHOICE_CHECKOUT, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
 import type { PaymentProviderOption, PaymentSubmethod } from '@/lib/payments/providers-meta';
 
+// Lazy — the saved-card UI is a separate chunk fetched ONLY when the feature is
+// enabled AND rendered. With NEXT_PUBLIC_CLICK_SAVED_CARDS off it is never
+// rendered, so the chunk is never loaded → not in the Checkout JS bundle.
+const SavedCardSelector = dynamic(
+  () => import('@/components/payments/SavedCardSelector').then((m) => m.SavedCardSelector),
+  { ssr: false }
+);
+const AddCardFlow = dynamic(
+  () => import('@/components/payments/AddCardFlow').then((m) => m.AddCardFlow),
+  { ssr: false }
+);
+
 const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
+
+// Client gate for the OPTIONAL saved-cards UI (server routes enforce the real
+// config). Off by default → zero change to the donation form.
+const SAVED_CARDS_UI = process.env.NEXT_PUBLIC_CLICK_SAVED_CARDS === '1';
 
 // Two donor-display modes. ('first' is retired from the UI but still honoured in
 // the DB/view for historical rows — see supabase/guest-donations.sql.)
@@ -63,10 +81,24 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileHandle>(null);
 
+  // ── Saved cards (optional, authenticated only). Additive to Checkout JS. ──
+  const [savedCards, setSavedCards] = useState<SavedCardDisplay[] | null>(null);
+  const [choice, setChoice] = useState<string>(CHOICE_CHECKOUT);
+  const [paying, setPaying] = useState(false);
+  const showSavedUi = isGuest === false && SAVED_CARDS_UI;
+  const payMode: 'checkout' | 'saved' | 'add' = !showSavedUi
+    ? 'checkout'
+    : choice === CHOICE_ADD
+    ? 'add'
+    : choice === CHOICE_CHECKOUT
+    ? 'checkout'
+    : 'saved';
+
   const {
     register,
     handleSubmit,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
@@ -77,6 +109,73 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
     });
     return () => { active = false; };
   }, []);
+
+  // Load the user's saved cards once we know they're authenticated + the flag is on.
+  const refreshCards = async () => {
+    try {
+      const json = await (await fetch('/api/account/cards')).json();
+      return (json.cards ?? []) as SavedCardDisplay[];
+    } catch {
+      return [] as SavedCardDisplay[];
+    }
+  };
+  useEffect(() => {
+    if (isGuest !== false || !SAVED_CARDS_UI) return;
+    let active = true;
+    refreshCards().then((cards) => {
+      if (!active) return;
+      setSavedCards(cards);
+      const def = cards.find((c) => c.is_default) ?? cards[0];
+      if (def) setChoice(def.id); // default to the saved card; else stays on Checkout JS
+    });
+    return () => { active = false; };
+  }, [isGuest]);
+
+  // Saved-card / newly-added-card donation: create the pending donation, then
+  // charge the token. Converges on the SAME confirmDonation() via the server.
+  const payWithSavedCard = async (cardId: string) => {
+    const amount = Math.floor(Number(getValues('amount')));
+    if (!amount || amount < 1000) { toast.error(t('toasts.generic')); return; }
+    setPaying(true);
+    try {
+      const res = await fetch('/api/donations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId, amount, method: 'click',
+          message: getValues('message') || null,
+          anonymous: nameDisplay === 'anonymous', name_display: nameDisplay,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.donationId) { toast.error(t('toasts.generic')); return; }
+
+      const pay = await fetch('/api/payments/click/card-token/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ donationId: json.donationId, savedCardId: cardId }),
+      });
+      const pj = await pay.json().catch(() => ({}));
+      // Charge accepted — the donation is finalised by the SHOP API Complete
+      // callback (like Checkout JS). Hand off to the success page, which POLLS
+      // until the callback confirms; never show completed immediately.
+      if (pay.ok && pj.status === 'accepted') {
+        window.location.href = `/payment/success?ref=${encodeURIComponent(json.reference)}`;
+        return;
+      }
+      // Dead token → drop it and fall back to Checkout JS; else let them retry /
+      // choose another card / use another card. A saved-card failure NEVER blocks.
+      if (pj.invalidToken) {
+        toast.error(t('cards.tokenExpired'));
+        setSavedCards(await refreshCards());
+        setChoice(CHOICE_CHECKOUT);
+        return;
+      }
+      toast.error(t('cards.payFailed'));
+    } finally {
+      setPaying(false);
+    }
+  };
 
   const pickPreset = (amount: number) => {
     setSelectedPreset(amount);
@@ -92,6 +191,10 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   };
 
   const onSubmit = async (data: FormData) => {
+    // Saved-card path: separate flow, same confirmDonation() server-side. The
+    // Checkout JS branch below is unchanged.
+    if (payMode === 'saved') { await payWithSavedCard(choice); return; }
+
     // Only validate what is actually shown — hidden fields never error.
     if (needsContact) {
       if (donorName.trim().length < 2) { toast.error(t('toasts.donorNameRequired')); return; }
@@ -242,14 +345,37 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
           </p>
         )}
 
-        {/* Payment method (amount → method → continue) */}
-        <PaymentMethodSelector
-          providers={providers}
-          selected={method}
-          onSelect={setMethod}
-          submethod={submethod}
-          onSubmethod={setSubmethod}
-        />
+        {/* Payment method. For authenticated users with the saved-cards flag on,
+            show the saved-card chooser; "Use another card" reveals the UNCHANGED
+            Checkout JS selector. Guests / flag-off see exactly today's UI. */}
+        {showSavedUi ? (
+          <div className="space-y-3">
+            <SavedCardSelector cards={savedCards ?? []} choice={choice} onChoice={setChoice} />
+            {payMode === 'checkout' && (
+              <PaymentMethodSelector
+                providers={providers}
+                selected={method}
+                onSelect={setMethod}
+                submethod={submethod}
+                onSubmethod={setSubmethod}
+              />
+            )}
+            {payMode === 'add' && (
+              <AddCardFlow
+                makeDefault={(savedCards?.length ?? 0) === 0}
+                onSaved={(card) => payWithSavedCard(card.id)}
+              />
+            )}
+          </div>
+        ) : (
+          <PaymentMethodSelector
+            providers={providers}
+            selected={method}
+            onSelect={setMethod}
+            submethod={submethod}
+            onSubmethod={setSubmethod}
+          />
+        )}
 
         {/* Message */}
         <div>
@@ -260,21 +386,26 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
         {/* Turnstile (guests) */}
         {isGuest && <Turnstile ref={turnstileRef} onVerify={setCaptchaToken} className="flex justify-center" />}
 
-        {/* Payment notice */}
-        <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl px-3 py-2 leading-relaxed flex items-start gap-2">
-          <CreditCard className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>
-            {selectedProvider
-              ? `Davom etsangiz, xavfsiz to'lov uchun ${selectedProvider.name} sahifasiga yo'naltirilasiz.`
-              : "To'lov tizimi tez orada ulanadi. Xayriyangiz qayd etiladi va siz bilan bog'laniladi."}
-          </span>
-        </p>
+        {/* Payment notice — the redirect note applies only to the Checkout JS path. */}
+        {payMode === 'checkout' && (
+          <p className="text-xs text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl px-3 py-2 leading-relaxed flex items-start gap-2">
+            <CreditCard className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              {selectedProvider
+                ? `Davom etsangiz, xavfsiz to'lov uchun ${selectedProvider.name} sahifasiga yo'naltirilasiz.`
+                : "To'lov tizimi tez orada ulanadi. Xayriyangiz qayd etiladi va siz bilan bog'laniladi."}
+            </span>
+          </p>
+        )}
 
-        <button type="submit" disabled={isSubmitting || isGuest === null} className="btn-primary w-full py-4 min-h-[56px] text-base">
-          {isSubmitting
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> {selectedProvider ? "Yo'naltirilmoqda..." : 'Saqlanmoqda...'}</>
-            : selectedProvider ? `${selectedProvider.name} bilan davom etish` : 'Xayriya qilish'}
-        </button>
+        {/* In "add a new card" mode the AddCardFlow drives its own buttons. */}
+        {payMode !== 'add' && (
+          <button type="submit" disabled={isSubmitting || paying || isGuest === null} className="btn-primary w-full py-4 min-h-[56px] text-base">
+            {isSubmitting || paying
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> {payMode === 'saved' ? t('cards.paying') : selectedProvider ? "Yo'naltirilmoqda..." : 'Saqlanmoqda...'}</>
+              : payMode === 'saved' ? t('cards.donateWithCard') : selectedProvider ? `${selectedProvider.name} bilan davom etish` : 'Xayriya qilish'}
+          </button>
+        )}
       </form>
     </div>
   );
