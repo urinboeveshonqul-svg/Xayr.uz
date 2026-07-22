@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { MyCampaigns, type MyCampaignRow, type MyExtensionRequest } from '@/components/profile/MyCampaigns';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
+import type { CampaignDraft } from '@/types';
 
 export const metadata: Metadata = { title: 'Mening kampaniyalarim — Xayr' };
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,20 @@ export default async function MyCampaignsPage({
     // table not present yet — leave extensions empty
   }
 
+  // Owner's private drafts (RLS scopes to their own rows), newest first.
+  // Degrades gracefully to [] if the campaign-drafts migration isn't applied.
+  let drafts: CampaignDraft[] = [];
+  try {
+    const { data: draftRows } = await supabase
+      .from('campaign_drafts')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+    drafts = (draftRows as CampaignDraft[] | null) ?? [];
+  } catch {
+    // table not present yet — leave drafts empty
+  }
+
   return (
     <>
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
@@ -64,7 +79,7 @@ export default async function MyCampaignsPage({
             </div>
           </div>
 
-          <MyCampaigns campaigns={campaigns} locale={lng} extensions={extensions} />
+          <MyCampaigns campaigns={campaigns} locale={lng} extensions={extensions} drafts={drafts} />
         </div>
       </main>
     </>

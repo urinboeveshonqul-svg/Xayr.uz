@@ -219,6 +219,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      campaign_drafts: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string | null;
+          description: string | null;
+          story: string | null;
+          category: string | null;
+          goal_amount: number | null;
+          location: string | null;
+          deadline: string | null;
+          is_urgent: boolean;
+          image_url: string | null;
+          images: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string | null;
+          description?: string | null;
+          story?: string | null;
+          category?: string | null;
+          goal_amount?: number | null;
+          location?: string | null;
+          deadline?: string | null;
+          is_urgent?: boolean;
+          image_url?: string | null;
+          images?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string | null;
+          description?: string | null;
+          story?: string | null;
+          category?: string | null;
+          goal_amount?: number | null;
+          location?: string | null;
+          deadline?: string | null;
+          is_urgent?: boolean;
+          image_url?: string | null;
+          images?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       campaign_extension_requests: {
         Row: {
           id: string;
@@ -1391,6 +1442,7 @@ export type PayoutRequest = Row<'payout_requests'>;
 export type PayoutRequestEvent = Row<'payout_request_events'>;
 export type PayoutAccount = Row<'payout_accounts'>;
 export type CampaignExtensionRequest = Row<'campaign_extension_requests'>;
+export type CampaignDraft = Row<'campaign_drafts'>;
 
 // Campaign as consumed by the UI: the row + optionally embedded relations.
 // Queries embed the organizer as `profiles:users(...)` and the category as

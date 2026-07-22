@@ -1,16 +1,22 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { CreateCampaignForm } from '@/components/campaigns/CreateCampaignForm';
+import { CreateCampaignClient } from '@/components/campaigns/CreateCampaignClient';
 import { CampaignKycGate } from '@/components/campaigns/CampaignKycGate';
 import { toKycStatus } from '@/lib/kyc';
+import type { CampaignDraft } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Kampaniya yaratish — Xayr',
 };
 export const dynamic = 'force-dynamic';
 
-export default async function CreateCampaignPage() {
+export default async function CreateCampaignPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ draft?: string }>;
+}) {
+  const { draft: draftId } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -39,6 +45,22 @@ export default async function CreateCampaignPage() {
     .select('id, slug')
     .order('sort_order');
 
+  // Existing drafts, newest first. Degrades gracefully to [] if the
+  // campaign-drafts migration hasn't been applied yet.
+  let drafts: CampaignDraft[] = [];
+  if (approved) {
+    try {
+      const { data: draftRows } = await supabase
+        .from('campaign_drafts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      drafts = (draftRows as CampaignDraft[] | null) ?? [];
+    } catch {
+      // table not present yet — no drafts to offer
+    }
+  }
+
   return (
     <>
       <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12">
@@ -49,9 +71,12 @@ export default async function CreateCampaignPage() {
           </div>
 
           {approved ? (
-            <div className="card p-8">
-              <CreateCampaignForm userId={user.id} categories={categories ?? []} />
-            </div>
+            <CreateCampaignClient
+              userId={user.id}
+              categories={categories ?? []}
+              drafts={drafts}
+              initialDraftId={draftId ?? null}
+            />
           ) : (
             <CampaignKycGate status={kyc} rejectionReason={rejectionReason} />
           )}

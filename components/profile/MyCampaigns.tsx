@@ -7,11 +7,13 @@ import toast from 'react-hot-toast';
 import {
   Megaphone, Eye, Pencil, BarChart3, Wallet, MessagesSquare, RefreshCw, Loader2,
   PlusCircle, Users, TrendingUp, CheckCircle2, CalendarPlus, X, Clock,
+  FileText, Trash2, Send,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { formatMoney, getProgress } from '@/lib/utils';
-import type { CampaignStatus } from '@/types';
+import { draftDisplayTitle, isDraftSubmittable } from '@/lib/drafts';
+import type { CampaignStatus, CampaignDraft } from '@/types';
 
 export interface MyCampaignRow {
   id: string;
@@ -68,15 +70,100 @@ export function MyCampaigns({
   campaigns,
   locale,
   extensions = {},
+  drafts = [],
 }: {
   campaigns: MyCampaignRow[];
   locale: string;
   extensions?: Record<string, MyExtensionRequest[]>;
+  drafts?: CampaignDraft[];
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const [filter, setFilter] = useState<CampaignStatus | 'all'>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Local draft list so a delete updates the UI without a full page reload.
+  const [draftList, setDraftList] = useState<CampaignDraft[]>(drafts);
+  const [busyDraftId, setBusyDraftId] = useState<string | null>(null);
+
+  const deleteDraft = async (id: string) => {
+    if (!confirm(t('draft.deleteConfirm'))) return;
+    setBusyDraftId(id);
+    try {
+      const { error } = await createClient().from('campaign_drafts').delete().eq('id', id);
+      if (error) { toast.error(error.message); return; }
+      setDraftList((prev) => prev.filter((d) => d.id !== id));
+      toast.success(t('draft.deletedToast'));
+    } finally {
+      setBusyDraftId(null);
+    }
+  };
+
+  // The Drafts section — private, unfinished campaigns. Rendered above the
+  // real-campaign dashboard (and shown even when there are no campaigns yet).
+  const draftsSection = draftList.length === 0 ? null : (
+    <section className="mb-8">
+      <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <FileText className="w-4 h-4" /> {t('draft.sectionTitle')} ({draftList.length})
+      </h2>
+      <div className="space-y-3">
+        {draftList.map((d) => {
+          const ready = isDraftSubmittable(d);
+          const editHref = `/${locale}/campaigns/create?draft=${d.id}`;
+          return (
+            <article key={d.id} className="card p-4">
+              <div className="flex gap-4">
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 flex items-center justify-center text-gray-300">
+                  {d.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={d.image_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  ) : (
+                    <FileText className="w-7 h-7" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-bold text-gray-900 dark:text-white truncate">{draftDisplayTitle(d, t('draft.untitled'))}</p>
+                    <span className={`badge flex-shrink-0 ${STATUS_CLS.draft}`}>{t('draft.badge')}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> {t('draft.lastEdited').replace('{time}', new Date(d.updated_at).toLocaleString(locale))}
+                  </p>
+                  <p className={`text-xs mt-1 ${ready ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                    {ready ? t('draft.ready') : t('draft.incomplete')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                <Link
+                  href={editHref}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> {t('draft.continueEditing')}
+                </Link>
+                {ready && (
+                  <Link
+                    href={editHref}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors"
+                  >
+                    <Send className="w-3.5 h-3.5" /> {t('draft.submitForReview')}
+                  </Link>
+                )}
+                <button
+                  onClick={() => deleteDraft(d.id)}
+                  disabled={busyDraftId === d.id}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-60"
+                >
+                  {busyDraftId === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  {t('draft.delete')}
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
   // Extend-campaign modal (expired + under-goal campaigns only).
   const [extendFor, setExtendFor] = useState<MyCampaignRow | null>(null);
   const [extendDate, setExtendDate] = useState('');
@@ -212,8 +299,8 @@ export function MyCampaigns({
     }
   };
 
-  // Empty state: first-campaign CTA.
-  if (campaigns.length === 0) {
+  // Empty state: first-campaign CTA (only when there are no campaigns AND no drafts).
+  if (campaigns.length === 0 && draftList.length === 0) {
     return (
       <div className="card p-12 text-center">
         <Megaphone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -230,6 +317,21 @@ export function MyCampaigns({
     );
   }
 
+  // Has drafts but no submitted campaigns yet: show the drafts + a create CTA.
+  if (campaigns.length === 0) {
+    return (
+      <div>
+        {draftsSection}
+        <div className="card p-8 text-center">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">{t('dash.emptyHint')}</p>
+          <Link href={`/${locale}/campaigns/create`} className="btn-primary px-6 py-3 inline-flex">
+            <PlusCircle className="w-5 h-5" /> {t('dash.createCampaign')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const action = (href: string, Icon: typeof Eye, label: string) => (
     <Link
       key={label}
@@ -242,6 +344,9 @@ export function MyCampaigns({
 
   return (
     <div>
+      {/* Drafts — private, unfinished campaigns */}
+      {draftsSection}
+
       {/* Dashboard cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {stats.map(({ Icon, label, value }) => (
