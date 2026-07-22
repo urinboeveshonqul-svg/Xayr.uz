@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 import { UZ, nationalDigitsFrom, formatNational, isValidNational, toE164 } from '@/lib/phone';
+import { fileExtension, imageRejectReason, uploadErrorKey, uploadToStorage } from '@/lib/image-upload';
 
 const MAX = 5 * 1024 * 1024;
 type DocType = 'id_front' | 'id_back' | 'selfie';
@@ -35,18 +36,18 @@ export function VerificationWizard({ userId }: { userId: string }) {
   const [uploading, setUploading] = useState<DocType | null>(null);
 
   const upload = async (file: File, type: DocType) => {
-    if (file.size > MAX) { toast.error('Max 5MB'); return; }
+    const reason = imageRejectReason(file, MAX);
+    if (reason === 'too_large') { toast.error(t('toasts.imageSize5mb')); return; }
+    if (reason === 'unsupported_format') { toast.error(t('toasts.imageUnsupportedFormat')); return; }
     setUploading(type);
     try {
       const supabase = createClient();
-      const ext = file.name.split('.').pop() ?? 'jpg';
-      const path = `${userId}/${folder}/${type}.${ext}`;
-      const { error } = await supabase.storage
-        .from('verification-documents')
-        .upload(path, file, { upsert: true });
-      if (error) { toast.error(error.message); return; }
+      const path = `${userId}/${folder}/${type}.${fileExtension(file)}`;
+      await uploadToStorage(supabase, 'verification-documents', path, file, { upsert: true });
       setPaths((p) => ({ ...p, [type]: path }));
       setPreviews((p) => ({ ...p, [type]: URL.createObjectURL(file) }));
+    } catch (err) {
+      toast.error(t(uploadErrorKey(err)));
     } finally {
       setUploading(null);
     }

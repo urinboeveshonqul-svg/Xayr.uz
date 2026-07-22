@@ -7,6 +7,7 @@ import { Loader2, ImagePlus, FileText, Video, X, CheckCircle2, Plus } from 'luci
 import { createClient } from '@/lib/supabase/client';
 import { formatMoney } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { fileExtension, isAcceptedImageMime, uploadErrorKey, uploadToStorage } from '@/lib/image-upload';
 import type { FundBreakdownItem, TimelineItem, BeneficiaryStatus } from '@/types';
 
 const IMG_MAX = 5 * 1024 * 1024;   // 5MB per image/doc
@@ -77,21 +78,28 @@ export function CompletionReportForm({
     file: File,
     folder: string,
     push: (url: string) => void,
-    isVideo = false,
+    opts: { isVideo?: boolean; imageOnly?: boolean } = {},
   ) => {
+    const { isVideo = false, imageOnly = false } = opts;
     if (file.size > (isVideo ? VID_MAX : IMG_MAX)) {
       toast.error(isVideo ? 'Video maks. 50MB' : 'Maks. 5MB');
+      return;
+    }
+    // Reject an unsupported image format up front (e.g. an Android HEIC/HEIF photo)
+    // only where the input is image-only; doc/video slots accept other types.
+    if (imageOnly && file.type && !isAcceptedImageMime(file.type)) {
+      toast.error(t('toasts.imageUnsupportedFormat'));
       return;
     }
     setUploading(true);
     try {
       const supabase = createClient();
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const path = `${userId}/${campaignId}/${folder}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('campaign-reports').upload(path, file, { upsert: true });
-      if (error) { toast.error(error.message); return; }
+      const path = `${userId}/${campaignId}/${folder}-${Date.now()}.${fileExtension(file, 'bin')}`;
+      await uploadToStorage(supabase, 'campaign-reports', path, file, { upsert: true });
       const { data } = supabase.storage.from('campaign-reports').getPublicUrl(path);
       push(data.publicUrl);
+    } catch (err) {
+      toast.error(t(uploadErrorKey(err)));
     } finally {
       setUploading(false);
     }
@@ -160,7 +168,7 @@ export function CompletionReportForm({
     <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center cursor-pointer text-gray-400 hover:border-brand-400">
       <ImagePlus className="w-6 h-6" />
       <input type="file" accept="image/*" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f, folder, push); e.target.value = ''; }} />
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f, folder, push, { imageOnly: true }); e.target.value = ''; }} />
     </label>
   );
 
@@ -281,7 +289,7 @@ export function CompletionReportForm({
             <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 text-sm text-gray-500 cursor-pointer hover:border-brand-400">
               <Video className="w-4 h-4" /> Qo&apos;shish
               <input type="file" accept="video/*" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f, 'video', (u) => setVideos((p) => [...p, u]), true); e.target.value = ''; }} />
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f, 'video', (u) => setVideos((p) => [...p, u]), { isVideo: true }); e.target.value = ''; }} />
             </label>
           </div>
         </div>
