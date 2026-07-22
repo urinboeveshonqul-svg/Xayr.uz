@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 //   • POST   /v2/merchant/card_token/verify   {service_id, card_token, sms_code}
 //              → {error_code, error_note, card_number}   (confirms the token)
 //   • POST   /v2/merchant/card_token/payment  {service_id, card_token, amount, transaction_parameter}
-//              → {error_code, error_note, payment_id, payment_status}   (SYNCHRONOUS — no Prepare/Complete)
+//              → {error_code, error_note, payment_id, payment_status}
 //   • DELETE /v2/merchant/card_token/:service_id/:card_token
 //              → {error_code, error_note}
 //
@@ -19,13 +19,20 @@ import { createHash } from 'node:crypto';
 // browser never touches them. The PAN (card_number) reaches this backend for
 // `request` only; it is never logged or stored (only last4 is kept).
 //
-// ⚠️ OPEN ITEMS (must be confirmed with Click before ENABLING — see PROJECT_STATUS
-// §11 Q7/Q8): the exact `payment_status` success value and the invalid/expired
-// -token `error_code` values are not published in the reachable docs. We treat
-// `error_code === 0` as success (documented convention) and expose the raw code
-// so the caller can react; auto-deactivation on invalid token is gated on
-// CLICK_INVALID_TOKEN_ERROR_CODES, which is intentionally EMPTY until confirmed
-// (so we never wrongly kill a card on a transient decline).
+// Confirmed by Click support (2026-07-22):
+//   • `amount` is sent in UZS (so'm), NOT tiyin.
+//   • `payment_status`: 0 = error (see error_note), 1 = processing, 2 = success.
+//   • `temporary=0` creates a PERSISTENT token with no expiration limit.
+//   • `card_token/delete` PERMANENTLY invalidates the token — a new token must be
+//     created afterwards.
+//   • After a successful `card_token/payment`, Click ALSO sends the normal SHOP
+//     API Prepare + Complete callbacks. So this module does NOT finalize the
+//     donation — it only places the charge; the Complete callback finalizes via
+//     confirmDonation(), exactly like Checkout JS (the single finalizer).
+//
+// STILL OPEN: the specific invalid/expired-token `error_code` value is not yet
+// confirmed, so CLICK_INVALID_TOKEN_ERROR_CODES stays EMPTY (auto-deactivation
+// inert until known — never wrongly kill a card on a transient decline).
 // ============================================================
 
 const MERCHANT_API_BASE = 'https://api.click.uz/v2/merchant';
@@ -146,12 +153,18 @@ export async function cardTokenVerify(input: {
   };
 }
 
-// ── payment: charge a verified token. SYNCHRONOUS — result in the response. ──
+// ── payment: place a charge on a verified token. ──
+// This does NOT finalize the donation. Click sends Prepare + Complete afterwards,
+// and the Complete callback finalizes via confirmDonation() (single finalizer).
+// `accepted` means the charge was placed (payment_status 1 processing or 2
+// success); the caller hands off to the SHOP-API lifecycle + polling success page.
 export interface CardTokenPaymentResult {
-  ok: boolean;
+  /** payment_status 1 (processing) or 2 (success) with error_code 0 → charge placed. */
+  accepted: boolean;
   errorCode?: number;
   errorNote?: string;
   paymentId?: number;
+  /** Confirmed by Click: 0 = error, 1 = processing, 2 = success. */
   paymentStatus?: number;
   /** True when Click's error signals the token is dead → caller deactivates it. */
   invalidToken: boolean;
@@ -159,23 +172,25 @@ export interface CardTokenPaymentResult {
 
 export async function cardTokenPayment(input: {
   cardToken: string;
-  amount: number; // so'm; server-set from the pending donation, never client-trusted
+  amount: number; // UZS (so'm) — server-set from the pending donation, never client-trusted
   transactionParameter: string; // our payment_ref (click_<donationId>)
 }): Promise<CardTokenPaymentResult> {
   const data = await callJson('/card_token/payment', 'POST', {
     service_id: Number(serviceId()) || serviceId(),
     card_token: input.cardToken,
-    amount: input.amount,
+    amount: input.amount, // UZS (so'm), per Click confirmation
     transaction_parameter: input.transactionParameter,
   });
-  if (!data) return { ok: false, invalidToken: false };
+  if (!data) return { accepted: false, invalidToken: false };
   const errorCode = num(data.error_code);
+  const paymentStatus = num(data.payment_status);
   return {
-    ok: errorCode === 0,
+    // Only payment_status 1 (processing) or 2 (success) count as accepted.
+    accepted: errorCode === 0 && (paymentStatus === 1 || paymentStatus === 2),
     errorCode,
     errorNote: str(data.error_note),
     paymentId: num(data.payment_id),
-    paymentStatus: num(data.payment_status),
+    paymentStatus,
     invalidToken: errorCode != null && CLICK_INVALID_TOKEN_ERROR_CODES.includes(errorCode),
   };
 }

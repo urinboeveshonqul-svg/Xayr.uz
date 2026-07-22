@@ -3,19 +3,22 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
-import { confirmDonation } from '@/lib/payments/confirm';
 import { decryptToken, isTokenCipherConfigured } from '@/lib/crypto/token-cipher';
 import { cardTokenPayment, isClickCardTokenConfigured } from '@/lib/payments/providers/click-card-token';
 
 export const runtime = 'nodejs';
 
-// Charge a PENDING donation with a saved Click token. SERVER-ONLY.
+// Place a charge on a PENDING donation with a saved Click token. SERVER-ONLY.
 //
-// This is a SEPARATE payment path from Checkout JS, but it converges on the SAME,
-// UNMODIFIED confirmDonation() — the single crediting authority. card_token/payment
-// is SYNCHRONOUS (no Prepare/Complete callbacks), so we finalise from its response.
-// The amount is read from the donation row (server-set), never trusted from the
-// client, so passing it back to confirmDonation is a real amount match.
+// This only TRIGGERS the charge. It does NOT finalize the donation and NEVER
+// calls confirmDonation(). Per Click's confirmed lifecycle, a successful
+// card_token/payment is followed by the normal SHOP API Prepare + Complete
+// callbacks (app/api/payments/click), and the COMPLETE callback finalizes via
+// confirmDonation() — exactly like Checkout JS. So finalization has one path for
+// both flows, and the Prepare/Complete race (a pre-completed donation making
+// Prepare answer AlreadyPaid) cannot happen because the donation stays `pending`
+// here. The amount is read from the donation row (server-set), sent to Click in
+// UZS (so'm); the client hands off to the polling /payment/success page.
 
 const schema = z.object({
   donationId: z.string().uuid(),
@@ -76,7 +79,8 @@ export async function POST(request: Request) {
     transactionParameter: donation.payment_ref,
   });
 
-  if (!result.ok) {
+  // Not accepted (payment_status 0 / error_code ≠ 0): the charge was not placed.
+  if (!result.accepted) {
     // Dead token → deactivate so the UI stops offering it and asks for a new card.
     if (result.invalidToken) {
       await admin
@@ -91,20 +95,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: 'failed', code: result.errorCode ?? null }, { status: 402 });
   }
 
-  // Success — finalise through the ONE crediting path. Idempotent + amount-verified.
-  const outcome = await confirmDonation(donation.payment_ref, 'completed', {
-    amount: donation.amount,
-    currency: 'UZS',
-  });
-  if (outcome.status !== 'completed' && outcome.status !== 'noop') {
-    return NextResponse.json({ status: 'failed', reason: outcome.reason }, { status: 402 });
-  }
-
+  // Accepted (payment_status 1 or 2). DO NOT finalize here — the SHOP API Complete
+  // callback finalizes via confirmDonation(), like Checkout JS. The donation stays
+  // `pending`; the client hands off to the polling success page.
   await admin
     .from('saved_payment_methods')
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', savedCardId)
     .eq('user_id', user.id);
 
-  return NextResponse.json({ status: 'completed', reference: donation.payment_ref });
+  return NextResponse.json({ status: 'accepted', reference: donation.payment_ref }, { status: 202 });
 }

@@ -156,7 +156,10 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
         body: JSON.stringify({ donationId: json.donationId, savedCardId: cardId }),
       });
       const pj = await pay.json().catch(() => ({}));
-      if (pay.ok && pj.status === 'completed') {
+      // Charge accepted — the donation is finalised by the SHOP API Complete
+      // callback (like Checkout JS). Hand off to the success page, which POLLS
+      // until the callback confirms; never show completed immediately.
+      if (pay.ok && pj.status === 'accepted') {
         window.location.href = `/payment/success?ref=${encodeURIComponent(json.reference)}`;
         return;
       }
