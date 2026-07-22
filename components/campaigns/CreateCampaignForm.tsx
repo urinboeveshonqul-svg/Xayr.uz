@@ -13,6 +13,7 @@ import { CATEGORY_CONFIG } from '@/lib/utils';
 import type { CampaignCategory } from '@/types';
 import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/components/security/Turnstile';
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
+import { fileExtension, imageRejectReason, uploadErrorKey, uploadToStorage } from '@/lib/image-upload';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_GALLERY = 5;
@@ -70,8 +71,13 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_IMAGE_SIZE) {
+    const reason = imageRejectReason(file, MAX_IMAGE_SIZE);
+    if (reason === 'too_large') {
       toast.error(t('toasts.imageSize5mb'));
+      return;
+    }
+    if (reason === 'unsupported_format') {
+      toast.error(t('toasts.imageUnsupportedFormat'));
       return;
     }
     const url = URL.createObjectURL(file);
@@ -95,8 +101,13 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
     const accepted: File[] = [];
     const previews: string[] = [];
     for (const f of files.slice(0, room)) {
-      if (f.size > MAX_IMAGE_SIZE) {
+      const reason = imageRejectReason(f, MAX_IMAGE_SIZE);
+      if (reason === 'too_large') {
         toast.error(`${f.name} — 5MB dan katta`);
+        continue;
+      }
+      if (reason === 'unsupported_format') {
+        toast.error(`${f.name} — ${t('toasts.imageUnsupportedFormat')}`);
         continue;
       }
       const url = URL.createObjectURL(f);
@@ -122,10 +133,8 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
     file: File,
     tag: string
   ): Promise<string> => {
-    const ext = file.name.split('.').pop() ?? 'jpg';
-    const path = `${userId}/${Date.now()}-${tag}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabase.storage.from('campaign-images').upload(path, file);
-    if (error) throw error;
+    const path = `${userId}/${Date.now()}-${tag}-${Math.random().toString(36).slice(2, 8)}.${fileExtension(file)}`;
+    await uploadToStorage(supabase, 'campaign-images', path, file);
     return supabase.storage.from('campaign-images').getPublicUrl(path).data.publicUrl;
   };
 
@@ -185,8 +194,7 @@ export function CreateCampaignForm({ userId, categories }: CreateCampaignFormPro
       router.push(`/${locale}/campaigns`);
       router.refresh();
     } catch (err) {
-      toast.error(t('toasts.imageUploadFailed'));
-      console.error(err);
+      toast.error(t(uploadErrorKey(err)));
     } finally {
       setUploading(false);
     }

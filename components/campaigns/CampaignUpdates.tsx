@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { timeAgo } from '@/lib/utils';
 import { ImageGrid } from '@/components/ui/Gallery';
+import { fileExtension, isAcceptedImageMime, uploadErrorKey, uploadToStorage } from '@/lib/image-upload';
 
 const MAX = 5 * 1024 * 1024; // 5MB per file
 // Reuse the existing public own-folder bucket (same one completion reports use).
@@ -91,6 +92,12 @@ export function CampaignUpdates({
       toast.error(t('toasts.max5mb'));
       return;
     }
+    // Reject an unsupported image format up front (e.g. an Android HEIC/HEIF photo);
+    // the document slot accepts PDF/DOC too, so only guard the image input.
+    if (kind === 'image' && file.type && !isAcceptedImageMime(file.type)) {
+      toast.error(t('toasts.imageUnsupportedFormat'));
+      return;
+    }
     setUploading(true);
     try {
       const supabase = createClient();
@@ -99,16 +106,13 @@ export function CampaignUpdates({
         toast.error(t('toasts.authRequired'));
         return;
       }
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const path = `${user.id}/${campaignId}/update-${kind}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
+      const path = `${user.id}/${campaignId}/update-${kind}-${Date.now()}.${fileExtension(file, 'bin')}`;
+      await uploadToStorage(supabase, BUCKET, path, file, { upsert: true });
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
       if (kind === 'image') setImages((p) => [...p, data.publicUrl]);
       else setDocuments((p) => [...p, data.publicUrl]);
+    } catch (err) {
+      toast.error(t(uploadErrorKey(err)));
     } finally {
       setUploading(false);
     }
