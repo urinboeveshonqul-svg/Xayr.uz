@@ -1478,5 +1478,38 @@
       "errEmail": "Iltimos, to'g'ri email manzil kiriting.",
       "errMessage": "Xabar kamida 10 ta belgidan iborat bo'lishi kerak."
     }
+  },
+  "cards": {
+    "title": "Saqlangan kartalar",
+    "add": "Karta qo'shish",
+    "empty": "Sizda hali saqlangan kartalar yo'q.",
+    "default": "Asosiy",
+    "makeDefault": "Asosiy qilish",
+    "remove": "O'chirish",
+    "removed": "Karta o'chirildi",
+    "saved": "Karta saqlandi",
+    "savedCards": "Saqlangan kartalar",
+    "addAndSave": "Yangi karta qo'shish va saqlash",
+    "useAnother": "Boshqa karta",
+    "donateWithCard": "Shu karta bilan xayriya qilish",
+    "paying": "Amalga oshirilmoqda...",
+    "tokenExpired": "Ushbu saqlangan karta yaroqsiz. Iltimos, yangi karta qo'shing.",
+    "payFailed": "To'lov amalga oshmadi. Qayta urinib ko'ring, boshqa kartani tanlang yoki boshqa kartadan foydalaning.",
+    "secureNote": "Kartangiz bank SMS-kodi orqali tasdiqlanadi. Xayr karta raqamini to'liq saqlamaydi.",
+    "cardNumber": "Karta raqami",
+    "expiry": "Amal qilish muddati (OYYIL)",
+    "phone": "Telefon raqami",
+    "holder": "Karta egasi (ixtiyoriy)",
+    "holderPlaceholder": "Kartadagi ism",
+    "getCode": "SMS-kod olish",
+    "otpSent": "SMS-kod yuborildi:",
+    "otp": "SMS-kod",
+    "confirmSave": "Tasdiqlash va saqlash",
+    "errCard": "16 xonali to'g'ri karta raqamini kiriting.",
+    "errExpiry": "Muddatni OYYIL formatida kiriting.",
+    "errPhone": "Kartaga bog'langan telefon raqamini kiriting.",
+    "errRequest": "Kartani tekshirishni boshlab bo'lmadi. Qayta urinib ko'ring.",
+    "errOtp": "SMS-kodni kiriting.",
+    "errOtpFailed": "SMS-kod noto'g'ri yoki muddati o'tgan."
   }
 }

@@ -1478,5 +1478,38 @@
       "errEmail": "Please enter a valid email address.",
       "errMessage": "The message must be at least 10 characters."
     }
+  },
+  "cards": {
+    "title": "Saved cards",
+    "add": "Add card",
+    "empty": "You have no saved cards yet.",
+    "default": "Default",
+    "makeDefault": "Make default",
+    "remove": "Remove",
+    "removed": "Card removed",
+    "saved": "Card saved",
+    "savedCards": "Saved cards",
+    "addAndSave": "Add a new card and save it",
+    "useAnother": "Use another card",
+    "donateWithCard": "Donate with this card",
+    "paying": "Processing...",
+    "tokenExpired": "This saved card is no longer valid. Please add a new card.",
+    "payFailed": "Payment failed. Try again, choose another card, or use another card.",
+    "secureNote": "Your card is verified by an SMS code from your bank. Xayr never stores your full card number.",
+    "cardNumber": "Card number",
+    "expiry": "Expiry (MMYY)",
+    "phone": "Phone number",
+    "holder": "Cardholder (optional)",
+    "holderPlaceholder": "Name on card",
+    "getCode": "Get SMS code",
+    "otpSent": "An SMS code was sent to",
+    "otp": "SMS code",
+    "confirmSave": "Confirm & save",
+    "errCard": "Enter a valid 16-digit card number.",
+    "errExpiry": "Enter the expiry as MMYY.",
+    "errPhone": "Enter the phone number linked to the card.",
+    "errRequest": "Could not start card verification. Please try again.",
+    "errOtp": "Enter the SMS code.",
+    "errOtpFailed": "The SMS code is incorrect or expired."
   }
 }

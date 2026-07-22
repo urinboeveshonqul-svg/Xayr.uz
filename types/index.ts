@@ -922,6 +922,43 @@ export type Database = {
         };
         Relationships: [];
       };
+      saved_payment_methods: {
+        Row: {
+          id: string;
+          user_id: string;
+          provider: string;
+          token_ciphertext: string;
+          enc_version: number;
+          token_id: string | null;
+          card_brand: 'uzcard' | 'humo' | null;
+          last4: string | null;
+          card_holder: string | null;
+          is_default: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+          last_used_at: string | null;
+        };
+        Insert: {
+          user_id: string;
+          token_ciphertext: string;
+          enc_version?: number;
+          provider?: string;
+          token_id?: string | null;
+          card_brand?: 'uzcard' | 'humo' | null;
+          last4?: string | null;
+          card_holder?: string | null;
+          is_default?: boolean;
+          is_active?: boolean;
+        };
+        Update: {
+          is_default?: boolean;
+          is_active?: boolean;
+          last_used_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       payout_request_events: {
         Row: {
           id: string;
@@ -1196,6 +1233,22 @@ export type Database = {
         Args: { p_request_id: string; p_reference: string; p_paid_at?: string };
         Returns: undefined;
       };
+      save_card: {
+        Args: {
+          p_provider: string;
+          p_token_ciphertext: string;
+          p_enc_version: number;
+          p_token_id: string | null;
+          p_card_brand: string | null;
+          p_last4: string | null;
+          p_card_holder: string | null;
+          p_make_default: boolean;
+        };
+        Returns: string;
+      };
+      set_default_card: { Args: { p_card_id: string }; Returns: undefined };
+      deactivate_card: { Args: { p_card_id: string }; Returns: undefined };
+      delete_card: { Args: { p_card_id: string }; Returns: undefined };
       expire_due_campaigns: {
         Args: Record<string, never>;
         Returns: number;
@@ -1323,6 +1376,7 @@ type Row<T extends keyof Database['public']['Tables']> =
 // `Profile` intentionally maps to the `users` table so existing imports
 // (`import type { Profile }`) keep working after the rename.
 export type Profile = Row<'users'>;
+export type SavedPaymentMethod = Row<'saved_payment_methods'>;
 export type Category = Row<'categories'>;
 export type CampaignUpdate = Row<'campaign_updates'>;
 export type CampaignReport = Row<'campaign_reports'> & {
