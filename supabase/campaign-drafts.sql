@@ -16,6 +16,14 @@
 --
 -- PRIVACY: owner-only RLS on every operation. A draft is NEVER public and never
 --   appears in any listing (those all query public.campaigns, not this table).
+--   No admin/anon policy exists, so anonymous users see nothing and admins cannot
+--   read other users' drafts.
+--
+-- STORAGE CLEANUP (deferred): deleting a draft removes only the row — images the
+--   draft already uploaded to the campaign-images bucket are NOT garbage-collected
+--   here. A future scheduled sweep of unreferenced own-folder objects can reclaim
+--   them; no correctness/privacy impact meanwhile (public-read own-folder bucket,
+--   unguessable URLs).
 --
 -- Depends on: public.users, public.set_updated_at().
 -- Run in: Supabase Dashboard → SQL Editor.
