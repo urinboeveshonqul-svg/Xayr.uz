@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import { cardTokenRequest, isClickCardTokenConfigured } from '@/lib/payments/providers/click-card-token';
 import { encryptToken, isTokenCipherConfigured } from '@/lib/crypto/token-cipher';
+import { isCardRegistrationEnabled } from '@/components/payments/saved-card-constants';
 
 export const runtime = 'nodejs';
 
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
 
   const { data: { user } } = await (await createClient()).auth.getUser();
   if (!user) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+
+  // New-card registration is temporarily disabled (see saved-card-constants).
+  if (!isCardRegistrationEnabled()) {
+    return NextResponse.json({ error: 'card_registration_disabled' }, { status: 503 });
+  }
 
   if (!isClickCardTokenConfigured() || !isTokenCipherConfigured()) {
     return NextResponse.json({ error: 'saved_cards_unavailable' }, { status: 503 });

@@ -12,7 +12,7 @@ import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/component
 import { useI18n } from '@/components/i18n/I18nProvider';
 import dynamic from 'next/dynamic';
 import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
-import { CHOICE_ADD, CHOICE_CHECKOUT, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
+import { CHOICE_ADD, CHOICE_CHECKOUT, isCardRegistrationEnabled, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
 import type { PaymentProviderOption, PaymentSubmethod } from '@/lib/payments/providers-meta';
 
 // Lazy — the saved-card UI is a separate chunk fetched ONLY when the feature is
@@ -32,6 +32,9 @@ const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
 // Client gate for the OPTIONAL saved-cards UI (server routes enforce the real
 // config). Off by default → zero change to the donation form.
 const SAVED_CARDS_UI = process.env.NEXT_PUBLIC_CLICK_SAVED_CARDS === '1';
+// New-card enrolment is temporarily disabled (unreliable Click flow). Existing
+// saved cards still pay; only the "Add and save a new card" option is hidden.
+const CARD_REGISTRATION = isCardRegistrationEnabled();
 
 // Two donor-display modes. ('first' is retired from the UI but still honoured in
 // the DB/view for historical rows — see supabase/guest-donations.sql.)
@@ -85,10 +88,14 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   const [savedCards, setSavedCards] = useState<SavedCardDisplay[] | null>(null);
   const [choice, setChoice] = useState<string>(CHOICE_CHECKOUT);
   const [paying, setPaying] = useState(false);
-  const showSavedUi = isGuest === false && SAVED_CARDS_UI;
+  const hasSavedCards = (savedCards?.length ?? 0) > 0;
+  // Only surface the chooser when there is a real choice: an existing saved card
+  // to pick, or (when enabled) the option to add one. With registration disabled
+  // and no saved cards, the user sees exactly today's one-time Checkout JS flow.
+  const showSavedUi = isGuest === false && SAVED_CARDS_UI && (hasSavedCards || CARD_REGISTRATION);
   const payMode: 'checkout' | 'saved' | 'add' = !showSavedUi
     ? 'checkout'
-    : choice === CHOICE_ADD
+    : choice === CHOICE_ADD && CARD_REGISTRATION
     ? 'add'
     : choice === CHOICE_CHECKOUT
     ? 'checkout'
@@ -350,7 +357,7 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
             Checkout JS selector. Guests / flag-off see exactly today's UI. */}
         {showSavedUi ? (
           <div className="space-y-3">
-            <SavedCardSelector cards={savedCards ?? []} choice={choice} onChoice={setChoice} />
+            <SavedCardSelector cards={savedCards ?? []} choice={choice} onChoice={setChoice} allowAdd={CARD_REGISTRATION} />
             {payMode === 'checkout' && (
               <PaymentMethodSelector
                 providers={providers}
