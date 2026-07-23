@@ -41,7 +41,14 @@ export function isClickConfigured(): boolean {
  * not a secret — it is a boolean toggle.
  */
 export function isClickEmbeddedCardEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_CLICK_EMBEDDED_CARD === '1';
+  // DISABLED — production regression (2026-07-23). Click's checkout.js renders
+  // my.click.uz in an in-page window that Click refuses to frame ("the site
+  // my.click.uz does not allow the connection"), which broke card payments. Force
+  // the proven full-page redirect for every donor regardless of the env flag,
+  // until the in-page flow is re-validated against a live merchant. Re-enable by
+  // restoring `process.env.NEXT_PUBLIC_CLICK_EMBEDDED_CARD === '1'` AND the
+  // client opener in DonationForm.
+  return false;
 }
 
 // ============================================================
