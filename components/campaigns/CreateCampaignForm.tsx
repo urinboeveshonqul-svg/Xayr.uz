@@ -16,6 +16,7 @@ import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { fileExtension, imageRejectReason, uploadErrorKey, uploadToStorage } from '@/lib/image-upload';
 import { draftColumns, hasDraftContent, type DraftFormValues } from '@/lib/drafts';
 import { isValidVideoUrl } from '@/lib/video';
+import { MAX_GOAL_AMOUNT, isGoalWithinLimit, isDurationWithinLimit, todayISO, maxDeadlineISO } from '@/lib/campaign-limits';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_GALLERY = 5;
@@ -118,6 +119,7 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
     handleSubmit,
     watch,
     getValues,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -287,6 +289,15 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
     const video = videoUrlRef.current.trim();
     if (video && !isValidVideoUrl(video)) {
       setVideoError(t('video.invalid'));
+      return;
+    }
+    // Enforce the goal + duration caps (mirrored server-side + in the DB trigger).
+    if (!isGoalWithinLimit(Number(data.goal))) {
+      setError('goal', { message: t('limits.goalMax') });
+      return;
+    }
+    if (data.deadline && !isDurationWithinLimit(data.deadline)) {
+      setError('deadline', { message: t('limits.durationMax') });
       return;
     }
     // Stop the submission if Turnstile is enabled but hasn't issued a token yet.
@@ -477,8 +488,11 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
             className="input"
             placeholder="5000000"
             min={100000}
+            max={MAX_GOAL_AMOUNT}
           />
-          {errors.goal && <p className="text-red-500 text-xs mt-1">{errors.goal.message}</p>}
+          {errors.goal
+            ? <p className="text-red-500 text-xs mt-1">{errors.goal.message}</p>
+            : <p className="text-xs text-gray-400 mt-1">{t('limits.goalHint')}</p>}
         </div>
       </div>
 
@@ -495,8 +509,12 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
             {...register('deadline')}
             type="date"
             className="input"
-            min={new Date().toISOString().split('T')[0]}
+            min={todayISO()}
+            max={maxDeadlineISO()}
           />
+          {errors.deadline
+            ? <p className="text-red-500 text-xs mt-1">{errors.deadline.message}</p>
+            : <p className="text-xs text-gray-400 mt-1">{t('limits.durationHint')}</p>}
         </div>
       </div>
 
