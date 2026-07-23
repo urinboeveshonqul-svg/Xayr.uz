@@ -1,30 +1,26 @@
 'use client';
 
-import { CreditCard, Plus, RefreshCw } from 'lucide-react';
+import { CreditCard, RefreshCw } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { cardTypeLabel } from '@/lib/payout';
-import { CHOICE_ADD, CHOICE_CHECKOUT, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
+import { CHOICE_CHECKOUT, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
 
 /**
- * Donation-form payment chooser for authenticated users when saved cards exist
- * (or can be added). A single radio group:
+ * Donation-form payment chooser for authenticated users who have saved cards.
+ * A single radio group:
  *   • one row per saved card (default first),
- *   • "Add a new card and save it"   → CHOICE_ADD (only when `allowAdd`; new-card
- *                                       registration is temporarily disabled),
- *   • "Use another card"             → CHOICE_CHECKOUT (the existing Checkout JS).
- * Purely presentational — DonationForm maps the choice to a payment path.
+ *   • "Use another card" → CHOICE_CHECKOUT (the normal Click card payment flow).
+ * There is no "add a card" option — cards are saved automatically after a
+ * successful donation. Purely presentational — DonationForm maps the choice.
  */
 export function SavedCardSelector({
   cards,
   choice,
   onChoice,
-  allowAdd = false,
 }: {
   cards: SavedCardDisplay[];
   choice: string;
   onChoice: (c: string) => void;
-  /** Show the "Add a new card and save it" option. Off while registration is disabled. */
-  allowAdd?: boolean;
 }) {
   const { t } = useI18n();
 
@@ -56,7 +52,6 @@ export function SavedCardSelector({
           <CreditCard className="w-4 h-4 text-brand-600 flex-shrink-0" />
         )
       )}
-      {allowAdd && row(CHOICE_ADD, <span>{t('cards.addAndSave')}</span>, <Plus className="w-4 h-4 text-brand-600 flex-shrink-0" />)}
       {row(CHOICE_CHECKOUT, <span>{t('cards.useAnother')}</span>, <RefreshCw className="w-4 h-4 text-gray-400 flex-shrink-0" />)}
     </div>
   );
