@@ -158,6 +158,7 @@ export type Database = {
           current_amount: number;
           image_url: string | null;
           images: string[];
+          video_url: string | null;
           status: CampaignStatus;
           is_urgent: boolean;
           deadline: string | null;
@@ -182,6 +183,7 @@ export type Database = {
           current_amount?: number;
           image_url?: string | null;
           images?: string[];
+          video_url?: string | null;
           status?: CampaignStatus;
           is_urgent?: boolean;
           deadline?: string | null;
@@ -206,6 +208,7 @@ export type Database = {
           current_amount?: number;
           image_url?: string | null;
           images?: string[];
+          video_url?: string | null;
           status?: CampaignStatus;
           is_urgent?: boolean;
           deadline?: string | null;
@@ -233,6 +236,7 @@ export type Database = {
           is_urgent: boolean;
           image_url: string | null;
           images: string[];
+          video_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -249,6 +253,7 @@ export type Database = {
           is_urgent?: boolean;
           image_url?: string | null;
           images?: string[];
+          video_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -265,6 +270,7 @@ export type Database = {
           is_urgent?: boolean;
           image_url?: string | null;
           images?: string[];
+          video_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };

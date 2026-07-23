@@ -15,6 +15,7 @@ import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/component
 import { RequiredLabel } from '@/components/ui/RequiredLabel';
 import { fileExtension, imageRejectReason, uploadErrorKey, uploadToStorage } from '@/lib/image-upload';
 import { draftColumns, hasDraftContent, type DraftFormValues } from '@/lib/drafts';
+import { isValidVideoUrl } from '@/lib/video';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_GALLERY = 5;
@@ -75,6 +76,13 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
   const setGallery = (updater: (prev: Img[]) => Img[]) =>
     setGalleryState((prev) => { const next = updater(prev); galleryRef.current = next; return next; });
   const [galleryUploading, setGalleryUploading] = useState(0);
+
+  // Optional Instagram video link. Kept in a ref (like the images) so the
+  // auto-save snapshot can read it without re-subscribing the watch effect.
+  const [videoUrl, setVideoUrlState] = useState(initialDraft?.video_url ?? '');
+  const videoUrlRef = useRef(videoUrl);
+  const setVideoUrl = (v: string) => { videoUrlRef.current = v; setVideoUrlState(v); };
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   // Hard single-flight lock: guarantees one create POST per submission even if
@@ -139,6 +147,7 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
       is_urgent: v.is_urgent,
       image_url: coverRef.current?.url || null,
       images: galleryRef.current.map((g) => g.url).filter(Boolean),
+      video_url: videoUrlRef.current.trim() || null,
     };
   }, [getValues]);
 
@@ -274,6 +283,12 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
       setCoverError(t('draft.coverRequired'));
       return;
     }
+    // Optional video: if present it must be a valid Instagram post/reel link.
+    const video = videoUrlRef.current.trim();
+    if (video && !isValidVideoUrl(video)) {
+      setVideoError(t('video.invalid'));
+      return;
+    }
     // Stop the submission if Turnstile is enabled but hasn't issued a token yet.
     if (isTurnstileEnabled() && !captchaToken) {
       toast.error(t('toasts.turnstile'));
@@ -298,6 +313,7 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
           is_urgent: data.is_urgent,
           image_url: cover.url,
           images: gallery.map((g) => g.url),
+          video_url: video || null,
           turnstileToken: captchaToken,
         }),
       });
@@ -482,6 +498,23 @@ export function CreateCampaignForm({ userId, categories, initialDraft = null }: 
             min={new Date().toISOString().split('T')[0]}
           />
         </div>
+      </div>
+
+      {/* Optional Instagram video */}
+      <div>
+        <label className="label">{t('video.fieldLabel')}</label>
+        <input
+          type="url"
+          inputMode="url"
+          value={videoUrl}
+          onChange={(e) => { setVideoUrl(e.target.value); setVideoError(null); scheduleSave(); }}
+          onBlur={() => setVideoError(videoUrl.trim() && !isValidVideoUrl(videoUrl.trim()) ? t('video.invalid') : null)}
+          className="input"
+          placeholder="https://www.instagram.com/reel/..."
+        />
+        {videoError
+          ? <p className="text-red-500 text-xs mt-1">{videoError}</p>
+          : <p className="text-xs text-gray-400 mt-1">{t('video.fieldHint')}</p>}
       </div>
 
       {/* Urgent */}
