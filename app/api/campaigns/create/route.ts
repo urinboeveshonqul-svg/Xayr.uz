@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { verifyTurnstile, tokenFromBody, turnstileFailureResponse } from '@/lib/security/turnstile';
 import { getClientIp, rateLimitOr429 } from '@/lib/rate-limit';
 import { slugify } from '@/lib/utils';
+import { parseVideoUrl } from '@/lib/video';
 
 export const runtime = 'nodejs';
 
@@ -46,6 +47,8 @@ const schema = z.object({
   is_urgent: z.boolean().optional().default(false),
   image_url: z.string().url(),
   images: z.array(z.string().url()).max(10).optional().default([]),
+  // Optional Instagram post/reel link — shape re-validated + normalized below.
+  video_url: z.string().max(300).nullable().optional(),
 });
 
 export async function POST(request: Request) {
@@ -73,6 +76,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid image URL' }, { status: 422 });
   }
 
+  // Video is optional. When provided it must be a valid Instagram post/reel link;
+  // store only the normalized canonical permalink (never the raw client string).
+  const parsedVideo = d.video_url ? parseVideoUrl(d.video_url) : null;
+  if (d.video_url && !parsedVideo) {
+    return NextResponse.json({ error: 'Invalid video URL' }, { status: 422 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -98,6 +108,7 @@ export async function POST(request: Request) {
     is_urgent: !!d.is_urgent,
     image_url: d.image_url,
     images: d.images ?? [],
+    video_url: parsedVideo?.canonicalUrl ?? null,
     status: 'pending',
   });
   if (error) {

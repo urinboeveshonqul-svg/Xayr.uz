@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { isValidVideoUrl, normalizeVideoUrl } from '@/lib/video';
 
 export interface EditableCampaign {
   id: string;
@@ -16,6 +17,7 @@ export interface EditableCampaign {
   goal_amount: number;
   location: string | null;
   deadline: string | null;
+  video_url: string | null;
 }
 
 /**
@@ -33,6 +35,9 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
   const [goal, setGoal] = useState(String(campaign.goal_amount));
   const [location, setLocation] = useState(campaign.location ?? '');
   const [deadline, setDeadline] = useState(campaign.deadline ? campaign.deadline.slice(0, 10) : '');
+  // Optional Instagram video — editable (add / replace) or clearable (remove).
+  const [videoUrl, setVideoUrl] = useState(campaign.video_url ?? '');
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -41,6 +46,10 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
     if (title.trim().length < 5) { toast.error(t('toasts.editTitleMin')); return; }
     if (description.trim().length < 10) { toast.error(t('toasts.editDescMin')); return; }
     if (!goalNum || goalNum <= 0) { toast.error(t('toasts.editGoalInvalid')); return; }
+
+    // Empty ⇒ remove the video. A non-empty value must be a valid Instagram link.
+    const video = videoUrl.trim();
+    if (video && !isValidVideoUrl(video)) { setVideoError(t('video.invalid')); toast.error(t('video.invalid')); return; }
 
     setSaving(true);
     try {
@@ -53,6 +62,7 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
           goal_amount: goalNum,
           location: location.trim() || null,
           deadline: deadline || null,
+          video_url: video ? normalizeVideoUrl(video) : null,
         })
         .eq('id', campaign.id);
       if (error) {
@@ -98,6 +108,34 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
       <div>
         <label className="label">Joylashuv (ixtiyoriy)</label>
         <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={120} className="input" />
+      </div>
+
+      <div>
+        <label className="label">{t('video.fieldLabel')}</label>
+        <div className="flex gap-2">
+          <input
+            type="url"
+            inputMode="url"
+            value={videoUrl}
+            onChange={(e) => { setVideoUrl(e.target.value); setVideoError(null); }}
+            onBlur={() => setVideoError(videoUrl.trim() && !isValidVideoUrl(videoUrl.trim()) ? t('video.invalid') : null)}
+            maxLength={300}
+            className="input flex-1"
+            placeholder="https://www.instagram.com/reel/..."
+          />
+          {videoUrl.trim() && (
+            <button
+              type="button"
+              onClick={() => { setVideoUrl(''); setVideoError(null); }}
+              className="btn-ghost px-3 py-2.5 text-sm inline-flex items-center gap-1.5 flex-shrink-0"
+            >
+              <X className="w-4 h-4" /> {t('video.remove')}
+            </button>
+          )}
+        </div>
+        {videoError
+          ? <p className="text-red-500 text-xs mt-1">{videoError}</p>
+          : <p className="text-xs text-gray-400 mt-1">{t('video.fieldHint')}</p>}
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

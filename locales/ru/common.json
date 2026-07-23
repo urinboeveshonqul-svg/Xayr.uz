@@ -612,6 +612,16 @@
     "profileSubtitle": "Управляйте своими личными данными",
     "saveChanges": "Сохранить изменения"
   },
+  "video": {
+    "sectionTitle": "Видео",
+    "fieldLabel": "Ссылка на видео в Instagram (необязательно)",
+    "fieldHint": "Вставьте ссылку на публикацию или Reels в Instagram.",
+    "invalid": "Неверная ссылка на Instagram",
+    "remove": "Удалить видео",
+    "replace": "Заменить видео",
+    "watchButton": "Смотреть видео кампании",
+    "opensInInstagram": "Откроется в Instagram"
+  },
   "draft": {
     "sectionTitle": "Черновики",
     "badge": "Черновик",

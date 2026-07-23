@@ -612,6 +612,16 @@
     "profileSubtitle": "Manage your personal information",
     "saveChanges": "Save changes"
   },
+  "video": {
+    "sectionTitle": "Video",
+    "fieldLabel": "Instagram video link (optional)",
+    "fieldHint": "Paste an Instagram post or Reel link.",
+    "invalid": "Invalid Instagram link",
+    "remove": "Remove video",
+    "replace": "Replace video",
+    "watchButton": "Watch campaign video",
+    "opensInInstagram": "Opens in Instagram"
+  },
   "draft": {
     "sectionTitle": "Drafts",
     "badge": "Draft",

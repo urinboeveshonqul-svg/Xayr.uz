@@ -22,6 +22,7 @@ export interface DraftFormValues {
   is_urgent?: boolean;
   image_url?: string | null;
   images?: string[];
+  video_url?: string | null;
 }
 
 // Minimums mirrored from the create route's zod schema (app/api/campaigns/create).
@@ -47,6 +48,7 @@ export function hasDraftContent(v: DraftFormValues): boolean {
     nonEmpty(v.description) ||
     nonEmpty(v.story) ||
     nonEmpty(v.location) ||
+    nonEmpty(v.video_url) ||
     !!v.image_url ||
     (v.images?.length ?? 0) > 0 ||
     (v.goal ?? 0) > 0
@@ -66,6 +68,7 @@ export function draftColumns(v: DraftFormValues) {
     is_urgent: !!v.is_urgent,
     image_url: v.image_url || null,
     images: v.images ?? [],
+    video_url: nonEmpty(v.video_url) ? v.video_url!.trim() : null,
   };
 }
 
@@ -80,6 +83,8 @@ export interface CreateCampaignPayload {
   is_urgent: boolean;
   image_url: string;
   images: string[];
+  // Optional Instagram post/reel permalink (validated server-side); null = none.
+  video_url: string | null;
 }
 
 /**
@@ -110,6 +115,7 @@ export function draftToCreatePayload(d: CampaignDraft): CreateCampaignPayload | 
     is_urgent: !!d.is_urgent,
     image_url: d.image_url,
     images: d.images ?? [],
+    video_url: d.video_url ?? null,
   };
 }
 

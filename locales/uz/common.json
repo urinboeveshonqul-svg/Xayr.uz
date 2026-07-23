@@ -612,6 +612,16 @@
     "profileSubtitle": "Shaxsiy ma'lumotlaringizni boshqaring",
     "saveChanges": "O'zgarishlarni saqlash"
   },
+  "video": {
+    "sectionTitle": "Video",
+    "fieldLabel": "Instagram video havolasi (ixtiyoriy)",
+    "fieldHint": "Instagram post yoki Reel havolasini joylashtiring.",
+    "invalid": "Noto'g'ri Instagram havolasi",
+    "remove": "Videoni o'chirish",
+    "replace": "Videoni almashtirish",
+    "watchButton": "Kampaniya videosini ko'rish",
+    "opensInInstagram": "Instagram'da ochiladi"
+  },
   "draft": {
     "sectionTitle": "Qoralamalar",
     "badge": "Qoralama",

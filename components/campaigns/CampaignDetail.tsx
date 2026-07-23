@@ -14,6 +14,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import type { PaymentProviderOption } from '@/lib/payments/providers-meta';
 import { ReportCampaignButton } from '@/components/campaigns/ReportCampaignButton';
 import { SaveButton } from '@/components/campaigns/SaveButton';
+import { VideoLink } from '@/components/campaigns/VideoLink';
 import { FollowButton } from '@/components/profile/FollowButton';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign, Donor } from '@/types';
@@ -157,6 +158,9 @@ export function CampaignDetail({ campaign, donors, pendingExtension = false, has
               </div>
             </div>
           )}
+
+          {/* Optional Instagram video — external link; nothing when absent/invalid */}
+          <VideoLink url={campaign.video_url} />
 
           {/* Meta info */}
           <div className="card p-6">

@@ -25,6 +25,7 @@ function makeDraft(overrides: Partial<CampaignDraft> = {}): CampaignDraft {
     is_urgent: false,
     image_url: 'https://x.supabase.co/storage/v1/object/public/campaign-images/u1/cover.jpg',
     images: [],
+    video_url: null,
     created_at: '2026-07-01T00:00:00Z',
     updated_at: '2026-07-02T00:00:00Z',
     ...overrides,
@@ -82,6 +83,7 @@ describe('draftColumns — persisted shape (editing / auto-save)', () => {
       is_urgent: true,
       image_url: 'https://x/cover.jpg',
       images: ['https://x/1.jpg', 'https://x/2.jpg'],
+      video_url: null,
     });
   });
 
@@ -106,6 +108,7 @@ describe('draftToCreatePayload / isDraftSubmittable (submission conversion)', ()
       is_urgent: false,
       image_url: d.image_url,
       images: ['https://x/1.jpg'],
+      video_url: null,
     });
     expect(isDraftSubmittable(d)).toBe(true);
   });
