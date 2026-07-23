@@ -622,6 +622,12 @@
     "watchButton": "Watch campaign video",
     "opensInInstagram": "Opens in Instagram"
   },
+  "limits": {
+    "goalMax": "Campaign goal cannot exceed 1,000,000,000 UZS.",
+    "durationMax": "Campaign duration cannot exceed 60 days.",
+    "goalHint": "Maximum: 1,000,000,000 UZS",
+    "durationHint": "Maximum duration: 60 days"
+  },
   "draft": {
     "sectionTitle": "Drafts",
     "badge": "Draft",

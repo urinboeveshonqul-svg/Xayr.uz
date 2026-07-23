@@ -622,6 +622,12 @@
     "watchButton": "Kampaniya videosini ko'rish",
     "opensInInstagram": "Instagram'da ochiladi"
   },
+  "limits": {
+    "goalMax": "Maqsad summasi 1,000,000,000 so'mdan oshmasligi kerak.",
+    "durationMax": "Kampaniya muddati 60 kundan oshmasligi kerak.",
+    "goalHint": "Maksimal: 1,000,000,000 so'm",
+    "durationHint": "Maksimal muddat: 60 kun"
+  },
   "draft": {
     "sectionTitle": "Qoralamalar",
     "badge": "Qoralama",

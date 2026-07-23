@@ -22,7 +22,7 @@ export default async function EditCampaignPage({ params }: Props) {
 
   const { data: campaign } = await supabase
     .from('campaigns')
-    .select('id, user_id, slug, title, description, story, goal_amount, location, deadline, video_url')
+    .select('id, user_id, slug, title, description, story, goal_amount, location, deadline, video_url, created_at')
     .eq('slug', slug)
     .single();
   if (!campaign) notFound();

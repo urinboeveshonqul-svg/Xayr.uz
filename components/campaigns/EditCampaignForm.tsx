@@ -7,6 +7,7 @@ import { Loader2, Save, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { isValidVideoUrl, normalizeVideoUrl } from '@/lib/video';
+import { MAX_GOAL_AMOUNT, isGoalWithinLimit, isDurationWithinLimit, todayISO, maxDeadlineISO } from '@/lib/campaign-limits';
 
 export interface EditableCampaign {
   id: string;
@@ -18,6 +19,7 @@ export interface EditableCampaign {
   location: string | null;
   deadline: string | null;
   video_url: string | null;
+  created_at: string;
 }
 
 /**
@@ -46,6 +48,13 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
     if (title.trim().length < 5) { toast.error(t('toasts.editTitleMin')); return; }
     if (description.trim().length < 10) { toast.error(t('toasts.editDescMin')); return; }
     if (!goalNum || goalNum <= 0) { toast.error(t('toasts.editGoalInvalid')); return; }
+    // Same caps as creation apply while editing (goal ≤ 1B; duration ≤ 60 days
+    // from the campaign's creation date). Mirrored by the DB trigger.
+    if (!isGoalWithinLimit(goalNum)) { toast.error(t('limits.goalMax')); return; }
+    if (deadline && !isDurationWithinLimit(deadline, new Date(campaign.created_at))) {
+      toast.error(t('limits.durationMax'));
+      return;
+    }
 
     // Empty ⇒ remove the video. A non-empty value must be a valid Instagram link.
     const video = videoUrl.trim();
@@ -97,11 +106,20 @@ export function EditCampaignForm({ campaign, locale }: { campaign: EditableCampa
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">Maqsad summasi (so&apos;m)</label>
-          <input type="number" min={1} value={goal} onChange={(e) => setGoal(e.target.value)} className="input" />
+          <input type="number" min={1} max={MAX_GOAL_AMOUNT} value={goal} onChange={(e) => setGoal(e.target.value)} className="input" />
+          <p className="text-xs text-gray-400 mt-1">{t('limits.goalHint')}</p>
         </div>
         <div>
           <label className="label">Muddat (ixtiyoriy)</label>
-          <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="input" />
+          <input
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            min={todayISO()}
+            max={maxDeadlineISO(new Date(campaign.created_at))}
+            className="input"
+          />
+          <p className="text-xs text-gray-400 mt-1">{t('limits.durationHint')}</p>
         </div>
       </div>
 

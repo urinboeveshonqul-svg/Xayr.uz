@@ -5,6 +5,7 @@ import { verifyTurnstile, tokenFromBody, turnstileFailureResponse } from '@/lib/
 import { getClientIp, rateLimitOr429 } from '@/lib/rate-limit';
 import { slugify } from '@/lib/utils';
 import { parseVideoUrl } from '@/lib/video';
+import { MAX_GOAL_AMOUNT, isDurationWithinLimit } from '@/lib/campaign-limits';
 
 export const runtime = 'nodejs';
 
@@ -41,7 +42,7 @@ const schema = z.object({
   description: z.string().min(30).max(500),
   story: z.string().max(20000).nullable().optional(),
   category: z.enum(['medical', 'education', 'disaster', 'community', 'environment', 'animal', 'sport', 'other']),
-  goal: z.number().int().min(100000).max(100_000_000_000),
+  goal: z.number().int().min(100000).max(MAX_GOAL_AMOUNT),
   location: z.string().max(120).nullable().optional(),
   deadline: z.string().max(10).nullable().optional(),
   is_urgent: z.boolean().optional().default(false),
@@ -81,6 +82,12 @@ export async function POST(request: Request) {
   const parsedVideo = d.video_url ? parseVideoUrl(d.video_url) : null;
   if (d.video_url && !parsedVideo) {
     return NextResponse.json({ error: 'Invalid video URL' }, { status: 422 });
+  }
+
+  // Optional deadline: when present it must be after today and within the max
+  // campaign duration (60 days) of now. Server-side backstop for the form check.
+  if (d.deadline && !isDurationWithinLimit(d.deadline)) {
+    return NextResponse.json({ error: 'Campaign duration exceeds limit' }, { status: 422 });
   }
 
   const supabase = await createClient();
