@@ -12,18 +12,14 @@ import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/component
 import { useI18n } from '@/components/i18n/I18nProvider';
 import dynamic from 'next/dynamic';
 import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
-import { CHOICE_ADD, CHOICE_CHECKOUT, isCardRegistrationEnabled, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
+import { CHOICE_CHECKOUT, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
 import type { PaymentProviderOption, PaymentSubmethod } from '@/lib/payments/providers-meta';
 
-// Lazy — the saved-card UI is a separate chunk fetched ONLY when the feature is
-// enabled AND rendered. With NEXT_PUBLIC_CLICK_SAVED_CARDS off it is never
-// rendered, so the chunk is never loaded → not in the Checkout JS bundle.
+// Lazy — the saved-card chooser is a separate chunk fetched ONLY when the feature
+// is on AND the user has saved cards. With NEXT_PUBLIC_CLICK_SAVED_CARDS off it is
+// never rendered, so the chunk is never loaded → not in the Checkout JS bundle.
 const SavedCardSelector = dynamic(
   () => import('@/components/payments/SavedCardSelector').then((m) => m.SavedCardSelector),
-  { ssr: false }
-);
-const AddCardFlow = dynamic(
-  () => import('@/components/payments/AddCardFlow').then((m) => m.AddCardFlow),
   { ssr: false }
 );
 
@@ -32,9 +28,6 @@ const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
 // Client gate for the OPTIONAL saved-cards UI (server routes enforce the real
 // config). Off by default → zero change to the donation form.
 const SAVED_CARDS_UI = process.env.NEXT_PUBLIC_CLICK_SAVED_CARDS === '1';
-// New-card enrolment is temporarily disabled (unreliable Click flow). Existing
-// saved cards still pay; only the "Add and save a new card" option is hidden.
-const CARD_REGISTRATION = isCardRegistrationEnabled();
 
 // Two donor-display modes. ('first' is retired from the UI but still honoured in
 // the DB/view for historical rows — see supabase/guest-donations.sql.)
@@ -89,14 +82,12 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
   const [choice, setChoice] = useState<string>(CHOICE_CHECKOUT);
   const [paying, setPaying] = useState(false);
   const hasSavedCards = (savedCards?.length ?? 0) > 0;
-  // Only surface the chooser when there is a real choice: an existing saved card
-  // to pick, or (when enabled) the option to add one. With registration disabled
-  // and no saved cards, the user sees exactly today's one-time Checkout JS flow.
-  const showSavedUi = isGuest === false && SAVED_CARDS_UI && (hasSavedCards || CARD_REGISTRATION);
-  const payMode: 'checkout' | 'saved' | 'add' = !showSavedUi
+  // Surface the chooser only when the user actually has saved cards. Cards are
+  // saved automatically after a successful donation — there is no "add a card"
+  // option — so a user with none sees exactly today's Click card payment flow.
+  const showSavedUi = isGuest === false && SAVED_CARDS_UI && hasSavedCards;
+  const payMode: 'checkout' | 'saved' = !showSavedUi
     ? 'checkout'
-    : choice === CHOICE_ADD && CARD_REGISTRATION
-    ? 'add'
     : choice === CHOICE_CHECKOUT
     ? 'checkout'
     : 'saved';
@@ -357,7 +348,7 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
             Checkout JS selector. Guests / flag-off see exactly today's UI. */}
         {showSavedUi ? (
           <div className="space-y-3">
-            <SavedCardSelector cards={savedCards ?? []} choice={choice} onChoice={setChoice} allowAdd={CARD_REGISTRATION} />
+            <SavedCardSelector cards={savedCards ?? []} choice={choice} onChoice={setChoice} />
             {payMode === 'checkout' && (
               <PaymentMethodSelector
                 providers={providers}
@@ -365,12 +356,6 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
                 onSelect={setMethod}
                 submethod={submethod}
                 onSubmethod={setSubmethod}
-              />
-            )}
-            {payMode === 'add' && (
-              <AddCardFlow
-                makeDefault={(savedCards?.length ?? 0) === 0}
-                onSaved={(card) => payWithSavedCard(card.id)}
               />
             )}
           </div>
@@ -405,14 +390,11 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
           </p>
         )}
 
-        {/* In "add a new card" mode the AddCardFlow drives its own buttons. */}
-        {payMode !== 'add' && (
-          <button type="submit" disabled={isSubmitting || paying || isGuest === null} className="btn-primary w-full py-4 min-h-[56px] text-base">
-            {isSubmitting || paying
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> {payMode === 'saved' ? t('cards.paying') : selectedProvider ? "Yo'naltirilmoqda..." : 'Saqlanmoqda...'}</>
-              : payMode === 'saved' ? t('cards.donateWithCard') : selectedProvider ? `${selectedProvider.name} bilan davom etish` : 'Xayriya qilish'}
-          </button>
-        )}
+        <button type="submit" disabled={isSubmitting || paying || isGuest === null} className="btn-primary w-full py-4 min-h-[56px] text-base">
+          {isSubmitting || paying
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> {payMode === 'saved' ? t('cards.paying') : selectedProvider ? "Yo'naltirilmoqda..." : 'Saqlanmoqda...'}</>
+            : payMode === 'saved' ? t('cards.donateWithCard') : selectedProvider ? `${selectedProvider.name} bilan davom etish` : 'Xayriya qilish'}
+        </button>
       </form>
     </div>
   );

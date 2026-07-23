@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { confirmDonation } from '@/lib/payments/confirm';
+import { clickReusableToken, saveDonationCardToken } from '@/lib/payments/save-card-token';
 import {
   createPaymentEvent,
   markPaymentProcessed,
@@ -62,13 +63,17 @@ export async function POST(request: Request) {
   }
 
   // ── Parse (Click sends application/x-www-form-urlencoded) ────────────────
+  // Keep the raw form: a reusable card_token (if Click sends one) is read from it
+  // directly, so it is NEVER spread into the logged params / payment_events.
+  let form: FormData | null = null;
   let params: ClickCallbackParams | null = null;
   try {
-    params = parseClickCallback(await request.formData());
+    form = await request.formData();
+    params = parseClickCallback(form);
   } catch {
     /* fall through — treated as a bad request below */
   }
-  if (!params) {
+  if (!params || !form) {
     return respond(null, ClickError.BadRequest, 'Missing or malformed parameters');
   }
 
@@ -188,6 +193,12 @@ export async function POST(request: Request) {
     }
 
     if (eventId) await markPaymentProcessed(eventId, { signatureValid: true });
+
+    // Donation is credited. AUTOMATIC card-token saving: if Click returned a
+    // reusable token, persist it for the donor (best-effort). Fully guarded —
+    // never throws, never blocks — so a save failure can't affect the donation.
+    await saveDonationCardToken(params.merchant_trans_id, clickReusableToken(form));
+
     return respond(params, ClickError.Success, 'Success', { confirmId: prepareId });
   } catch (err) {
     // DB/transient error → keep the event retryable (processed stays false) and
