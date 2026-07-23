@@ -9,7 +9,8 @@ import { CHOICE_ADD, CHOICE_CHECKOUT, type SavedCardDisplay } from '@/components
  * Donation-form payment chooser for authenticated users when saved cards exist
  * (or can be added). A single radio group:
  *   • one row per saved card (default first),
- *   • "Add a new card and save it"   → CHOICE_ADD,
+ *   • "Add a new card and save it"   → CHOICE_ADD (only when `allowAdd`; new-card
+ *                                       registration is temporarily disabled),
  *   • "Use another card"             → CHOICE_CHECKOUT (the existing Checkout JS).
  * Purely presentational — DonationForm maps the choice to a payment path.
  */
@@ -17,10 +18,13 @@ export function SavedCardSelector({
   cards,
   choice,
   onChoice,
+  allowAdd = false,
 }: {
   cards: SavedCardDisplay[];
   choice: string;
   onChoice: (c: string) => void;
+  /** Show the "Add a new card and save it" option. Off while registration is disabled. */
+  allowAdd?: boolean;
 }) {
   const { t } = useI18n();
 
@@ -52,7 +56,7 @@ export function SavedCardSelector({
           <CreditCard className="w-4 h-4 text-brand-600 flex-shrink-0" />
         )
       )}
-      {row(CHOICE_ADD, <span>{t('cards.addAndSave')}</span>, <Plus className="w-4 h-4 text-brand-600 flex-shrink-0" />)}
+      {allowAdd && row(CHOICE_ADD, <span>{t('cards.addAndSave')}</span>, <Plus className="w-4 h-4 text-brand-600 flex-shrink-0" />)}
       {row(CHOICE_CHECKOUT, <span>{t('cards.useAnother')}</span>, <RefreshCw className="w-4 h-4 text-gray-400 flex-shrink-0" />)}
     </div>
   );
