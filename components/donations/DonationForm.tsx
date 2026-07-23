@@ -233,39 +233,12 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
         setCaptchaToken(null);
         return;
       }
-      // ── In-page card window (Click checkout.js), when the server offers it ──
-      // The donation row already exists as 'pending'; it is credited ONLY by the
-      // server-side callback. The status below is UX and is never trusted for
-      // money. Any failure here falls through to the redirect, which always
-      // remains available.
-      if (json.embedded?.kind === 'click_checkout_js' && json.reference) {
-        try {
-          const { openClickCardCheckout, ClickCheckoutStatus } = await import('@/lib/payments/click-checkout');
-          const status = await openClickCardCheckout({
-            service_id: json.embedded.serviceId,
-            merchant_id: json.embedded.merchantId,
-            amount: json.embedded.amount,
-            transaction_param: json.reference,
-            ...(json.embedded.cardType ? { card_type: json.embedded.cardType } : {}),
-          });
-          // Whatever the donor saw, the payment-status page is the source of
-          // truth: it polls our server until the callback finalises the row.
-          if (status === ClickCheckoutStatus.Success || status === ClickCheckoutStatus.Processing) {
-            // Locale-less path, exactly like the server's redirect return_url —
-            // middleware prefixes the donor's locale and preserves the query.
-            window.location.href = `/payment/success?ref=${encodeURIComponent(json.reference)}`;
-            return;
-          }
-          // status < 0 (error) or 0 (created, never paid) — donor closed or it
-          // failed. The donation stays pending; let them retry.
-          toast.error(t('toasts.paymentIncomplete'));
-          return;
-        } catch {
-          // Library blocked/offline/CSP — fall back to the proven redirect.
-          if (json.redirectUrl) { window.location.href = json.redirectUrl; return; }
-        }
-      }
-
+      // Click payment = a full-page REDIRECT to Click's hosted checkout — the
+      // proven, last-known-working flow. We deliberately DO NOT open Click in an
+      // in-page window / iframe: my.click.uz refuses to be framed ("the site
+      // my.click.uz does not allow the connection"), which broke card payments on
+      // desktop and mobile. The donation row is 'pending' and is credited ONLY by
+      // the verified server-side callback (confirmDonation) — unchanged.
       if (json.redirectUrl) { window.location.href = json.redirectUrl; return; }
       toast.success(json.instructions || t('toasts.donationThanks'));
       onClose();
