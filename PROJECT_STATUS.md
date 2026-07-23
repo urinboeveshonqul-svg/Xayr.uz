@@ -207,8 +207,9 @@ operationally blocked" system (e.g. payments, push) is scored on what exists in 
 
 ### Search
 - **What:** Postgres-side search over title/description/location + creator name (resolved to user_ids), with category/urgent filters, sort (newest, most_raised, most_donors, deadline), pagination. Trigram indexes back it.
-- **Where:** `app/[locale]/campaigns/page.tsx`, `components/campaigns/{CampaignFilters,CampaignGrid,Pagination}.tsx`.
-- **Status:** ⚠️ Functional `ilike`-based search; not fuzzy/ranked full-text.
+- **Responsive pagination:** the listing page size is **adaptive** — a client `ResponsivePageSizer` measures the viewport (columns for the width + how many complete card rows fit the height) and writes a `size` search param; the server clamps it (**min 10**, full rows, cap 48) and fetches exactly that one page via `.range()` (server-side pagination preserved — never the whole table). `totalPages` recalculates from the same size, and `Pagination` carries `size` across page clicks. The card design, grid columns (`1/sm:2/lg:3/xl:4`), spacing, and progress/donate UI are unchanged — only the number of rows per page adapts (fills the screen, no empty space below the grid). Pure sizing logic in `lib/responsive-grid.ts` (`clampPageSize`/`columnsForWidth`/`responsivePageSize`), unit-tested in `__tests__/responsive-grid.test.ts` (11).
+- **Where:** `app/[locale]/campaigns/page.tsx`, `components/campaigns/{CampaignFilters,CampaignGrid,Pagination,ResponsivePageSizer}.tsx`, `lib/responsive-grid.ts`.
+- **Status:** ⚠️ Functional `ilike`-based search; not fuzzy/ranked full-text. Responsive adaptive pagination ✅.
 
 ### SEO
 - **What:** Dynamic metadata, canonical + hreflang (uz/ru/en + x-default), dynamic per-campaign OG images, JSON-LD (Organization, WebSite+SearchAction, BreadcrumbList, WebPage, DonateAction, Person, FAQPage), dynamic sitemap with image entries, robots.
