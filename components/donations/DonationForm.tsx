@@ -233,12 +233,42 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
         setCaptchaToken(null);
         return;
       }
-      // Click payment = a full-page REDIRECT to Click's hosted checkout — the
-      // proven, last-known-working flow. We deliberately DO NOT open Click in an
-      // in-page window / iframe: my.click.uz refuses to be framed ("the site
-      // my.click.uz does not allow the connection"), which broke card payments on
-      // desktop and mobile. The donation row is 'pending' and is credited ONLY by
-      // the verified server-side callback (confirmDonation) — unchanged.
+      // ── Official Click Checkout JS card widget (opt-in) ──
+      // When the server offers it (NEXT_PUBLIC_CLICK_EMBEDDED_CARD=1), open Click's
+      // OFFICIAL checkout.js popup exactly as documented — window.createPaymentRequest.
+      // The donor stays on xayr.uz and types the card number/expiry in CLICK's own
+      // widget (card data goes straight to Click). We NEVER build a custom iframe /
+      // modal around my.click.uz — this calls Click's own library; the frame it
+      // renders is Click's. If the library is unavailable (blocked/offline/not
+      // loaded), we fall back to the proven full-page redirect. The donation row is
+      // 'pending' and is credited ONLY by the verified server-side callback.
+      if (json.embedded?.kind === 'click_checkout_js' && json.reference) {
+        try {
+          const { openClickCardCheckout, ClickCheckoutStatus } = await import('@/lib/payments/click-checkout');
+          const status = await openClickCardCheckout({
+            service_id: json.embedded.serviceId,
+            merchant_id: json.embedded.merchantId,
+            amount: json.embedded.amount,
+            transaction_param: json.reference,
+            ...(json.embedded.cardType ? { card_type: json.embedded.cardType } : {}),
+          });
+          // The payment-status page is the source of truth: it polls our server
+          // until the verified callback finalises the row.
+          if (status === ClickCheckoutStatus.Success || status === ClickCheckoutStatus.Processing) {
+            window.location.href = `/payment/success?ref=${encodeURIComponent(json.reference)}`;
+            return;
+          }
+          // status < 0 (error) / 0 (created, never paid) — donor closed or it failed.
+          toast.error(t('toasts.paymentIncomplete'));
+          return;
+        } catch {
+          // checkout.js unavailable (blocked/offline/not loaded) — fall back to the
+          // proven full-page redirect so the donor is never stranded.
+          if (json.redirectUrl) { window.location.href = json.redirectUrl; return; }
+        }
+      }
+
+      // No in-page widget offered (default) → the proven full-page redirect.
       if (json.redirectUrl) { window.location.href = json.redirectUrl; return; }
       toast.success(json.instructions || t('toasts.donationThanks'));
       onClose();
