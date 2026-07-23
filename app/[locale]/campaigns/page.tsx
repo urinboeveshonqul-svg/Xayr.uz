@@ -4,10 +4,12 @@ import { SearchX } from 'lucide-react';
 import { CampaignGrid } from '@/components/campaigns/CampaignGrid';
 import { CampaignFilters } from '@/components/campaigns/CampaignFilters';
 import { Pagination } from '@/components/campaigns/Pagination';
+import { ResponsivePageSizer } from '@/components/campaigns/ResponsivePageSizer';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import { pageMetadata } from '@/lib/seo';
 import { getSuccessStoryIds } from '@/lib/success-stories';
+import { clampPageSize } from '@/lib/responsive-grid';
 import type { Campaign, CampaignCategory } from '@/types';
 
 export async function generateMetadata({
@@ -29,7 +31,6 @@ export async function generateMetadata({
 // Listing depends on searchParams (filters/pagination) → always dynamic.
 export const dynamic = 'force-dynamic';
 
-const PAGE_SIZE = 12;
 const CATEGORIES: CampaignCategory[] = [
   'medical', 'education', 'disaster', 'community',
   'environment', 'animal', 'sport', 'other',
@@ -41,22 +42,26 @@ interface SearchParams {
   sort?: string;
   urgent?: string;
   page?: string;
+  size?: string; // responsive page size (min 10) chosen client-side by ResponsivePageSizer
   filter?: string; // 'success' = verified Success Stories only
 }
 
 /**
  * Single optimized, paginated query. All filtering/sorting/searching happens
  * in Postgres (indexed columns: status, category_id, created_at, current_amount),
- * and only one page (PAGE_SIZE rows) is transferred — never the whole table.
+ * and only the current page (`pageSize` rows) is transferred — never the whole
+ * table. `pageSize` is the responsive, client-measured size, clamped server-side.
  */
 async function getCampaigns(sp: SearchParams): Promise<{
   campaigns: Campaign[];
   total: number;
   page: number;
+  pageSize: number;
 }> {
+  const pageSize = clampPageSize(sp.size);
   const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   // Verified Success Stories filter: resolve the qualifying campaign ids
   // server-side (goal reached + completed/funded + approved report), then the
@@ -65,7 +70,7 @@ async function getCampaigns(sp: SearchParams): Promise<{
   let successIds: string[] = [];
   if (isSuccess) {
     successIds = await getSuccessStoryIds();
-    if (successIds.length === 0) return { campaigns: [], total: 0, page };
+    if (successIds.length === 0) return { campaigns: [], total: 0, page, pageSize };
   }
 
   try {
@@ -125,11 +130,11 @@ async function getCampaigns(sp: SearchParams): Promise<{
 
     if (error) {
       console.error('campaigns query:', error.message);
-      return { campaigns: [], total: 0, page };
+      return { campaigns: [], total: 0, page, pageSize };
     }
-    return { campaigns: (data as unknown as Campaign[]) ?? [], total: count ?? 0, page };
+    return { campaigns: (data as unknown as Campaign[]) ?? [], total: count ?? 0, page, pageSize };
   } catch {
-    return { campaigns: [], total: 0, page };
+    return { campaigns: [], total: 0, page, pageSize };
   }
 }
 
@@ -144,8 +149,8 @@ export default async function CampaignsPage({
   const sp = await searchParams;
   const dict = await getDictionary(isLocale(locale) ? locale : 'uz');
 
-  const { campaigns, total, page } = await getCampaigns(sp);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const { campaigns, total, page, pageSize } = await getCampaigns(sp);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <>
@@ -165,6 +170,7 @@ export default async function CampaignsPage({
 
           {campaigns.length > 0 ? (
             <>
+              <ResponsivePageSizer />
               <CampaignGrid campaigns={campaigns} />
               <Pagination page={page} totalPages={totalPages} />
             </>
