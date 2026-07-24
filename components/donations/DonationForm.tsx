@@ -227,6 +227,16 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
       });
 
       const json = await res.json().catch(() => ({}));
+
+      // ⚠️ TEMPORARY DIAGNOSTIC (browser console). No behavior change. Remove after debugging.
+      // eslint-disable-next-line no-console
+      console.log('[donations-debug] client received response', {
+        json,
+        embedded: json?.embedded ?? null,
+        redirectUrl: json?.redirectUrl ?? null,
+        reference: json?.reference ?? null,
+      });
+
       if (!res.ok) {
         toast.error(json?.error ? `${t('toasts.errorLabel')}: ${json.error}` : t('toasts.generic'));
         turnstileRef.current?.reset();
@@ -243,6 +253,8 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
       // loaded), we fall back to the proven full-page redirect. The donation row is
       // 'pending' and is credited ONLY by the verified server-side callback.
       if (json.embedded?.kind === 'click_checkout_js' && json.reference) {
+        // eslint-disable-next-line no-console
+        console.log('[donations-debug] ENTERING embedded Checkout JS path');
         try {
           const { openClickCardCheckout, ClickCheckoutStatus } = await import('@/lib/payments/click-checkout');
           const status = await openClickCardCheckout({
@@ -262,6 +274,8 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
           toast.error(t('toasts.paymentIncomplete'));
           return;
         } catch {
+          // eslint-disable-next-line no-console
+          console.log('[donations-debug] ENTERING redirect path (checkout.js threw / unavailable)');
           // checkout.js unavailable (blocked/offline/not loaded) — fall back to the
           // proven full-page redirect so the donor is never stranded.
           if (json.redirectUrl) { window.location.href = json.redirectUrl; return; }
@@ -269,7 +283,12 @@ export function DonationForm({ campaignId, onClose, providers = [] }: DonationFo
       }
 
       // No in-page widget offered (default) → the proven full-page redirect.
-      if (json.redirectUrl) { window.location.href = json.redirectUrl; return; }
+      if (json.redirectUrl) {
+        // eslint-disable-next-line no-console
+        console.log('[donations-debug] ENTERING redirect path (no embedded payload in response)', { redirectUrl: json.redirectUrl });
+        window.location.href = json.redirectUrl;
+        return;
+      }
       toast.success(json.instructions || t('toasts.donationThanks'));
       onClose();
     } catch {

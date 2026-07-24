@@ -7,6 +7,8 @@ import { isProviderEnabled } from '@/lib/payments/catalog';
 import { PROVIDER_IDS } from '@/lib/payments/providers-meta';
 import { enforceRateLimit, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import { verifyTurnstile, tokenFromBody, turnstileFailureResponse } from '@/lib/security/turnstile';
+// ⚠️ TEMPORARY DIAGNOSTIC import — remove after debugging.
+import { isClickEmbeddedCardEnabled } from '@/lib/payments/providers/click';
 
 export const runtime = 'nodejs';
 
@@ -155,6 +157,20 @@ export async function POST(request: Request) {
 
   // 6) Persist the provider reference for reconciliation/webhooks.
   await admin.from('donations').update({ payment_ref: intent.reference }).eq('id', donation.id);
+
+  // ⚠️ TEMPORARY DIAGNOSTIC (server / Vercel function logs). No behavior change.
+  // Remove after debugging. Reveals the BUILD-TIME-inlined NEXT_PUBLIC value and
+  // the exact embedded-vs-redirect decision.
+  // eslint-disable-next-line no-console
+  console.log('[donations-debug] before response', {
+    method: method ?? null,
+    submethod: submethod ?? null,
+    isClickEmbeddedCardEnabled: isClickEmbeddedCardEnabled(),
+    NEXT_PUBLIC_CLICK_EMBEDDED_CARD_raw: process.env.NEXT_PUBLIC_CLICK_EMBEDDED_CARD ?? '(undefined)',
+    embedded: intent.embedded ?? null,
+    redirectUrl: intent.redirectUrl,
+    reference: intent.reference,
+  });
 
   return NextResponse.json(
     {
