@@ -3,13 +3,15 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isLocale } from '@/i18n/config';
 import { SavedCards } from '@/components/profile/SavedCards';
+import { SAVED_CARDS_DISABLED } from '@/components/payments/saved-card-constants';
 
 export const metadata: Metadata = { title: 'Saqlangan kartalar — Xayr' };
 export const dynamic = 'force-dynamic';
 
 // The whole feature is behind one flag. Off ⇒ the page does not exist (404), so
 // there is no UI path to any saved-card API when the feature is disabled.
-const SAVED_CARDS_ENABLED = process.env.NEXT_PUBLIC_CLICK_SAVED_CARDS === '1';
+// ⛔ Forced OFF by SAVED_CARDS_DISABLED while the Checkout JS popup is debugged.
+const SAVED_CARDS_ENABLED = !SAVED_CARDS_DISABLED && process.env.NEXT_PUBLIC_CLICK_SAVED_CARDS === '1';
 
 /**
  * Account → Saved Cards. Owner-only. Lets the user view / add / set-default /
