@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { confirmDonation } from '@/lib/payments/confirm';
 import { clickReusableToken, saveDonationCardToken } from '@/lib/payments/save-card-token';
+import { SAVED_CARDS_DISABLED } from '@/components/payments/saved-card-constants';
 import {
   createPaymentEvent,
   markPaymentProcessed,
@@ -197,7 +198,10 @@ export async function POST(request: Request) {
     // Donation is credited. AUTOMATIC card-token saving: if Click returned a
     // reusable token, persist it for the donor (best-effort). Fully guarded —
     // never throws, never blocks — so a save failure can't affect the donation.
-    await saveDonationCardToken(params.merchant_trans_id, clickReusableToken(form));
+    // ⛔ Skipped entirely while SAVED_CARDS_DISABLED is true (tokenization off).
+    if (!SAVED_CARDS_DISABLED) {
+      await saveDonationCardToken(params.merchant_trans_id, clickReusableToken(form));
+    }
 
     return respond(params, ClickError.Success, 'Success', { confirmId: prepareId });
   } catch (err) {

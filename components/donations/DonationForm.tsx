@@ -12,7 +12,7 @@ import { Turnstile, isTurnstileEnabled, type TurnstileHandle } from '@/component
 import { useI18n } from '@/components/i18n/I18nProvider';
 import dynamic from 'next/dynamic';
 import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
-import { CHOICE_CHECKOUT, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
+import { CHOICE_CHECKOUT, SAVED_CARDS_DISABLED, type SavedCardDisplay } from '@/components/payments/saved-card-constants';
 import type { PaymentProviderOption, PaymentSubmethod } from '@/lib/payments/providers-meta';
 
 // Lazy — the saved-card chooser is a separate chunk fetched ONLY when the feature
@@ -27,7 +27,9 @@ const PRESET_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
 
 // Client gate for the OPTIONAL saved-cards UI (server routes enforce the real
 // config). Off by default → zero change to the donation form.
-const SAVED_CARDS_UI = process.env.NEXT_PUBLIC_CLICK_SAVED_CARDS === '1';
+// ⛔ Forced OFF by SAVED_CARDS_DISABLED while the Checkout JS popup is debugged,
+// so this evaluates to `false` regardless of NEXT_PUBLIC_CLICK_SAVED_CARDS.
+const SAVED_CARDS_UI = !SAVED_CARDS_DISABLED && process.env.NEXT_PUBLIC_CLICK_SAVED_CARDS === '1';
 
 // Two donor-display modes. ('first' is retired from the UI but still honoured in
 // the DB/view for historical rows — see supabase/guest-donations.sql.)
