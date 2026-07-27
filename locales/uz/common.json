@@ -233,9 +233,9 @@
     "verified": "Tasdiqlangan tashkilotchilar"
   },
   "home": {
-    "featuredBadge": "TANLANGAN",
-    "featuredTitle": "Tanlangan Kampaniyalar",
-    "featuredSubtitle": "Jamiyat tomonidan eng ko'p e'tibor qaratilgan loyihalar",
+    "featuredBadge": "ENG KO'P YIG'ILGAN",
+    "featuredTitle": "Eng Ko'p Yig'ilgan Kampaniyalar",
+    "featuredSubtitle": "Jamiyat eng ko'p mablag' yig'ishga yordam bergan loyihalar",
     "trendingBadge": "OMMABOP",
     "trendingTitle": "Ommabop Kampaniyalar",
     "trendingSubtitle": "Hozir eng ko'p qo'llab-quvvatlanayotgan loyihalar",

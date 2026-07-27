@@ -16,6 +16,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
 import type { Campaign } from '@/types';
 import { getSuccessStories } from '@/lib/success-stories';
+import { getPickedCampaigns, PICKED_CAMPAIGN_LIMIT } from '@/lib/picked-campaigns';
 import { VerifiedSuccessBadge } from '@/components/campaigns/VerifiedSuccessBadge';
 
 export const revalidate = 60;
@@ -99,13 +100,17 @@ export default async function HomePage({
   const dict = await getDictionary(lng);
   const L = (path: string) => `/${lng}${path}`;
 
-  const [campaigns, platformStats, stories] = await Promise.all([
+  const [campaigns, platformStats, stories, featured] = await Promise.all([
     getActiveCampaigns(),
     getPlatformStats(),
     getSuccessStories(6),
+    // "Picked" = the highest-funded ACTIVE campaigns, ranked and filtered in
+    // Postgres (lib/picked-campaigns). Campaigns with nothing raised are never
+    // included, and the set is not derived from the newest-24 window above — a
+    // top earner that is no longer recent still shows.
+    getPickedCampaigns(PICKED_CAMPAIGN_LIMIT),
   ]);
 
-  const featured = campaigns.slice(0, 3);
   const featuredIds = new Set(featured.map((c) => c.id));
   const trending = [...campaigns]
     .sort((a, b) => (b.current_amount ?? 0) - (a.current_amount ?? 0))
@@ -161,7 +166,8 @@ export default async function HomePage({
           </div>
         </section>
 
-        {/* FEATURED */}
+        {/* PICKED — top-funded active campaigns (never any with 0 raised, so the
+            whole section hides until at least one campaign has been funded). */}
         {featured.length > 0 && (
           <section className="py-20 lg:py-24 bg-gradient-to-b from-white to-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
