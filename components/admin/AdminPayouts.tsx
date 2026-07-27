@@ -8,6 +8,7 @@ import {
   Wallet, X, ExternalLink, Loader2, Check, Ban, HelpCircle, BadgeDollarSign, Clock, User,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { notifyAdminMutation } from '@/lib/admin/badge-events';
 import { formatAmount, timeAgo } from '@/lib/utils';
 import { formatCard, cardTypeLabel, payoutBreakdown } from '@/lib/payout';
 import type { PostgrestError } from '@supabase/supabase-js';
@@ -95,10 +96,13 @@ export function AdminPayouts({ initialRows, locale }: { initialRows: PayoutRow[]
 
   const closeDetail = () => { setSelectedId(null); setNote(''); setPaidDate(''); };
 
+  // One funnel for approve / reject / request-info / mark-paid, so the badge
+  // signal covers every payout action from a single place.
   const finish = (error: PostgrestError | null, okMsg: string) => {
     if (error) { toast.error(ERR[error.message] ?? error.message); return; }
     toast.success(okMsg);
     closeDetail();
+    notifyAdminMutation();
     router.refresh();
   };
 

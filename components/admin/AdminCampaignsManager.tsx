@@ -5,6 +5,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { ExternalLink, Trash2, Loader2, Siren, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { notifyAdminMutation } from '@/lib/admin/badge-events';
 import { formatMoney } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import type { Campaign, CampaignStatus, TeamRole } from '@/types';
@@ -80,6 +81,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
         return;
       }
       setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, status, ...(rejection_reason ? { rejection_reason } : {}) } : c)));
+      notifyAdminMutation();
       toast.success(t('admin.statusUpdated'));
     } finally {
       setBusyId(null);
@@ -97,6 +99,7 @@ export function AdminCampaignsManager({ initialCampaigns, locale, team }: Props)
         return;
       }
       setCampaigns((prev) => prev.filter((c) => c.id !== id));
+      notifyAdminMutation();
       toast.success(t('admin.deleted'));
     } finally {
       setBusyId(null);

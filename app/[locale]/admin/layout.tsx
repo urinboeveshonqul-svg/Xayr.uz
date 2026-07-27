@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { AdminBadgeProvider } from '@/components/admin/AdminBadgeProvider';
+import { getAdminBadgeCounts } from '@/lib/admin/badges';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale } from '@/i18n/config';
 
@@ -32,6 +34,12 @@ export default async function AdminLayout({
 
   if (profile?.role !== 'admin') redirect(`/${locale}`);
 
+  // Badge counts are resolved here, AFTER the admin role check, so the numbers
+  // are computed only for an authenticated admin. The layout is force-dynamic, so
+  // navigating between admin tabs re-renders this with fresh counts; the provider
+  // additionally refreshes them client-side after each admin action.
+  const badgeCounts = await getAdminBadgeCounts();
+
   return (
     <>
       <Navbar />
@@ -39,8 +47,10 @@ export default async function AdminLayout({
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="section-title mb-1">{ad.panelTitle}</h1>
           <p className="section-sub mb-6">{ad.panelSubtitle}</p>
-          <AdminNav />
-          {children}
+          <AdminBadgeProvider initialCounts={badgeCounts}>
+            <AdminNav />
+            {children}
+          </AdminBadgeProvider>
         </div>
       </main>
     </>
