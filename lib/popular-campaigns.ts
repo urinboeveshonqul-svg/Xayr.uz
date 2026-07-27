@@ -1,12 +1,21 @@
 // ============================================================
-// Picked Campaigns — the single source of truth for the homepage's "Picked"
-// section (`dict.home.featured*`).
+// Popular Campaigns — the single source of truth for the homepage's one and only
+// campaign section, "Ommabop Kampaniyalar" / "Популярные кампании" / "Popular
+// Campaigns" (`dict.home.trending*`).
+//
+// "Popular" is defined as HIGHEST-FUNDED: the campaigns the community has
+// actually put the most money behind. It is not recency, not momentum, and not an
+// admin selection — there is no `is_featured` column in the schema and none is
+// introduced, so the section cannot be curated and it re-ranks itself as
+// donations land (within the homepage's ISR window, `revalidate = 60`).
 //
 // A campaign qualifies ONLY when BOTH hold:
 //   1. status = 'active' — so draft / pending / rejected / completed / funded /
-//      expired / paused / cancelled are all excluded by construction. Anything
+//      expired / paused / cancelled are ALL excluded by construction. Anything
 //      not actively collecting donations can never appear here.
-//   2. total raised > 0 — a never-funded campaign is excluded outright.
+//   2. total raised > 0 — a never-funded campaign is excluded outright. When
+//      nothing has been funded this returns [], which is the caller's signal to
+//      render no section at all.
 //
 // Ranking, highest first:
 //   1. total raised          → campaigns.current_amount
@@ -14,13 +23,10 @@
 //   3. most recent donation → latest completed donation (campaign_donors view)
 //   4. newest campaign      → campaigns.created_at
 //
-// There is no admin "featured" flag in the schema and none is introduced: the
-// section is derived entirely from money actually raised, so it cannot be
-// curated and it re-ranks itself as donations land (within the homepage's ISR
-// window). `current_amount` / `donors_count` are the denormalized totals
-// maintained by the apply_donation() trigger — credited on a completed donation
-// and reversed on refund/failure — so "raised" here is always the live net
-// total, never a stale or client-supplied number.
+// `current_amount` / `donors_count` are the denormalized totals maintained by the
+// apply_donation() trigger — credited on a completed donation and reversed on
+// refund/failure — so "raised" here is always the live net total, never a stale
+// or client-supplied number.
 //
 // Performance: the filter and the first two ranking keys run in Postgres against
 // the existing partial indexes `idx_campaigns_active_raised (current_amount
@@ -32,19 +38,19 @@
 // `campaign_donors` view — and only when candidates actually tie on BOTH amount
 // and donor count, which is the rare case.
 //
-// The qualification rule is re-applied in `isPickableCampaign` after the query
-// as defence in depth: if the DB predicate were ever weakened, a 0-raised or
+// The qualification rule is re-applied in `isEligibleCampaign` after the query as
+// defence in depth: if the DB predicate were ever weakened, a 0-raised or
 // non-active campaign still cannot reach the homepage.
 // ============================================================
 
 import { createClient } from '@/lib/supabase/server';
 import type { Campaign } from '@/types';
 
-/** How many campaigns the homepage "Picked" grid shows (3-up card layout). */
-export const PICKED_CAMPAIGN_LIMIT = 3;
+/** How many campaigns the homepage "Popular" grid shows (4-up card layout). */
+export const POPULAR_CAMPAIGN_LIMIT = 8;
 
-/** The only campaign status eligible to be picked. */
-export const PICKED_STATUS = 'active';
+/** The only campaign status eligible to appear. */
+export const ELIGIBLE_STATUS = 'active';
 
 /** The organizer + category embeds every campaign card needs. */
 const CAMPAIGN_CARD_SELECT = '*, profiles:users(full_name, avatar_url), categories(slug)';
@@ -67,8 +73,8 @@ const donorsOf = (c: RankableCampaign): number => c.donors_count ?? 0;
  * Active AND actually funded. Enforced in the DB query and re-checked here, so a
  * campaign with nothing raised can never render in the section.
  */
-export function isPickableCampaign(c: RankableCampaign): boolean {
-  return c.status === PICKED_STATUS && raisedOf(c) > 0;
+export function isEligibleCampaign(c: RankableCampaign): boolean {
+  return c.status === ELIGIBLE_STATUS && raisedOf(c) > 0;
 }
 
 /** Campaigns tie only when raised AND donor count are both equal. */
@@ -78,7 +84,7 @@ const tieKey = (c: RankableCampaign): string => `${raisedOf(c)}:${donorsOf(c)}`;
  * The full four-key ordering. Pure: `lastDonation` supplies key 3, and a missing
  * entry sorts as "no donation seen", falling through to newest-campaign.
  */
-export function comparePickedCampaigns(
+export function comparePopularCampaigns(
   a: RankableCampaign,
   b: RankableCampaign,
   lastDonation: LastDonationMap,
@@ -93,20 +99,20 @@ export function comparePickedCampaigns(
 }
 
 /**
- * Filter to pickable campaigns, rank them, and take the top `limit`. Pure — the
+ * Filter to eligible campaigns, rank them, and take the top `limit`. Pure — the
  * homepage's guarantee ("highest funded first, never a 0-raised campaign") is
  * this function, so it is what the tests pin down.
  */
-export function rankPickedCampaigns<T extends RankableCampaign>(
+export function rankPopularCampaigns<T extends RankableCampaign>(
   candidates: readonly T[],
   lastDonation: LastDonationMap,
-  limit: number = PICKED_CAMPAIGN_LIMIT,
+  limit: number = POPULAR_CAMPAIGN_LIMIT,
 ): T[] {
   if (limit <= 0) return [];
   return candidates
-    .filter(isPickableCampaign)
+    .filter(isEligibleCampaign)
     .slice()
-    .sort((a, b) => comparePickedCampaigns(a, b, lastDonation))
+    .sort((a, b) => comparePopularCampaigns(a, b, lastDonation))
     .slice(0, limit);
 }
 
@@ -169,12 +175,13 @@ async function lastDonationAt(ids: string[]): Promise<Map<string, number>> {
 }
 
 /**
- * The highest-funded ACTIVE campaigns, best first. Never returns a campaign with
- * zero raised, and never a non-active one. Returns `[]` on any failure so the
- * homepage renders without the section rather than erroring.
+ * The highest-funded ACTIVE campaigns, best first — the homepage "Popular"
+ * section. Never returns a campaign with zero raised, and never a non-active one.
+ * Returns `[]` on any failure so the homepage renders without the section rather
+ * than erroring; an empty result is the caller's signal to render nothing.
  */
-export async function getPickedCampaigns(
-  limit: number = PICKED_CAMPAIGN_LIMIT,
+export async function getPopularCampaigns(
+  limit: number = POPULAR_CAMPAIGN_LIMIT,
 ): Promise<Campaign[]> {
   if (limit <= 0) return [];
   try {
@@ -183,7 +190,7 @@ export async function getPickedCampaigns(
     const { data, error } = await supabase
       .from('campaigns')
       .select(CAMPAIGN_CARD_SELECT)
-      .eq('status', PICKED_STATUS)
+      .eq('status', ELIGIBLE_STATUS)
       .gt('current_amount', 0)
       .order('current_amount', { ascending: false })
       .order('donors_count', { ascending: false })
@@ -199,7 +206,7 @@ export async function getPickedCampaigns(
     const tied = contestedIds(candidates, limit);
     const lastDonation = tied.length > 0 ? await lastDonationAt(tied) : new Map<string, number>();
 
-    return rankPickedCampaigns(candidates, lastDonation, limit);
+    return rankPopularCampaigns(candidates, lastDonation, limit);
   } catch {
     return [];
   }
