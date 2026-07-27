@@ -26,6 +26,10 @@ function mockAdmin(
         return b;
       },
       eq: () => b,
+      // confirmDonation gates its UPDATE with .in('status', COMPLETABLE_STATUSES)
+      // so a late callback can complete an EXPIRED donation while a duplicate
+      // callback on a completed one still matches nothing.
+      in: () => b,
       maybeSingle: () => Promise.resolve({ data: donation, error: opts.fetchError ?? null }),
       // Only the awaited update chain reaches here.
       then: (resolve: (v: { error: unknown }) => unknown, reject?: (e: unknown) => unknown) => {
@@ -111,5 +115,65 @@ describe('confirmDonation — happy paths', () => {
     const { client } = mockAdmin(null);
     useClient(client);
     await expect(confirmDonation('missing', 'completed', { amount: 1, currency: 'UZS' })).rejects.toThrow();
+  });
+});
+
+describe('confirmDonation — late callbacks on EXPIRED donations', () => {
+  // The expiry sweep relabels abandoned pending donations after 72h. That is
+  // housekeeping, NOT a refusal of the money: if the provider really captured
+  // the payment and its callback arrives late, the donation must still complete.
+  it('completes an expired donation when a verified late callback arrives', async () => {
+    const { client, updates } = mockAdmin({ id: 'd1', amount: 50000, status: 'expired' });
+    useClient(client);
+    const out = await confirmDonation('ref', 'completed', { amount: 50000, currency: 'UZS' });
+    expect(out).toEqual({ status: 'completed' });
+    // Exactly ONE update → apply_donation() credits campaign totals, donor count,
+    // ledger and the owner notification exactly once.
+    expect(updates).toEqual([{ status: 'completed' }]);
+  });
+
+  it('credits an expired donation only once even if the callback is re-delivered', async () => {
+    // First delivery completes it...
+    const first = mockAdmin({ id: 'd1', amount: 50000, status: 'expired' });
+    useClient(first.client);
+    expect(await confirmDonation('ref', 'completed', { amount: 50000, currency: 'UZS' })).toEqual({
+      status: 'completed',
+    });
+    expect(first.updates).toHaveLength(1);
+
+    // ...the re-delivery now sees 'completed', which is NOT completable → no-op.
+    const second = mockAdmin({ id: 'd1', amount: 50000, status: 'completed' });
+    useClient(second.client);
+    expect(await confirmDonation('ref', 'completed', { amount: 50000, currency: 'UZS' })).toEqual({
+      status: 'noop',
+      reason: 'already_completed',
+    });
+    expect(second.updates).toHaveLength(0);
+  });
+
+  it('still refuses to credit an expired donation whose amount does not match', async () => {
+    const { client, updates } = mockAdmin({ id: 'd1', amount: 50000, status: 'expired' });
+    useClient(client);
+    const out = await confirmDonation('ref', 'completed', { amount: 10, currency: 'UZS' });
+    expect(out.status).toBe('failed');
+    expect(updates).toEqual([{ status: 'failed' }]);
+  });
+
+  it('marks an expired donation failed when the provider reports failure', async () => {
+    const { client, updates } = mockAdmin({ id: 'd1', amount: 50000, status: 'expired' });
+    useClient(client);
+    const out = await confirmDonation('ref', 'failed');
+    expect(out).toEqual({ status: 'failed', reason: 'failed' });
+    expect(updates).toEqual([{ status: 'failed' }]);
+  });
+
+  it('never resurrects a refunded or cancelled donation', async () => {
+    for (const status of ['refunded', 'cancelled'] as const) {
+      const { client, updates } = mockAdmin({ id: 'd1', amount: 50000, status });
+      useClient(client);
+      const out = await confirmDonation('ref', 'completed', { amount: 50000, currency: 'UZS' });
+      expect(out).toEqual({ status: 'noop', reason: `already_${status}` });
+      expect(updates).toHaveLength(0);
+    }
   });
 });

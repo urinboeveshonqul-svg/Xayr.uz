@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { DonationStatus } from '@/types';
 import type { PaymentStatus } from './types';
 import { validatePaymentAmount, validateCurrency } from './helpers';
+import { COMPLETABLE_STATUSES, isCompletable } from './donation-lifecycle';
 
 /**
  * Result of a confirmation attempt.
@@ -24,8 +25,19 @@ export type ConfirmOutcome =
  * 'completed' (and reverses it if a completed donation is later refunded/failed).
  *
  * Money-loss hardening:
- *  - Idempotent: only a 'pending' donation transitions (re-delivered webhook =
- *    no-op), enforced again by the `WHERE status='pending'` update.
+ *  - Idempotent: only a COMPLETABLE donation transitions (re-delivered webhook =
+ *    no-op), enforced again by the `WHERE status IN (completable)` update.
+ *  - LATE CALLBACKS: 'expired' is completable, not terminal. The expiry sweep
+ *    (lib/payments/expiry.ts) relabels abandoned pending donations after 72h, but
+ *    a provider that actually captured the money may call back afterwards — and
+ *    that payment must still land. Because `apply_donation` credits on any
+ *    transition INTO 'completed', a late expired → completed credits campaign
+ *    totals, donor count, ledger and owner notification EXACTLY ONCE. A second
+ *    delivery then finds 'completed', which is not completable → no-op, so no
+ *    duplicate credit and no duplicate donation row is ever created.
+ *  - 'completed' / 'refunded' / 'failed' / 'cancelled' are never re-completable,
+ *    so a duplicate or malicious replay cannot double-credit or resurrect a
+ *    reversed donation.
  *  - M2: amount AND currency are MANDATORY to complete. If either is missing it
  *    FAILS CLOSED (throws; the donation stays pending and the webhook is
  *    retryable) — a donation is NEVER credited without a verified amount.
@@ -49,7 +61,9 @@ export async function confirmDonation(
   if (!donation) throw new Error(`confirmDonation: no donation for payment_ref ${reference}`);
 
   // Idempotent — already finalized (duplicate webhook / retry): do nothing.
-  if (donation.status !== 'pending') {
+  // 'expired' is NOT finalized for this purpose: an abandoned-looking donation
+  // whose payment really was captured must still be completable.
+  if (!isCompletable(donation.status)) {
     return { status: 'noop', reason: `already_${donation.status}` };
   }
 
@@ -75,17 +89,20 @@ export async function confirmDonation(
         .from('donations')
         .update({ status: 'failed' as DonationStatus })
         .eq('payment_ref', reference)
-        .eq('status', 'pending');
+        .in('status', COMPLETABLE_STATUSES as unknown as string[]);
       return { status: 'failed', reason };
     }
   }
 
-  // Apply the final status. Re-assert pending → concurrency-safe + idempotent.
+  // Apply the final status. Re-asserting the completable set makes this
+  // concurrency-safe AND idempotent: two callbacks racing (or the expiry sweep
+  // racing a callback) means the second UPDATE matches 0 rows, so the credit
+  // trigger fires exactly once.
   const { error } = await admin
     .from('donations')
     .update({ status: status as DonationStatus })
     .eq('payment_ref', reference)
-    .eq('status', 'pending');
+    .in('status', COMPLETABLE_STATUSES as unknown as string[]);
   if (error) throw new Error(error.message);
 
   return status === 'completed' ? { status: 'completed' } : { status: 'failed', reason: status };

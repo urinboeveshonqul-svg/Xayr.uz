@@ -43,7 +43,25 @@ export type NewNameDisplay = Exclude<NameDisplay, 'first'>;
 export type CampaignCategory =
   | 'medical' | 'education' | 'disaster' | 'community'
   | 'environment' | 'animal' | 'sport' | 'other';
-export type DonationStatus = 'pending' | 'completed' | 'failed' | 'refunded';
+// Donation lifecycle states. Mirrors the donations_status_check constraint as
+// widened by supabase/donation-expiry.sql (#62).
+//   pending   → awaiting the provider callback (the only admin-actionable state)
+//   completed → paid + credited by the apply_donation() trigger
+//   failed    → provider failure or a definitive amount/currency mismatch
+//   cancelled → reserved lifecycle state; provider cancels are still recorded as
+//               'failed' so financial reporting keeps counting them
+//   expired   → no successful callback within DONATION_EXPIRY_HOURS (default 72h).
+//               NOT terminal: a verified late callback can still complete it.
+//   refunded  → was completed, then reversed (credit already debited back)
+// Semantics + the completable/actionable sets live in
+// lib/payments/donation-lifecycle.ts.
+export type DonationStatus =
+  | 'pending'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'expired'
+  | 'refunded';
 export type PaymentMethod = 'click' | 'payme' | 'paynet' | 'uzum' | 'uzcard' | 'humo' | 'cash';
 export type NotificationType =
   | 'general' | 'donation' | 'comment' | 'campaign_status' | 'update' | 'verification';

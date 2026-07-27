@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { confirmDonation } from '@/lib/payments/confirm';
+import { isCompletable } from '@/lib/payments/donation-lifecycle';
 import { clickReusableToken, saveDonationCardToken } from '@/lib/payments/save-card-token';
 import { SAVED_CARDS_DISABLED } from '@/components/payments/saved-card-constants';
 import {
@@ -142,7 +143,12 @@ export async function POST(request: Request) {
       if (donation.status === 'completed') {
         return respond(params, ClickError.AlreadyPaid, 'Already paid');
       }
-      if (donation.status !== 'pending') {
+      // 'expired' is accepted here alongside 'pending': the expiry sweep only
+      // relabels an ABANDONED-looking donation, it does not refuse the money. If
+      // Click is preparing a payment for it, the donor is paying after all, and
+      // completing must still be allowed (confirmDonation credits it exactly
+      // once). failed / cancelled / refunded remain hard refusals.
+      if (!isCompletable(donation.status)) {
         return respond(params, ClickError.TransactionCancelled, 'Transaction cancelled');
       }
       if (eventId) await markPaymentProcessed(eventId, { signatureValid: true });

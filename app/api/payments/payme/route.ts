@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { confirmDonation } from '@/lib/payments/confirm';
+import { isCompletable } from '@/lib/payments/donation-lifecycle';
 import { createPaymentEvent, markPaymentProcessed } from '@/lib/payments/helpers';
 import {
   PAYME_TRANSACTION_TIMEOUT_MS,
@@ -148,7 +149,9 @@ export async function POST(request: Request) {
         const account = (params.account ?? {}) as Record<string, unknown>;
         const donation = await findDonation(account.order_id);
         if (!donation) return fail(id, PaymeError.OrderNotFound, 'Order not found', 'order_id');
-        if (donation.status !== 'pending') {
+        // 'expired' is payable: the sweep only relabels an abandoned-looking
+        // donation, it never refuses the money (see donation-lifecycle.ts).
+        if (!isCompletable(donation.status)) {
           return fail(id, PaymeError.OrderUnavailable, 'Order is not payable', 'order_id');
         }
         if (params.amount !== somToTiyin(donation.amount)) {
@@ -171,13 +174,16 @@ export async function POST(request: Request) {
         const account = (params.account ?? {}) as Record<string, unknown>;
         const donation = await findDonation(account.order_id);
         if (!donation) return fail(id, PaymeError.OrderNotFound, 'Order not found', 'order_id');
-        if (donation.status !== 'pending') {
+        // Same as CheckPerformTransaction: an expired donation is still payable.
+        if (!isCompletable(donation.status)) {
           return fail(id, PaymeError.OrderUnavailable, 'Order is not payable', 'order_id');
         }
         if (params.amount !== somToTiyin(donation.amount)) {
           return fail(id, PaymeError.InvalidAmount, 'Invalid amount');
         }
         // Spec: a transaction Payme considers older than 12h must not be created.
+        // Payme's own 12h lifetime is 6× shorter than our 72h expiry window, so
+        // Payme abandons a transaction long before we expire the donation.
         if (typeof params.time === 'number' && Date.now() - params.time > PAYME_TRANSACTION_TIMEOUT_MS) {
           return fail(id, PaymeError.UnableToPerform, 'Transaction timed out');
         }
