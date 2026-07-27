@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Users, AlertCircle, Star, CalendarClock, CalendarX, CheckCircle2, Ban } from 'lucide-react';
+import { Heart, Users, AlertCircle, CalendarClock, CalendarX, CheckCircle2, Ban } from 'lucide-react';
 import { formatMoney, CATEGORY_CONFIG, isCampaignEnded, isGoalReached } from '@/lib/utils';
 import { useI18n } from '@/components/i18n/I18nProvider';
 import { SaveButton } from '@/components/campaigns/SaveButton';
@@ -11,7 +11,6 @@ import type { Campaign } from '@/types';
 
 interface CampaignCardProps {
   campaign: Campaign;
-  featured?: boolean;
   urgent?: boolean;
   /** When known by the parent (e.g. the Saved page), seeds the save state. */
   savedInitial?: boolean;
@@ -29,7 +28,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
   other:       'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&h=600&fit=crop&auto=format',
 };
 
-export function CampaignCard({ campaign, featured, urgent, savedInitial }: CampaignCardProps) {
+export function CampaignCard({ campaign, urgent, savedInitial }: CampaignCardProps) {
   const { t, locale } = useI18n();
 
   const raised  = campaign.current_amount ?? 0;
@@ -68,9 +67,7 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
   return (
     <Link
       href={`/${locale}/campaigns/${campaign.slug}`}
-      className={`group flex flex-col bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 ${
-        featured ? 'ring-2 ring-green-500/30' : ''
-      }`}
+      className="group flex flex-col bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
     >
       {/* Image — larger 4:3 cover, consistent across every card */}
       <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
@@ -92,7 +89,7 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
           {t(`categories.${categorySlug}`)}
         </div>
 
-        {/* Top-right stack: save button + (urgent | featured) badge */}
+        {/* Top-right stack: save button + status badges */}
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
           <SaveButton campaignId={campaign.id} initialSaved={savedInitial} />
 
@@ -100,12 +97,6 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
             <div className="px-3 py-1.5 bg-red-600 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1 animate-pulse">
               <AlertCircle className="w-3 h-3" />
               {t('campaign.urgent')}
-            </div>
-          )}
-
-          {featured && !urgent && !campaign.is_urgent && (
-            <div className="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-black shadow-lg flex items-center gap-1">
-              <Star className="w-3 h-3 fill-current" /> {t('home.featuredBadge')}
             </div>
           )}
 
@@ -149,7 +140,7 @@ export function CampaignCard({ campaign, featured, urgent, savedInitial }: Campa
         )}
 
         {/* Title */}
-        <h3 className={`font-black text-gray-900 line-clamp-2 leading-tight group-hover:text-green-600 transition-colors ${featured ? 'text-xl' : 'text-lg'}`}>
+        <h3 className="text-lg font-black text-gray-900 line-clamp-2 leading-tight group-hover:text-green-600 transition-colors">
           {campaign.title}
         </h3>
 
