@@ -116,7 +116,20 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
           if (active && !api) setStatus('error');
           return;
         }
-        // Clear any prior widget before (re-)rendering into the container.
+        // Tear down any prior widget before (re-)rendering into the container.
+        //
+        // api.remove() is the SDK's OFFICIAL teardown and the only one we use: it
+        // removes the widget's DOM *and* releases Turnstile's internal bookkeeping
+        // (widget registry, challenge state, timers, message listeners).
+        //
+        // Deliberately NO `el.innerHTML = ''` here. Everything inside this
+        // container is created by api.render() — React renders the div with no
+        // children of its own — so clearing it would detach nodes the SDK still
+        // believes it owns. Turnstile's own later cleanup then reads
+        // `node.parentNode` on an orphaned node and throws
+        // "Cannot read properties of null (reading 'parentNode')". It was also
+        // redundant: after api.remove() the container is already empty, and on the
+        // first render it is empty anyway.
         if (widgetId.current) {
           try {
             api.remove(widgetId.current);
@@ -125,7 +138,6 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
           }
           widgetId.current = null;
         }
-        el.innerHTML = '';
         try {
           widgetId.current = api.render(el, {
             sitekey: SITE_KEY,
