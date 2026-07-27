@@ -32,10 +32,11 @@
 // ============================================================
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { PENDING_PAYMENT_GRACE_MINUTES } from '@/lib/payments/reconcile-click';
 import {
-  PENDING_PAYMENT_GRACE_MINUTES,
-  PENDING_PAYMENT_LOOKBACK_DAYS,
-} from '@/lib/payments/reconcile-click';
+  ACTIONABLE_DONATION_STATUSES,
+  expiryCutoffIso,
+} from '@/lib/payments/donation-lifecycle';
 import { EMPTY_ADMIN_BADGE_COUNTS, type AdminBadgeCounts } from '@/lib/admin/badge-counts';
 
 // The count SHAPE lives in lib/admin/badge-counts.ts because the nav and its
@@ -82,15 +83,22 @@ export async function getAdminBadgeCounts(): Promise<AdminBadgeCounts> {
     const admin = createAdminClient();
     const now = Date.now();
 
-    // "Stuck payment" window — the SAME definition the Click reconciliation
-    // sweep uses (lib/payments/reconcile-click.ts), so the badge and the admin
-    // alerting agree. Younger than the grace period = still mid-checkout, not a
-    // problem yet. Older than the lookback = an abandoned checkout, which is
-    // history and needs nothing (pending never counts toward any total).
-    // Terminal `failed` donations are excluded for the same reason: the payment
-    // simply did not happen, there is nothing for an admin to do, and they stay
-    // fully visible in the /admin/donations history.
-    const stuckNotBefore = new Date(now - PENDING_PAYMENT_LOOKBACK_DAYS * 86_400_000).toISOString();
+    // ACTIVE pending payments only — the badge counts open work, so it counts
+    // exactly one status: 'pending' (ACTIONABLE_DONATION_STATUSES). Completed,
+    // failed, cancelled, EXPIRED and refunded are all history: they stay
+    // searchable in /admin/donations but are never open work, which is what lets
+    // this badge reach zero.
+    //
+    // The two bounds keep "active" honest:
+    //   • younger than the grace period → the donor may still be on the
+    //     provider's page; that is not yet a problem for a human.
+    //   • older than the expiry window → abandoned. The expiry sweep relabels
+    //     these 'expired', so they normally fall out of `status='pending'` on
+    //     their own; deriving the upper bound from the SAME config the sweep uses
+    //     (expiryCutoffIso) means the badge is already correct in the window
+    //     between a donation becoming abandoned and the next sweep run — and
+    //     stays correct even if the cron fails entirely.
+    const stuckNotBefore = expiryCutoffIso(now);
     const stuckNotAfter = new Date(now - PENDING_PAYMENT_GRACE_MINUTES * 60_000).toISOString();
 
     const [campaigns, extensions, reports, donations, verifications, flags, payouts, messages] =
@@ -116,12 +124,14 @@ export async function getAdminBadgeCounts(): Promise<AdminBadgeCounts> {
             .select('*', { count: 'exact', head: true })
             .eq('status', 'pending')
         ),
-        // Payments stuck pending inside the attention window.
+        // Active pending payments inside the attention window. Served by the
+        // partial index idx_donations_pending_created (#62) — pending rows only,
+        // so this never scans the donations table.
         safeCount(() =>
           admin
             .from('donations')
             .select('*', { count: 'exact', head: true })
-            .eq('status', 'pending')
+            .in('status', ACTIONABLE_DONATION_STATUSES as unknown as string[])
             .gte('created_at', stuckNotBefore)
             .lte('created_at', stuckNotAfter)
         ),

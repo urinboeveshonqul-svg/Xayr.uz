@@ -25,8 +25,23 @@ const STATUS_CLS: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
   completed: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
   failed: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+  cancelled: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
+  // Expired = an abandoned checkout. Muted on purpose: it is history, not a
+  // problem, and must not read as an error the admin needs to chase.
+  expired: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
   refunded: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
 };
+
+/** Status filter options, in lifecycle order. `all` includes every status. */
+const STATUS_FILTERS: { value: DonationStatus | 'all'; label: string }[] = [
+  { value: 'pending', label: 'Kutilmoqda' },
+  { value: 'completed', label: 'Tasdiqlangan' },
+  { value: 'failed', label: 'Amalga oshmagan' },
+  { value: 'cancelled', label: 'Bekor qilingan' },
+  { value: 'expired', label: 'Muddati tugagan' },
+  { value: 'refunded', label: 'Qaytarilgan' },
+  { value: 'all', label: 'Barchasi' },
+];
 
 /**
  * VIEW-ONLY donation reconciliation. No approve/reject — donations complete only
@@ -35,7 +50,10 @@ const STATUS_CLS: Record<string, string> = {
  */
 export function AdminDonationsReconciliation({ rows }: { rows: ReconRow[] }) {
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<DonationStatus | 'all'>('all');
+  // Defaults to the ACTIONABLE queue: only pending donations need an admin.
+  // Expired / cancelled / failed / completed stay one click away (and fully
+  // searchable) but never clutter the default view.
+  const [statusFilter, setStatusFilter] = useState<DonationStatus | 'all'>('pending');
   const [providerFilter, setProviderFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'guest' | 'registered' | 'anonymous'>('all');
   const [open, setOpen] = useState<string | null>(null);
@@ -76,12 +94,10 @@ export function AdminDonationsReconciliation({ rows }: { rows: ReconRow[] }) {
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:border-brand-500"
           />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as DonationStatus | 'all')} className="input sm:w-40">
-          <option value="all">Barchasi</option>
-          <option value="pending">Kutilmoqda</option>
-          <option value="completed">Tasdiqlangan</option>
-          <option value="failed">Amalga oshmagan</option>
-          <option value="refunded">Qaytarilgan</option>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as DonationStatus | 'all')} className="input sm:w-44">
+          {STATUS_FILTERS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
         </select>
         {providers.length > 0 && (
           <select value={providerFilter} onChange={(e) => setProviderFilter(e.target.value)} className="input sm:w-40">

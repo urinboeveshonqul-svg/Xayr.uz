@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { HandCoins } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AdminDonationsReconciliation, type ReconRow } from '@/components/admin/AdminDonationsReconciliation';
+import { ACTIONABLE_DONATION_STATUSES } from '@/lib/payments/donation-lifecycle';
 import type { PaymentEvent } from '@/types';
 
 export const metadata: Metadata = { title: 'Xayriyalar — Admin' };
@@ -15,12 +16,40 @@ export const dynamic = 'force-dynamic';
 export default async function AdminDonationsPage() {
   const admin = createAdminClient();
 
-  const { data: donationData } = await admin
-    .from('donations')
-    .select('id, payment_ref, payment_method, donor_id, campaign_id, amount, status, created_at, donor_name, donor_email, donor_phone, anonymous')
-    .order('created_at', { ascending: false })
-    .limit(300);
-  const donations = donationData ?? [];
+  const DONATION_COLUMNS =
+    'id, payment_ref, payment_method, donor_id, campaign_id, amount, status, created_at, donor_name, donor_email, donor_phone, anonymous';
+
+  // Two bounded queries, not a table scan:
+  //   1. every ACTIONABLE (pending) donation — this is the page's default view,
+  //      so it must be complete regardless of how much history exists. Served by
+  //      the partial index idx_donations_pending_created (#62), which holds only
+  //      pending rows and is kept small by the expiry sweep.
+  //   2. the most recent 300 donations of ANY status, so completed / failed /
+  //      cancelled / expired / refunded stay browsable and searchable here.
+  // Without (1), a busy platform's newest 300 rows could be all completed and the
+  // pending queue would look empty.
+  const [{ data: actionableData }, { data: recentData }] = await Promise.all([
+    admin
+      .from('donations')
+      .select(DONATION_COLUMNS)
+      .in('status', ACTIONABLE_DONATION_STATUSES as unknown as string[])
+      .order('created_at', { ascending: false })
+      .limit(300),
+    admin
+      .from('donations')
+      .select(DONATION_COLUMNS)
+      .order('created_at', { ascending: false })
+      .limit(300),
+  ]);
+
+  // Merge, de-duplicate by id (a recent pending row appears in both), newest first.
+  const byId = new Map<string, NonNullable<typeof recentData>[number]>();
+  for (const d of [...(actionableData ?? []), ...(recentData ?? [])]) {
+    if (!byId.has(d.id)) byId.set(d.id, d);
+  }
+  const donations = [...byId.values()].sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+  );
 
   let rows: ReconRow[] = [];
   if (donations.length > 0) {
