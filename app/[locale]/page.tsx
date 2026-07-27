@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Hero } from '@/components/home/Hero';
 import { WhyTrustButton } from '@/components/home/WhyTrustButton';
@@ -14,32 +13,19 @@ import {
 import { formatMoney, CATEGORY_CONFIG } from '@/lib/utils';
 import { getDictionary } from '@/i18n/dictionaries';
 import { isLocale, type Locale } from '@/i18n/config';
-import type { Campaign } from '@/types';
 import { getSuccessStories } from '@/lib/success-stories';
-import { getPickedCampaigns, PICKED_CAMPAIGN_LIMIT } from '@/lib/picked-campaigns';
+import { getPopularCampaigns, POPULAR_CAMPAIGN_LIMIT } from '@/lib/popular-campaigns';
 import { VerifiedSuccessBadge } from '@/components/campaigns/VerifiedSuccessBadge';
 
 export const revalidate = 60;
 
-async function getActiveCampaigns(): Promise<Campaign[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select('*, profiles:users(full_name, avatar_url), categories(slug)')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(24);
-
-    if (error) return [];
-    return (data as unknown as Campaign[]) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Success Stories now come from lib/success-stories (getSuccessStories): they
-// require goal reached + completed/funded + an APPROVED completion report.
+// The homepage has ONE campaign section: "Popular" (Ommabop), which is the
+// highest-funded active campaigns. Its query, filtering and ranking all live in
+// lib/popular-campaigns (getPopularCampaigns) — there is deliberately no second
+// campaign fetch here to slice a different section out of.
+//
+// Success Stories come from lib/success-stories (getSuccessStories): they require
+// goal reached + completed/funded + an APPROVED completion report.
 
 interface PlatformStats {
   active: number;              // active campaigns
@@ -100,22 +86,14 @@ export default async function HomePage({
   const dict = await getDictionary(lng);
   const L = (path: string) => `/${lng}${path}`;
 
-  const [campaigns, platformStats, stories, featured] = await Promise.all([
-    getActiveCampaigns(),
+  const [platformStats, stories, popular] = await Promise.all([
     getPlatformStats(),
     getSuccessStories(6),
-    // "Picked" = the highest-funded ACTIVE campaigns, ranked and filtered in
-    // Postgres (lib/picked-campaigns). Campaigns with nothing raised are never
-    // included, and the set is not derived from the newest-24 window above — a
-    // top earner that is no longer recent still shows.
-    getPickedCampaigns(PICKED_CAMPAIGN_LIMIT),
+    // "Popular" (Ommabop) = the highest-funded ACTIVE campaigns, filtered and
+    // ranked in Postgres (lib/popular-campaigns). Campaigns with nothing raised
+    // are never included, so an empty result means "render no section".
+    getPopularCampaigns(POPULAR_CAMPAIGN_LIMIT),
   ]);
-
-  const featuredIds = new Set(featured.map((c) => c.id));
-  const trending = [...campaigns]
-    .sort((a, b) => (b.current_amount ?? 0) - (a.current_amount ?? 0))
-    .filter((c) => !featuredIds.has(c.id))
-    .slice(0, 8);
 
   // Real platform statistics only — no fake fallbacks; zero renders as 0.
   const stats = [
@@ -166,29 +144,10 @@ export default async function HomePage({
           </div>
         </section>
 
-        {/* PICKED — top-funded active campaigns (never any with 0 raised, so the
-            whole section hides until at least one campaign has been funded). */}
-        {featured.length > 0 && (
-          <section className="py-20 lg:py-24 bg-gradient-to-b from-white to-gray-50">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center max-w-2xl mx-auto mb-14">
-                <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-5">
-                  <Sparkles className="w-4 h-4" /> {dict.home.featuredBadge}
-                </span>
-                <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tight">{dict.home.featuredTitle}</h2>
-                <p className="text-lg lg:text-xl text-gray-600">{dict.home.featuredSubtitle}</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {featured.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} featured />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* TRENDING */}
-        {trending.length > 0 && (
+        {/* POPULAR (Ommabop) — the homepage's single campaign section: the
+            highest-funded active campaigns. Hidden entirely while nothing has
+            been funded, since it can never show a 0-raised campaign. */}
+        {popular.length > 0 && (
           <section className="py-20 lg:py-24 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
@@ -204,7 +163,7 @@ export default async function HomePage({
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {trending.map((campaign) => (
+                {popular.map((campaign) => (
                   <CampaignCard key={campaign.id} campaign={campaign} />
                 ))}
               </div>
@@ -217,8 +176,11 @@ export default async function HomePage({
           </section>
         )}
 
-        {/* EMPTY STATE */}
-        {campaigns.length === 0 && (
+        {/* EMPTY STATE — only when the platform genuinely has no active campaigns
+            (not merely no FUNDED ones). Also requires an empty Popular grid so
+            this can never contradict a populated section if the stats query
+            fails and reports 0. */}
+        {platformStats.active === 0 && popular.length === 0 && (
           <section className="py-24 bg-gray-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-xl">
               <div className="flex justify-center mb-6">

@@ -234,12 +234,10 @@
     "verified": "Tasdiqlangan tashkilotchilar"
   },
   "home": {
-    "featuredBadge": "ENG KO'P YIG'ILGAN",
-    "featuredTitle": "Eng Ko'p Yig'ilgan Kampaniyalar",
-    "featuredSubtitle": "Jamiyat eng ko'p mablag' yig'ishga yordam bergan loyihalar",
+    "featuredBadge": "TANLANGAN",
     "trendingBadge": "OMMABOP",
     "trendingTitle": "Ommabop Kampaniyalar",
-    "trendingSubtitle": "Hozir eng ko'p qo'llab-quvvatlanayotgan loyihalar",
+    "trendingSubtitle": "Jamiyat eng ko'p mablag' yig'ishga yordam bergan loyihalar",
     "emptyTitle": "Birinchi kampaniyani siz boshlang",
     "emptySubtitle": "Hozircha faol kampaniyalar yo'q. O'z loyihangizni yarating va jamiyat yordamini to'plang.",
     "howBadge": "QANDAY ISHLAYDI",

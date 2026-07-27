@@ -234,12 +234,10 @@
     "verified": "Verified creators"
   },
   "home": {
-    "featuredBadge": "TOP FUNDED",
-    "featuredTitle": "Top Funded Campaigns",
-    "featuredSubtitle": "The projects the community has funded the most",
-    "trendingBadge": "TRENDING",
-    "trendingTitle": "Trending Campaigns",
-    "trendingSubtitle": "The most supported projects right now",
+    "featuredBadge": "FEATURED",
+    "trendingBadge": "POPULAR",
+    "trendingTitle": "Popular Campaigns",
+    "trendingSubtitle": "The projects the community has funded the most",
     "emptyTitle": "Be the first to start a campaign",
     "emptySubtitle": "There are no active campaigns yet. Create your project and gather community support.",
     "howBadge": "HOW IT WORKS",
