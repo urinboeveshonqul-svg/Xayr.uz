@@ -27,8 +27,16 @@ import { isClickMerchantConfigured, lookupPaymentByMti } from './providers/click
 // refunds are all untouched.
 // ============================================================
 
-const GRACE_MINUTES = 15; // give the normal callback time to finalize first
-const LOOKBACK_DAYS = 3; // don't chase ancient abandoned checkouts forever
+// The age window that defines a pending payment worth a human's attention.
+// Exported because it is also THE definition used by the admin badge counter
+// (lib/admin/badges.ts) — "stuck payment" must mean the same thing in the sweep
+// that alerts admins and in the badge that tells them there is something to look
+// at, or the two would disagree.
+export const PENDING_PAYMENT_GRACE_MINUTES = 15; // give the normal callback time to finalize first
+export const PENDING_PAYMENT_LOOKBACK_DAYS = 3; // don't chase ancient abandoned checkouts forever
+
+const GRACE_MINUTES = PENDING_PAYMENT_GRACE_MINUTES;
+const LOOKBACK_DAYS = PENDING_PAYMENT_LOOKBACK_DAYS;
 const MAX_PER_RUN = 200; // bound the work per cron invocation
 
 export interface ReconcileResult {

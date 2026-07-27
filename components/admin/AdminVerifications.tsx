@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Loader2, Eye, Check, X, Cake, MapPin } from 'lucide-react';
+import { notifyAdminMutation } from '@/lib/admin/badge-events';
 
 export interface VerificationRow {
   id: string;
@@ -75,6 +76,7 @@ export function AdminVerifications({
       if (!res.ok) { toast.error(json.error ?? 'Xatolik'); return; }
       // Move the decided request into the history log.
       setRows((r) => r.filter((x) => x.id !== row.id));
+      notifyAdminMutation();
       setLog((l) => [
         {
           id: row.id,

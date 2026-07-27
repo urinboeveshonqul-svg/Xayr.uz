@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Loader2, Check, X, RotateCcw, ExternalLink, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { notifyAdminMutation } from '@/lib/admin/badge-events';
 import { formatMoney } from '@/lib/utils';
 import type { FundBreakdownItem, ReportStatus } from '@/types';
 
@@ -65,6 +66,7 @@ export function AdminReports({ initialRows, locale }: { initialRows: ReportAdmin
       if (error) { toast.error(error.message); return; }
       const next: ReportStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'changes_requested';
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: next, admin_feedback: feedback ?? r.admin_feedback } : r)));
+      notifyAdminMutation();
       toast.success(t('admin.repReviewed'));
     } finally {
       setBusyId(null);

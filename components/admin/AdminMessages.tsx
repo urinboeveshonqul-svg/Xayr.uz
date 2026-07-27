@@ -4,6 +4,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Mail, CheckCheck, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { notifyAdminMutation } from '@/lib/admin/badge-events';
 import { timeAgo } from '@/lib/utils';
 
 export interface ContactMessageRow {
@@ -37,6 +38,7 @@ export function AdminMessages({ initial }: { initial: ContactMessageRow[] }) {
         return;
       }
       setRows((p) => p.map((r) => (r.id === id ? { ...r, is_read: true } : r)));
+      notifyAdminMutation();
     } finally {
       setBusyId(null);
     }

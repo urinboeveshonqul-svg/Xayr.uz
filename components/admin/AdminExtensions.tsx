@@ -5,6 +5,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Loader2, Check, X, CalendarClock, ExternalLink } from 'lucide-react';
 import { useI18n } from '@/components/i18n/I18nProvider';
+import { notifyAdminMutation } from '@/lib/admin/badge-events';
 import { formatMoney } from '@/lib/utils';
 import type { CampaignExtensionRequest } from '@/types';
 
@@ -69,6 +70,7 @@ export function AdminExtensions({ initialRows, locale }: { initialRows: Extensio
       const { ok, error } = await post({ action: 'approve', requestId: id });
       if (!ok) { toast.error(error ?? 'Error'); return; }
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'approved' } : r)));
+      notifyAdminMutation();
       toast.success(t('admin.extApproved'));
     } finally {
       setBusyId(null);
@@ -84,6 +86,7 @@ export function AdminExtensions({ initialRows, locale }: { initialRows: Extensio
       const { ok, error } = await post({ action: 'reject', requestId: id, reason: reason.trim() });
       if (!ok) { toast.error(error ?? 'Error'); return; }
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'rejected', admin_note: reason.trim() } : r)));
+      notifyAdminMutation();
       toast.success(t('admin.extRejected'));
     } finally {
       setBusyId(null);

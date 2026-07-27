@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { ExternalLink, CheckCircle2, Loader2, Flag } from 'lucide-react';
+import { notifyAdminMutation } from '@/lib/admin/badge-events';
 import { timeAgo } from '@/lib/utils';
 
 const REASON_LABEL: Record<string, string> = {
@@ -57,6 +58,7 @@ export function AdminCampaignFlags({ initialFlags, locale }: Props) {
             : f
         )
       );
+      notifyAdminMutation();
       toast.success('Shikoyat hal etildi');
     } finally {
       setBusyId(null);
