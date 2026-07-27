@@ -52,8 +52,8 @@ export function AdminExtensions({ initialRows, locale }: { initialRows: Extensio
   };
 
   // Approve/reject go through the server route (not a direct RPC) so an approval
-  // can revalidate the cached homepage — the reactivated campaign rejoins
-  // featured/trending immediately, with no user action.
+  // can revalidate the cached homepage — the reactivated campaign rejoins the
+  // Popular grid immediately, with no user action.
   const post = async (payload: { action: 'approve' | 'reject'; requestId: string; reason?: string }) => {
     const res = await fetch('/api/admin/extensions', {
       method: 'POST',

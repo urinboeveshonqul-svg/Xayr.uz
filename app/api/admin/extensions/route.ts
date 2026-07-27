@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
  *
  * Why a server route instead of a direct client RPC: approving reactivates the
  * campaign (expired → active), which must rejoin the ONE cached surface — the
- * ISR homepage (featured/trending/active grid, `revalidate = 60`). Only a
+ * ISR homepage (the Popular campaigns grid, `revalidate = 60`). Only a
  * server context can call revalidatePath, so we do it here. Every other surface
  * (detail page, listings, search, Saved, Recently Viewed, dashboards, related)
  * is dynamically rendered and already reflects the in-place status update on the
@@ -64,8 +64,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Invalidate the only cached surface so the reactivated campaign reappears in
-  // featured/trending immediately. The campaign page is dynamic already; we
+  // Invalidate the only cached surface so the reactivated campaign can reappear
+  // in the Popular grid immediately. The campaign page is dynamic already; we
   // revalidate it too so any future caching there can't go stale.
   revalidatePath('/[locale]', 'page');
   revalidatePath('/[locale]/campaigns/[slug]', 'page');
