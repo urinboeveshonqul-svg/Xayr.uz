@@ -233,9 +233,9 @@
     "verified": "Verified creators"
   },
   "home": {
-    "featuredBadge": "FEATURED",
-    "featuredTitle": "Featured Campaigns",
-    "featuredSubtitle": "The projects the community cares about most",
+    "featuredBadge": "TOP FUNDED",
+    "featuredTitle": "Top Funded Campaigns",
+    "featuredSubtitle": "The projects the community has funded the most",
     "trendingBadge": "TRENDING",
     "trendingTitle": "Trending Campaigns",
     "trendingSubtitle": "The most supported projects right now",
