@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { timingSafeEqual } from '@/lib/security/timing-safe';
-import type { PaymentProvider } from '../types';
+import type { PaymentProvider, EmbeddedCheckout } from '../types';
 
 // ============================================================
 // Click (click.uz) — SHOP API provider. SERVER-ONLY.
@@ -192,9 +192,19 @@ export const clickProvider: PaymentProvider = {
     // Offer the in-page card overlay ONLY for the card submethod and only when
     // explicitly enabled. redirectUrl is always returned too, so the client
     // silently falls back to the proven redirect if anything is missing.
-    const embedded =
+    // ⚗️ EXPERIMENT (temporary): Click documents an OPTIONAL `card_type` parameter
+    // for checkout.js, whose documented values are 'uzcard' | 'humo'. We have never
+    // sent it. Set CLICK_CARD_TYPE to exactly one of those to include it; any other
+    // value (or unset) omits it, which is byte-identical to the previous behaviour.
+    // No undocumented value can leak — the whitelist below is the documented enum.
+    // TO REVERT: unset CLICK_CARD_TYPE (no code change needed).
+    const rawCardType = process.env.CLICK_CARD_TYPE;
+    const cardType: 'uzcard' | 'humo' | undefined =
+      rawCardType === 'uzcard' || rawCardType === 'humo' ? rawCardType : undefined;
+
+    const embedded: EmbeddedCheckout | null =
       submethod === 'card' && isClickEmbeddedCardEnabled()
-        ? ({ kind: 'click_checkout_js', serviceId, merchantId, amount: amountStr } as const)
+        ? { kind: 'click_checkout_js', serviceId, merchantId, amount: amountStr, ...(cardType ? { cardType } : {}) }
         : null;
 
     return {
